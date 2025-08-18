@@ -3,31 +3,13 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Plus, Play } from 'lucide-react';
+import { legacyWorkouts } from '@/lib/seedData';
 
 export default function WorkoutPage() {
   const router = useRouter();
 
-  // Mock data - in a real app this would come from state/API
-  const workouts = [
-    {
-      id: 'push',
-      name: 'Push Day',
-      exercises: 5,
-      duration: 45
-    },
-    {
-      id: 'pull',
-      name: 'Pull Day',
-      exercises: 6,
-      duration: 50
-    },
-    {
-      id: 'legs',
-      name: 'Leg Day',
-      exercises: 7,
-      duration: 60
-    }
-  ];
+  // Using real seed data based on actual workout sessions
+  const workouts = legacyWorkouts;
 
   return (
     <div className="px-6 py-8 pb-24">
@@ -53,7 +35,7 @@ export default function WorkoutPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      router.push(`/session/start?workout=${workout.id}`);
+                      router.push(`/session/log?workout=${workout.id}`);
                     }}
                     className="bg-lime-400 text-black p-3 rounded-full hover:bg-lime-500 transition-colors"
                   >

@@ -1,18 +1,36 @@
+'use client';
+
 import Link from 'next/link';
 import { ArrowLeft, Check, Plus } from 'lucide-react';
+import { workoutSeedData } from '@/lib/seedData';
+import { useSearchParams } from 'next/navigation';
 
 export default function LogSessionPage() {
+  const searchParams = useSearchParams();
+  const workoutId = searchParams.get('workout');
+  
+  // Get workout data based on the workout parameter
+  const workout = workoutId ? workoutSeedData[workoutId] : null;
+  
+  if (!workout) {
+    return (
+      <div className="px-6 py-8">
+        <h1 className="text-2xl font-bold text-gray-900">Workout not found</h1>
+        <Link href="/workout" className="text-cyan-400 mt-4 block">← Back to workouts</Link>
+      </div>
+    );
+  }
   return (
     <div className="px-6 py-8 pb-32">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <Link href="/session/start" className="p-2 -ml-2">
+          <Link href={`/workout/${workoutId}`} className="p-2 -ml-2">
             <ArrowLeft size={24} className="text-gray-600" />
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Push Day</h1>
-            <p className="text-sm text-gray-500">Exercise 1 of 5</p>
+            <h1 className="text-xl font-bold text-gray-900">{workout.name}</h1>
+            <p className="text-sm text-gray-500">Exercise 1 of {workout.exercises}</p>
           </div>
         </div>
         <div className="text-sm text-gray-500">12:34</div>
@@ -20,7 +38,7 @@ export default function LogSessionPage() {
 
       {/* Current Exercise */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Bench Press</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">{workout.exercises_list[0]?.name}</h2>
         
         {/* Sets */}
         <div className="space-y-3">
