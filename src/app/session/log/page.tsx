@@ -2,117 +2,26 @@
 
 import Link from 'next/link';
 import { ArrowLeft, Check, Plus } from 'lucide-react';
-import { workoutSeedData } from '@/lib/seedData';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useWorkoutTimer } from '@/hooks/useWorkoutTimer';
+import { useSetTracking } from '@/hooks/useSetTracking';
+import { useWorkoutSession } from '@/hooks/useWorkoutSession';
 
 export default function LogSessionPage() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const workoutId = searchParams.get('workout');
-  const currentExerciseIndex = parseInt(searchParams.get('exercise') || '0');
-  
-  // Get workout data based on the workout parameter
-  const workout = workoutId ? workoutSeedData[workoutId] : null;
-  const currentExercise = workout?.exercises_list[currentExerciseIndex];
-  
-  // State for tracking completed sets
-  const [completedSets, setCompletedSets] = useState<boolean[]>([]);
-  
-  // State for tracking current set values
-  const [setValues, setSetValues] = useState<Array<{weight: number, reps: number}>>([]);
-  
-  // Timer state
-  const [startTime, setStartTime] = useState<number | null>(null);
-  const [currentTime, setCurrentTime] = useState<number>(Date.now());
-  
-  // Reset state when exercise changes
-  useEffect(() => {
-    if (currentExercise) {
-      setCompletedSets(new Array(currentExercise.sets.length).fill(false));
-      setSetValues(currentExercise.sets.map(set => ({ weight: set.weight, reps: set.reps })));
-    }
-  }, [currentExerciseIndex, currentExercise]);
-  
-  // Initialize timer when component mounts or retrieve from session storage
-  useEffect(() => {
-    const sessionKey = `workout_timer_${workoutId}`;
-    const savedStartTime = sessionStorage.getItem(sessionKey);
-    
-    if (savedStartTime) {
-      setStartTime(parseInt(savedStartTime));
-    } else {
-      const now = Date.now();
-      setStartTime(now);
-      sessionStorage.setItem(sessionKey, now.toString());
-    }
-  }, [workoutId]);
-  
-  // Update current time every second
-  useEffect(() => {
-    if (!startTime) return;
-    
-    const interval = setInterval(() => {
-      setCurrentTime(Date.now());
-    }, 1000);
-    
-    return () => clearInterval(interval);
-  }, [startTime]);
+  // Custom hooks for business logic
+  const { workoutId, currentExerciseIndex, workout, currentExercise, navigateToNextExercise, finishWorkout } = useWorkoutSession();
+  const { elapsedTime, formatTime } = useWorkoutTimer(workoutId);
+  const { completedSets, setValues, toggleSetCompletion, updateSetValue, addSet } = useSetTracking(currentExercise);
   
   // Check if this is a bodyweight exercise (all sets have weight = 0)
-  const isBodyweightExercise = currentExercise?.sets.every(set => set.weight === 0) || false;
+  const isBodyweightExercise = currentExercise?.sets.every((set: {weight: number}) => set.weight === 0) || false;
   
-  // Calculate elapsed time
-  const elapsedTime = startTime ? Math.floor((currentTime - startTime) / 1000) : 0;
-  
-  // Format time as MM:SS
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-  
-  // Helper functions
-  const toggleSetCompletion = (setIndex: number) => {
-    setCompletedSets(prev => {
-      const newState = [...prev];
-      newState[setIndex] = !newState[setIndex];
-      return newState;
-    });
-  };
-  
-  const updateSetValue = (setIndex: number, field: 'weight' | 'reps', value: number) => {
-    setSetValues(prev => {
-      const newValues = [...prev];
-      newValues[setIndex] = { ...newValues[setIndex], [field]: value };
-      return newValues;
-    });
-  };
-  
+  // Event handlers
   const handleCompleteSet = () => {
-    const nextExerciseIndex = currentExerciseIndex + 1;
-    if (nextExerciseIndex < (workout?.exercises_list.length || 0)) {
-      // Go to next exercise
-      router.push(`/session/log?workout=${workoutId}&exercise=${nextExerciseIndex}`);
-    } else {
-      // Go to finish page if it's the last exercise
-      // Store final duration in session storage
-      const finalDuration = elapsedTime;
-      sessionStorage.setItem(`workout_duration_${workoutId}`, finalDuration.toString());
-      router.push(`/session/finish?workout=${workoutId}`);
-    }
+    navigateToNextExercise();
   };
   
-  const handleAddSet = () => {
-    if (!currentExercise || setValues.length === 0) return;
-    
-    // Get the last set's values as defaults for the new set
-    const lastSet = setValues[setValues.length - 1];
-    const newSet = { weight: lastSet.weight, reps: lastSet.reps };
-    
-    // Add new set to state arrays
-    setSetValues(prev => [...prev, newSet]);
-    setCompletedSets(prev => [...prev, false]);
+  const handleFinishWorkout = () => {
+    finishWorkout(elapsedTime);
   };
   
   if (!workout || !currentExercise) {
@@ -236,7 +145,7 @@ export default function LogSessionPage() {
           Complete Set
         </button>
         <button 
-          onClick={handleAddSet}
+          onClick={addSet}
           className="px-4 py-3 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
         >
           <Plus size={20} className="text-gray-600" />
@@ -246,12 +155,7 @@ export default function LogSessionPage() {
       {/* Finish Button */}
       <div className="fixed bottom-24 left-6 right-6">
         <button 
-          onClick={() => {
-            // Store final duration in session storage
-            const finalDuration = elapsedTime;
-            sessionStorage.setItem(`workout_duration_${workoutId}`, finalDuration.toString());
-            router.push(`/session/finish?workout=${workoutId}`);
-          }}
+          onClick={handleFinishWorkout}
           className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl text-center block cursor-pointer"
         >
           Finish Workout
