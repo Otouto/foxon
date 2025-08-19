@@ -441,6 +441,50 @@ export class SessionService {
   }
 
   /**
+   * Get previous session data for the same workout and exercise
+   */
+  static async getPreviousSessionData(
+    userId: string, 
+    workoutId: string, 
+    exerciseId: string,
+    currentSessionId?: string
+  ): Promise<{ load: number; reps: number }[] | null> {
+    // Find the most recent finished session for this workout (excluding current session if provided)
+    const previousSession = await prisma.session.findFirst({
+      where: {
+        userId,
+        workoutId,
+        status: 'FINISHED',
+        ...(currentSessionId && { id: { not: currentSessionId } })
+      },
+      include: {
+        sessionExercises: {
+          where: { exerciseId },
+          include: {
+            sessionSets: {
+              where: { completed: true },
+              orderBy: { order: 'asc' }
+            }
+          }
+        }
+      },
+      orderBy: { date: 'desc' }
+    });
+
+    if (!previousSession || previousSession.sessionExercises.length === 0) {
+      return null;
+    }
+
+    // Get the completed sets from the previous session
+    const previousSets = previousSession.sessionExercises[0].sessionSets.map(set => ({
+      load: Number(set.load),
+      reps: set.reps
+    }));
+
+    return previousSets.length > 0 ? previousSets : null;
+  }
+
+  /**
    * Delete a session and all its related data
    */
   static async deleteSession(sessionId: string, userId: string): Promise<boolean> {

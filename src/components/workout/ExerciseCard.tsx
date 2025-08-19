@@ -10,7 +10,7 @@ interface SetValue {
 interface Exercise {
   name: string;
   sets: SetValue[];
-  previousSession?: SetValue[];
+  previousSession?: SetValue[] | null;
 }
 
 interface ExerciseCardProps {
@@ -37,9 +37,15 @@ export function ExerciseCard({
       {/* Column Headers */}
       <div className="flex items-center gap-3 pb-3 mb-3 border-b border-gray-100">
         <div className="w-6"></div> {/* Space for check icon */}
-        <div className={`flex-1 grid gap-2 text-center ${isBodyweightExercise ? 'grid-cols-3' : 'grid-cols-4'}`}>
+        <div className={`flex-1 grid gap-2 text-center ${
+          currentExercise.previousSession && currentExercise.previousSession.length > 0 
+            ? (isBodyweightExercise ? 'grid-cols-3' : 'grid-cols-4')
+            : (isBodyweightExercise ? 'grid-cols-2' : 'grid-cols-3')
+        }`}>
           <p className="text-xs text-gray-500 font-medium">SET</p>
-          <p className="text-xs text-gray-500 font-medium">PREVIOUS</p>
+          {currentExercise.previousSession && currentExercise.previousSession.length > 0 && (
+            <p className="text-xs text-gray-500 font-medium">PREVIOUS</p>
+          )}
           {!isBodyweightExercise && <p className="text-xs text-gray-500 font-medium">KG</p>}
           <p className="text-xs text-gray-500 font-medium">REPS</p>
         </div>
@@ -48,11 +54,11 @@ export function ExerciseCard({
       {/* Sets */}
       <div className="space-y-3">
         {setValues.map((set, index) => {
-          // Get previous session data from JSON, fallback to current set data
-          const previousSet = currentExercise.previousSession?.[index] || {
-            weight: set.weight,
-            reps: set.reps
-          };
+          // Only use previous session data if it exists and has data for this set index
+          const hasPreviousData = currentExercise.previousSession && 
+                                  currentExercise.previousSession.length > 0 && 
+                                  currentExercise.previousSession[index];
+          const previousSet = hasPreviousData ? currentExercise.previousSession![index] : null;
           
           return (
             <div 
@@ -74,15 +80,21 @@ export function ExerciseCard({
                 <Check size={14} className={completedSets[index] ? "text-black" : "text-gray-500"} />
               </button>
               
-              <div className={`flex-1 grid gap-2 items-center text-center ${isBodyweightExercise ? 'grid-cols-3' : 'grid-cols-4'}`}>
+              <div className={`flex-1 grid gap-2 items-center text-center ${
+                hasPreviousData 
+                  ? (isBodyweightExercise ? 'grid-cols-3' : 'grid-cols-4')
+                  : (isBodyweightExercise ? 'grid-cols-2' : 'grid-cols-3')
+              }`}>
                 <div>
                   <p className="font-medium text-gray-900">{index + 1}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-400">
-                    {isBodyweightExercise ? `${previousSet.reps}` : `${previousSet.weight}kg × ${previousSet.reps}`}
-                  </p>
-                </div>
+                {hasPreviousData && previousSet && (
+                  <div>
+                    <p className="text-sm text-gray-400">
+                      {isBodyweightExercise ? `${previousSet.reps}` : `${previousSet.weight}kg × ${previousSet.reps}`}
+                    </p>
+                  </div>
+                )}
                 {!isBodyweightExercise && (
                   <div>
                     {completedSets[index] ? (

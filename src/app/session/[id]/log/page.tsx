@@ -105,7 +105,7 @@ export default function SessionLogPage() {
   const exerciseForCard = {
     name: state.currentExercise.exerciseName,
     sets: state.currentExercise.sets.map(set => ({ weight: set.load, reps: set.reps })),
-    previousSession: state.currentExercise.sets.map(set => ({ weight: set.load, reps: set.reps }))
+    previousSession: state.currentExercise.previousSessionData?.map(set => ({ weight: set.load, reps: set.reps })) || null
   };
 
   // Convert sets to format expected by ExerciseCard

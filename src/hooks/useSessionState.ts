@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getSessionFromAPI, batchUpdateSets, finishSession } from '@/lib/sessionClient';
+import { getSessionFromAPI, batchUpdateSets, finishSession, getPreviousSessionData } from '@/lib/sessionClient';
 import type { SessionWithDetails, BatchSetOperation } from '@/services/SessionService';
 import { SetType } from '@prisma/client';
 
@@ -20,6 +20,7 @@ interface ExerciseData {
   order: number;
   notes?: string;
   sets: SetData[];
+  previousSessionData?: { load: number; reps: number }[] | null;
 }
 
 interface SessionState {
@@ -76,9 +77,20 @@ export function useSessionState(sessionId: string): UseSessionStateReturn {
         completed: set.completed,
         order: set.order,
         notes: set.notes || undefined,
-      }))
+      })),
+      previousSessionData: null // Will be loaded separately
     }));
   }, []);
+
+  // Helper to load previous session data for an exercise
+  const loadPreviousSessionData = useCallback(async (exerciseId: string): Promise<{ load: number; reps: number }[] | null> => {
+    try {
+      return await getPreviousSessionData(sessionId, exerciseId);
+    } catch (error) {
+      console.error('Failed to load previous session data:', error);
+      return null;
+    }
+  }, [sessionId]);
 
   // Load session data
   const loadSession = useCallback(async () => {
@@ -92,6 +104,14 @@ export function useSessionState(sessionId: string): UseSessionStateReturn {
       }
 
       const exercises = convertSessionToLocal(sessionData);
+      
+      // Load previous session data for the first exercise
+      if (exercises.length > 0) {
+        const firstExercise = exercises[0];
+        const previousData = await loadPreviousSessionData(firstExercise.exerciseId);
+        firstExercise.previousSessionData = previousData;
+      }
+
       const currentExercise = exercises[0] || null;
 
       setState({
@@ -109,7 +129,7 @@ export function useSessionState(sessionId: string): UseSessionStateReturn {
         isLoading: false 
       }));
     }
-  }, [sessionId, convertSessionToLocal]);
+  }, [sessionId, convertSessionToLocal, loadPreviousSessionData]);
 
   // Batch operation executor
   const executeBatchOperations = useCallback(async () => {
@@ -277,13 +297,21 @@ export function useSessionState(sessionId: string): UseSessionStateReturn {
     const nextIndex = state.currentExerciseIndex + 1;
     if (nextIndex < state.session.sessionExercises.length) {
       const exercises = convertSessionToLocal(state.session);
+      
+      // Load previous session data for the next exercise
+      if (exercises[nextIndex]) {
+        const nextExercise = exercises[nextIndex];
+        const previousData = await loadPreviousSessionData(nextExercise.exerciseId);
+        nextExercise.previousSessionData = previousData;
+      }
+      
       setState(prev => ({
         ...prev,
         currentExerciseIndex: nextIndex,
         currentExercise: exercises[nextIndex] || null,
       }));
     }
-  }, [state.session, state.currentExerciseIndex, executeBatchOperations, convertSessionToLocal]);
+  }, [state.session, state.currentExerciseIndex, executeBatchOperations, convertSessionToLocal, loadPreviousSessionData]);
 
   const finishWorkout = useCallback(async (): Promise<SessionWithDetails | null> => {
     if (!state.session) return null;

@@ -121,6 +121,31 @@ export async function createSessionSeal(
 }
 
 /**
+ * Client-side helper to get previous session data for an exercise
+ */
+export async function getPreviousSessionData(
+  sessionId: string,
+  exerciseId: string
+): Promise<{ load: number; reps: number }[] | null> {
+  try {
+    const response = await fetch(`/api/sessions/${sessionId}/previous?exerciseId=${exerciseId}`);
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null; // No previous data found
+      }
+      throw new Error('Failed to fetch previous session data');
+    }
+
+    const data = await response.json();
+    return data.previousData;
+  } catch (error) {
+    console.error('Error fetching previous session data:', error);
+    return null;
+  }
+}
+
+/**
  * Legacy function for backward compatibility - will be removed
  * @deprecated Use batchUpdateSets instead
  */
