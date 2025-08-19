@@ -4,58 +4,100 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { getSessionFromAPI, updateSessionViaAPI } from '@/lib/sessionClient';
-import type { Session } from '@/lib/seedData';
+import { getSessionFromAPI, finishSession, createSessionSeal } from '@/lib/sessionClient';
+import type { SessionWithDetails, SessionSealData } from '@/services/SessionService';
+import { EffortLevel } from '@prisma/client';
 
 export default function SessionFinishPage() {
   const params = useParams();
   const router = useRouter();
   const sessionId = params.id as string;
   
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<SessionWithDetails | null>(null);
   const [duration, setDuration] = useState<string>('00:00');
+  const [isFinishing, setIsFinishing] = useState(false);
+  const [effort, setEffort] = useState<EffortLevel>(EffortLevel.HARD);
+  const [vibeLine, setVibeLine] = useState('');
+  const [note, setNote] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   useEffect(() => {
-    async function loadSession() {
-      const sessionData = await getSessionFromAPI(sessionId);
+    async function loadAndFinishSession() {
+      let sessionData = await getSessionFromAPI(sessionId);
       if (!sessionData) {
         router.push('/workout');
         return;
       }
       
+      // If session is still active, finish it first
+      if (sessionData.status === 'ACTIVE') {
+        setIsFinishing(true);
+        try {
+          const finishedSessionData = await finishSession(sessionId);
+          if (finishedSessionData) {
+            sessionData = finishedSessionData;
+          }
+        } catch (error) {
+          console.error('Failed to finish session:', error);
+        } finally {
+          setIsFinishing(false);
+        }
+      }
+      
       setSession(sessionData);
     
-    // Calculate session duration
-    const startTime = new Date(sessionData.created_at).getTime();
-    const endTime = Date.now();
-    const durationSeconds = Math.floor((endTime - startTime) / 1000);
-    const mins = Math.floor(durationSeconds / 60);
-    const secs = durationSeconds % 60;
-    setDuration(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
-    
-    // Mark session as finished if not already
-    if (sessionData.status === 'ACTIVE') {
-      // Calculate totals
-      const totalSets = sessionData.exercises.reduce((sum, ex) => sum + ex.sets.filter(set => set.completed).length, 0);
-      const totalVolume = sessionData.exercises.reduce((sum, ex) => 
-        sum + ex.sets.filter(set => set.completed).reduce((exSum, set) => exSum + (set.load * set.reps), 0), 0
-      );
-      
-        updateSessionViaAPI(sessionId, { 
-          status: 'FINISHED',
-          total_sets: totalSets,
-          total_volume: totalVolume
-        });
-      }
+      // Calculate session duration
+      const startTime = new Date(sessionData.createdAt).getTime();
+      const endTime = new Date(sessionData.updatedAt).getTime();
+      const durationSeconds = Math.floor((endTime - startTime) / 1000);
+      const mins = Math.floor(durationSeconds / 60);
+      const secs = durationSeconds % 60;
+      setDuration(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
     }
     
-    loadSession();
+    loadAndFinishSession();
   }, [sessionId, router]);
 
-  const handleSaveAndComplete = () => {
-    // In a real app, this would save the session seal to the database
-    router.push('/');
+  const handleSaveAndComplete = async () => {
+    if (!vibeLine.trim()) {
+      alert('Please add a vibe line for your session');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      const sealData: SessionSealData = {
+        effort,
+        vibeLine: vibeLine.trim(),
+        note: note.trim() || undefined
+      };
+
+      const success = await createSessionSeal(sessionId, sealData);
+      
+      if (success) {
+        router.push('/');
+      } else {
+        alert('Failed to save session. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to save session seal:', error);
+      alert('Failed to save session. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (isFinishing) {
+    return (
+      <div className="px-6 py-8 flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-lime-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Finishing your session...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!session) {
     return (
@@ -78,7 +120,7 @@ export default function SessionFinishPage() {
 
       {/* Session Summary */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">{session.workout_name} Summary</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">{session.workout?.title || 'Unknown Workout'} Summary</h2>
         
         <div className="grid grid-cols-2 gap-6 mb-4">
           <div className="text-center">
@@ -86,18 +128,18 @@ export default function SessionFinishPage() {
             <p className="text-sm text-gray-500">Duration</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-gray-900">{session.total_volume}kg</p>
+            <p className="text-2xl font-bold text-gray-900">{Number(session.totalVolume)}kg</p>
             <p className="text-sm text-gray-500">Total Volume</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-6">
           <div className="text-center">
-            <p className="text-2xl font-bold text-gray-900">{session.total_sets}</p>
+            <p className="text-2xl font-bold text-gray-900">{session.totalSets}</p>
             <p className="text-sm text-gray-500">Total Sets</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-lime-600">{session.exercises.length}</p>
+            <p className="text-2xl font-bold text-lime-600">{session.sessionExercises.length}</p>
             <p className="text-sm text-gray-500">Exercises</p>
           </div>
         </div>
@@ -119,14 +161,18 @@ export default function SessionFinishPage() {
                 type="range"
                 min="1"
                 max="4"
-                defaultValue="3"
+                value={Object.values(EffortLevel).indexOf(effort) + 1}
+                onChange={(e) => {
+                  const effortLevels = [EffortLevel.EASY, EffortLevel.STEADY, EffortLevel.HARD, EffortLevel.ALL_IN];
+                  setEffort(effortLevels[parseInt(e.target.value) - 1]);
+                }}
                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
               />
             </div>
             <span className="text-xs text-gray-500">All-In</span>
           </div>
           <div className="text-center mt-2">
-            <span className="text-sm font-medium text-lime-600">Hard</span>
+            <span className="text-sm font-medium text-lime-600">{effort}</span>
           </div>
         </div>
 
@@ -138,7 +184,10 @@ export default function SessionFinishPage() {
           <input
             type="text"
             placeholder="e.g., Crushed those bench sets!"
+            value={vibeLine}
+            onChange={(e) => setVibeLine(e.target.value)}
             className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-transparent"
+            maxLength={200}
           />
         </div>
 
@@ -150,7 +199,10 @@ export default function SessionFinishPage() {
           <textarea
             placeholder="Any additional thoughts about this session..."
             rows={3}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
             className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-transparent resize-none"
+            maxLength={1000}
           />
         </div>
       </div>
@@ -159,9 +211,10 @@ export default function SessionFinishPage() {
       <div className="fixed bottom-24 left-6 right-6">
         <button 
           onClick={handleSaveAndComplete}
-          className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl text-center block"
+          disabled={isSubmitting || !vibeLine.trim()}
+          className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl text-center block disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Save & Complete
+          {isSubmitting ? 'Saving...' : 'Save & Complete'}
         </button>
       </div>
     </div>

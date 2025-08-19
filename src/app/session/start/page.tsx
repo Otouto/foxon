@@ -1,11 +1,12 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, Suspense } from 'react';
+import { useEffect, useRef, Suspense } from 'react';
 
 function SessionStartContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isCreatingRef = useRef(false);
   
   useEffect(() => {
     const workoutId = searchParams.get('workoutId');
@@ -17,6 +18,14 @@ function SessionStartContent() {
     }
 
     async function createSession() {
+      // Prevent duplicate requests in React Strict Mode
+      if (isCreatingRef.current) {
+        console.log('Session creation already in progress, skipping duplicate request');
+        return;
+      }
+      
+      isCreatingRef.current = true;
+      
       try {
         // Create a new session via API route
         const response = await fetch('/api/sessions', {
@@ -41,12 +50,19 @@ function SessionStartContent() {
         }
       } catch (error) {
         console.error('Failed to create session:', error);
+        // Reset flag on error so user can retry
+        isCreatingRef.current = false;
         // Redirect back to workouts on error
         router.push('/workout');
       }
     }
     
     createSession();
+    
+    // Cleanup function to reset flag when component unmounts
+    return () => {
+      isCreatingRef.current = false;
+    };
   }, [searchParams, router]);
 
   // Show loading state while redirecting

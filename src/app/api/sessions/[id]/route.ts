@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, updateSession } from '@/lib/seedData';
+import { SessionService } from '@/services/SessionService';
+import { getCurrentUserId, isAuthenticated } from '@/lib/auth';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Get authenticated user (using mock auth for now)
+    if (!isAuthenticated()) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+    
+    const userId = getCurrentUserId();
+
     const { id } = await params;
     
     if (!id) {
@@ -15,8 +26,8 @@ export async function GET(
       );
     }
 
-    // Get session from server-side storage
-    const session = getSession(id);
+    // Get session from database
+    const session = await SessionService.getSession(id, userId);
 
     if (!session) {
       return NextResponse.json(
@@ -34,7 +45,7 @@ export async function GET(
     console.error('Failed to get session:', error);
     
     return NextResponse.json(
-      { error: 'Failed to get session' },
+      { error: error instanceof Error ? error.message : 'Failed to get session' },
       { status: 500 }
     );
   }
@@ -45,6 +56,16 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Get authenticated user (using mock auth for now)
+    if (!isAuthenticated()) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+    
+    const userId = getCurrentUserId();
+
     const { id } = await params;
     const updates = await request.json();
     
@@ -55,26 +76,21 @@ export async function PATCH(
       );
     }
 
-    // Update session in server-side storage
-    const updatedSession = updateSession(id, updates);
-
-    if (!updatedSession) {
-      return NextResponse.json(
-        { error: 'Session not found' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ 
-      success: true, 
-      session: updatedSession 
-    });
+    // For now, we'll handle simple updates, but we should migrate to batch operations
+    // This is a temporary implementation for backward compatibility
+    
+    // Note: This endpoint will be deprecated in favor of batch operations
+    // For now, we'll just return an error encouraging use of the new batch endpoint
+    return NextResponse.json(
+      { error: 'This endpoint is deprecated. Please use /api/sessions/[id]/sets/batch for set updates.' },
+      { status: 410 } // Gone
+    );
 
   } catch (error) {
     console.error('Failed to update session:', error);
     
     return NextResponse.json(
-      { error: 'Failed to update session' },
+      { error: error instanceof Error ? error.message : 'Failed to update session' },
       { status: 500 }
     );
   }

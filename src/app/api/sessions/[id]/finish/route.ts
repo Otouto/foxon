@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SessionService } from '@/services/SessionService';
 import { getCurrentUserId, isAuthenticated } from '@/lib/auth';
 
-export async function POST(request: NextRequest) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     // Get authenticated user (using mock auth for now)
     if (!isAuthenticated()) {
@@ -14,34 +17,28 @@ export async function POST(request: NextRequest) {
     
     const userId = getCurrentUserId();
 
-    const { workoutId } = await request.json();
-
-    if (!workoutId) {
+    const { id: sessionId } = await params;
+    
+    if (!sessionId) {
       return NextResponse.json(
-        { error: 'Workout ID is required' },
+        { error: 'Session ID is required' },
         { status: 400 }
       );
     }
 
-    // Create session using database service
-    const session = await SessionService.createSession({
-      workoutId,
-      userId
-    });
+    // Finish the session and calculate totals
+    const finishedSession = await SessionService.finishSession(sessionId, userId);
 
     return NextResponse.json({ 
       success: true, 
-      session: {
-        id: session.id,
-        workoutName: session.workout?.title || 'Unknown Workout'
-      }
+      session: finishedSession
     });
 
   } catch (error) {
-    console.error('Failed to create session:', error);
+    console.error('Failed to finish session:', error);
     
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to create session' },
+      { error: error instanceof Error ? error.message : 'Failed to finish session' },
       { status: 500 }
     );
   }
