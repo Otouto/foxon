@@ -14,51 +14,211 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// User model
+// Enums
+enum ProgressionState {
+  SLIM
+  FIT
+  STRONG
+  FIERY
+}
+
+enum SetType {
+  WARMUP
+  NORMAL
+}
+
+enum SessionStatus {
+  ACTIVE
+  FINISHED
+}
+
+enum EffortLevel {
+  EASY
+  STEADY
+  HARD
+  ALL_IN
+}
+
+// Core User Management
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String          @id @default(cuid())
+  clerkUserId      String          @unique @map("clerk_user_id")
+  displayName      String?         @map("display_name")
+  avatarUrl        String?         @map("avatar_url")
+  weeklyGoal       Int             @default(2) @map("weekly_goal")
+  progressionState ProgressionState @default(SLIM) @map("progression_state")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
 
   // Relations
-  workouts WorkoutSession[]
+  workouts Workout[]
+  sessions Session[]
 
   @@map("users")
 }
 
-// Workout model
-model Workout {
+// Shared Exercise Vocabulary
+model MuscleGroup {
   id          String   @id @default(cuid())
   name        String
   description String?
-  exercises   Json     // Store exercises as JSON for flexibility
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
-  sessions WorkoutSession[]
+  exercises Exercise[]
+
+  @@map("muscle_groups")
+}
+
+model Equipment {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  exercises Exercise[]
+
+  @@map("equipment")
+}
+
+model Exercise {
+  id             String       @id @default(cuid())
+  name           String
+  description    String?
+  muscleGroupId  String?      @map("muscle_group_id")
+  equipmentId    String?      @map("equipment_id")
+  instructions   String?
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  muscleGroup    MuscleGroup? @relation(fields: [muscleGroupId], references: [id])
+  equipment      Equipment?   @relation(fields: [equipmentId], references: [id])
+  workoutItems   WorkoutItem[]
+  sessionExercises SessionExercise[]
+
+  @@index([name])
+  @@index([muscleGroupId])
+  @@index([equipmentId])
+  @@map("exercises")
+}
+
+// User Workout Templates
+model Workout {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  title       String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workoutItems WorkoutItem[]
+  sessions     Session[]
 
   @@map("workouts")
 }
 
-// Workout Session model
-model WorkoutSession {
+model WorkoutItem {
   id         String   @id @default(cuid())
-  userId     String
-  workoutId  String
-  startTime  DateTime @default(now())
-  endTime    DateTime?
-  duration   Int?     // Duration in seconds
-  exercises  Json     // Store completed exercises with sets/reps/weights
+  workoutId  String   @map("workout_id")
+  exerciseId String   @map("exercise_id")
+  order      Int
   notes      String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
 
   // Relations
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workout Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  workout         Workout         @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exercise        Exercise        @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  workoutItemSets WorkoutItemSet[]
 
-  @@map("workout_sessions")
+  @@unique([workoutId, order])
+  @@map("workout_items")
+}
+
+model WorkoutItemSet {
+  id             String  @id @default(cuid())
+  workoutItemId  String  @map("workout_item_id")
+  type           SetType
+  targetLoad     Decimal @map("target_load")
+  targetReps     Int     @map("target_reps")
+  order          Int
+  notes          String?
+
+  // Relations
+  workoutItem WorkoutItem @relation(fields: [workoutItemId], references: [id], onDelete: Cascade)
+
+  @@unique([workoutItemId, order])
+  @@map("workout_item_sets")
+}
+
+// Actual Workout Sessions
+model Session {
+  id          String        @id @default(cuid())
+  userId      String        @map("user_id")
+  workoutId   String?       @map("workout_id")
+  date        DateTime      @default(now())
+  totalVolume Decimal       @default(0) @map("total_volume")
+  totalSets   Int           @default(0) @map("total_sets")
+  status      SessionStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workout          Workout?          @relation(fields: [workoutId], references: [id])
+  sessionExercises SessionExercise[]
+  sessionSeal      SessionSeal?
+
+  @@index([userId, date])
+  @@map("sessions")
+}
+
+model SessionExercise {
+  id         String   @id @default(cuid())
+  sessionId  String   @map("session_id")
+  exerciseId String   @map("exercise_id")
+  order      Int
+  notes      String?
+
+  // Relations
+  session     Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  exercise    Exercise     @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  sessionSets SessionSet[]
+
+  @@unique([sessionId, order])
+  @@map("session_exercises")
+}
+
+model SessionSet {
+  id                String  @id @default(cuid())
+  sessionExerciseId String  @map("session_exercise_id")
+  type              SetType
+  load              Decimal
+  reps              Int
+  completed         Boolean @default(false)
+  order             Int
+  notes             String?
+
+  // Relations
+  sessionExercise SessionExercise @relation(fields: [sessionExerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionExerciseId, order])
+  @@map("session_sets")
+}
+
+model SessionSeal {
+  sessionId String      @id @map("session_id")
+  effort    EffortLevel
+  vibeLine  String      @map("vibe_line")
+  note      String?
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("session_seals")
 }

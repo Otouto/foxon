@@ -52,7 +52,7 @@ export default function ReviewPage() {
                   <div className="w-3 h-3 bg-red-400 rounded-full"></div>
                 </div>
               </div>
-              <p className="text-sm text-gray-500">"Crushed those bench sets! 💪"</p>
+              <p className="text-sm text-gray-500">&ldquo;Crushed those bench sets! 💪&rdquo;</p>
             </div>
           </div>
 
@@ -69,7 +69,7 @@ export default function ReviewPage() {
                   <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
                 </div>
               </div>
-              <p className="text-sm text-gray-500">"Good session, felt strong"</p>
+              <p className="text-sm text-gray-500">&ldquo;Good session, felt strong&rdquo;</p>
             </div>
           </div>
         </div>

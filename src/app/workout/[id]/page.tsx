@@ -1,12 +1,13 @@
 import Link from 'next/link';
-import { ArrowLeft, Play, Edit, Clock, Target } from 'lucide-react';
+import { ArrowLeft, Play, Edit, Target } from 'lucide-react';
 import { workoutSeedData } from '@/lib/seedData';
 
-export default function WorkoutDetailPage({ params }: { params: { id: string } }) {
+export default async function WorkoutDetailPage({ params }: { params: Promise<{ id: string }> }) {
   // Using real seed data based on actual workout sessions
   const workoutData = workoutSeedData;
+  const { id } = await params;
 
-  const workout = workoutData[params.id as keyof typeof workoutData];
+  const workout = workoutData[id as keyof typeof workoutData];
 
   if (!workout) {
     return (
@@ -30,7 +31,7 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
             <p className="text-sm text-gray-500">{workout.exercises} exercises • {workout.duration} min</p>
           </div>
         </div>
-        <Link href={`/workout/${params.id}/edit`} className="p-2 text-gray-400 hover:text-gray-600">
+        <Link href={`/workout/${id}/edit`} className="p-2 text-gray-400 hover:text-gray-600">
           <Edit size={20} />
         </Link>
       </div>
@@ -97,7 +98,7 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
       {/* Start Button */}
       <div className="fixed bottom-24 left-6 right-6">
         <Link 
-          href={`/session/start?workoutId=${params.id}`}
+          href={`/session/start?workoutId=${id}`}
           className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl flex items-center justify-center gap-3"
         >
           <Play size={20} />

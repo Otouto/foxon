@@ -77,11 +77,13 @@
 ## API Design
 _All endpoints require Clerk JWT (resolved to `user_id`)._
 
-**Exercises**
-- `POST /api/exercises` — `{ name, muscle_group, equipment?, description?, icon? }`
-- `GET /api/exercises?q=&muscle=&equipment=` — list with filters
-- `PATCH /api/exercises/:id`
-- `DELETE /api/exercises/:id`
+**Vocabulary**
+- `GET /api/muscle-groups` — list all muscle groups
+- `GET /api/equipment` — list all equipment types
+
+**Exercises** _(Global shared vocabulary)_
+- `GET /api/exercises?q=&muscle_group_id=&equipment_id=` — list with filters
+- `GET /api/exercises/:id` — get exercise details with populated vocabulary
 
 **Workouts (routines)**
 - `POST /api/workouts` — `{ title, items:[{ exercise_id, order, sets:[{ type, load, reps, order }] }] }`
@@ -114,6 +116,8 @@ _All endpoints require Clerk JWT (resolved to `user_id`)._
 ---
 
 ## Database Design ERD
+
+**Core User Management**
 **users**
 - `id (uuid, pk)`
 - `clerk_user_id (text, unique)`
@@ -123,40 +127,56 @@ _All endpoints require Clerk JWT (resolved to `user_id`)._
 - `progression_state (enum: SLIM|FIT|STRONG|FIERY)`
 - `created_at, updated_at`
 
-**exercises**
-- `id (uuid, pk)` • `user_id (fk)` • `name` • `description`
-- `muscle_group (enum)` • `equipment (enum|null)` • `icon (text|null)`
+**Shared Exercise Vocabulary**
+**muscle_groups**
+- `id (uuid, pk)` • `name (text)` • `description (text|null)`
 - `created_at, updated_at`
-- **index** `(user_id, name)`
 
+**equipment**
+- `id (uuid, pk)` • `name (text)` • `description (text|null)`
+- `created_at, updated_at`
+
+**exercises** _(Global shared vocabulary)_
+- `id (uuid, pk)` • `name (text)` • `description (text|null)`
+- `muscle_group_id (fk → muscle_groups.id, nullable)` • `equipment_id (fk → equipment.id, nullable)`
+- `instructions (text|null)` • `created_at, updated_at`
+- **index** `(name)`, `(muscle_group_id)`, `(equipment_id)`
+
+**User Workout Templates**
 **workouts**
-- `id (uuid, pk)` • `user_id (fk)` • `title (text)` • `notes (text|null)`
+- `id (uuid, pk)` • `user_id (fk → users.id)` • `title (text)` • `description (text|null)`
 - `created_at, updated_at`
 
 **workout_items**
-- `id (uuid, pk)` • `workout_id (fk)` • `exercise_id (fk)` • `order (int)` • `notes (text|null)`
+- `id (uuid, pk)` • `workout_id (fk → workouts.id)` • `exercise_id (fk → exercises.id)` 
+- `order (int)` • `notes (text|null)`
 
-**workout_item_sets**
-- `id (uuid, pk)` • `workout_item_id (fk)`
-- `type (enum: WARMUP|NORMAL)` • `load (numeric)` • `reps (int)` • `order (int)`
+**workout_item_sets** _(Planned sets in templates)_
+- `id (uuid, pk)` • `workout_item_id (fk → workout_items.id)`
+- `type (enum: WARMUP|NORMAL)` • `target_load (numeric)` • `target_reps (int)` • `order (int)`
+- `notes (text|null)`
 
+**Actual Workout Sessions**
 **sessions**
-- `id (uuid, pk)` • `user_id (fk)` • `workout_id (fk|null)`
+- `id (uuid, pk)` • `user_id (fk → users.id)` • `workout_id (fk → workouts.id, nullable)`
 - `date (timestamptz)` • `total_volume (numeric, default 0)` • `total_sets (int, default 0)`
 - `status (enum: ACTIVE|FINISHED)` • `created_at, updated_at`
 
 **session_exercises**
-- `id (uuid, pk)` • `session_id (fk)` • `exercise_id (fk)` • `order (int)` • `notes (text|null)`
+- `id (uuid, pk)` • `session_id (fk → sessions.id)` • `exercise_id (fk → exercises.id)` 
+- `order (int)` • `notes (text|null)`
 
-**session_sets**
-- `id (uuid, pk)` • `session_exercise_id (fk)`
-- `type (enum: WARMUP|NORMAL)` • `load (numeric)` • `reps (int)` • `completed (bool, default false)` • `order (int)`
+**session_sets** _(Actual performed sets)_
+- `id (uuid, pk)` • `session_exercise_id (fk → session_exercises.id)`
+- `type (enum: WARMUP|NORMAL)` • `load (numeric)` • `reps (int)` • `completed (bool, default false)` 
+- `order (int)` • `notes (text|null)`
 
 **session_seals**
-- `session_id (pk/fk, unique)` • `effort (enum: EASY|STEADY|HARD|ALL_IN)`
+- `session_id (pk/fk → sessions.id, unique)` • `effort (enum: EASY|STEADY|HARD|ALL_IN)`
 - `vibe_line (text)` • `note (text|null)` • `created_at`
 
 **Constraints & Indexes**
 - All FKs `ON DELETE CASCADE`.
 - Unique `(workout_item_id, order)` and `(session_exercise_id, order)`.
 - Index `sessions(user_id, date)` for range queries.
+- Index `exercises(muscle_group_id, equipment_id)` for filtering.

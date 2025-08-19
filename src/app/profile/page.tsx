@@ -1,4 +1,4 @@
-import { Settings, User, Target, Download, LogOut } from 'lucide-react';
+import { User, Target, Download, LogOut } from 'lucide-react';
 
 export default function ProfilePage() {
   return (

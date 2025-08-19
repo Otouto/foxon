@@ -1,12 +1,13 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import { workoutService } from '@/services/WorkoutService';
 import { sessionStorageService } from '@/services/SessionStorageService';
+import { Workout, Exercise } from '@/lib/seedData';
 
 interface UseWorkoutSessionReturn {
   workoutId: string | null;
   currentExerciseIndex: number;
-  workout: any;
-  currentExercise: any;
+  workout: Workout | null;
+  currentExercise: Exercise | null;
   navigateToNextExercise: () => void;
   finishWorkout: (duration: number) => void;
 }

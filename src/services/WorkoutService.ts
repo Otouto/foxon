@@ -76,10 +76,10 @@ class WorkoutService {
   getPreviousSessionData(workoutId: string, exerciseIndex: number): Exercise['previousSession'] {
     try {
       const exercise = this.getExercise(workoutId, exerciseIndex);
-      return exercise?.previousSession || null;
+      return exercise?.previousSession;
     } catch (error) {
       console.error('Failed to get previous session data:', error);
-      return null;
+      return undefined;
     }
   }
 }
