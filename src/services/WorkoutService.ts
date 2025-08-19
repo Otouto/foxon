@@ -30,10 +30,10 @@ export class WorkoutService {
       },
     });
 
-    return workouts.map((workout) => {
+    return workouts.map((workout: any) => {
       const exerciseCount = workout.workoutItems.length;
       const totalSets = workout.workoutItems.reduce(
-        (total, item) => total + item.workoutItemSets.length, 
+        (total: number, item: any) => total + item.workoutItemSets.length, 
         0
       );
       
@@ -99,7 +99,7 @@ export class WorkoutService {
 
     const exerciseCount = workout.workoutItems.length;
     const totalSets = workout.workoutItems.reduce(
-      (total, item) => total + item.workoutItemSets.length, 
+      (total: number, item: any) => total + item.workoutItemSets.length, 
       0
     );
     const estimatedDuration = totalSets * 3 + Math.max(0, exerciseCount - 1);
@@ -112,7 +112,7 @@ export class WorkoutService {
       estimatedDuration,
       createdAt: workout.createdAt,
       updatedAt: workout.updatedAt,
-      items: workout.workoutItems.map((item) => ({
+      items: workout.workoutItems.map((item: any) => ({
         id: item.id,
         order: item.order,
         notes: item.notes,
@@ -123,7 +123,7 @@ export class WorkoutService {
           muscleGroup: item.exercise.muscleGroup,
           equipment: item.exercise.equipment,
         },
-        sets: item.workoutItemSets.map((set) => ({
+        sets: item.workoutItemSets.map((set: any) => ({
           id: set.id,
           type: set.type,
           targetLoad: Number(set.targetLoad),
@@ -196,7 +196,7 @@ export class WorkoutService {
     // Transform to match our interface
     const exerciseCount = workout.workoutItems.length;
     const totalSets = workout.workoutItems.reduce(
-      (total, item) => total + item.workoutItemSets.length, 
+      (total: number, item: any) => total + item.workoutItemSets.length, 
       0
     );
     const estimatedDuration = totalSets * 3 + Math.max(0, exerciseCount - 1);
@@ -209,7 +209,7 @@ export class WorkoutService {
       estimatedDuration,
       createdAt: workout.createdAt,
       updatedAt: workout.updatedAt,
-      items: workout.workoutItems.map((item) => ({
+      items: workout.workoutItems.map((item: any) => ({
         id: item.id,
         order: item.order,
         notes: item.notes,
@@ -220,7 +220,7 @@ export class WorkoutService {
           muscleGroup: item.exercise.muscleGroup,
           equipment: item.exercise.equipment,
         },
-        sets: item.workoutItemSets.map((set) => ({
+        sets: item.workoutItemSets.map((set: any) => ({
           id: set.id,
           type: set.type,
           targetLoad: Number(set.targetLoad),
@@ -295,7 +295,7 @@ export class WorkoutService {
     // Transform to match our interface
     const exerciseCount = workout.workoutItems.length;
     const totalSets = workout.workoutItems.reduce(
-      (total, item) => total + item.workoutItemSets.length, 
+      (total: number, item: any) => total + item.workoutItemSets.length, 
       0
     );
     const estimatedDuration = totalSets * 3 + Math.max(0, exerciseCount - 1);
@@ -308,7 +308,7 @@ export class WorkoutService {
       estimatedDuration,
       createdAt: workout.createdAt,
       updatedAt: workout.updatedAt,
-      items: workout.workoutItems.map((item) => ({
+      items: workout.workoutItems.map((item: any) => ({
         id: item.id,
         order: item.order,
         notes: item.notes,
@@ -319,7 +319,7 @@ export class WorkoutService {
           muscleGroup: item.exercise.muscleGroup,
           equipment: item.exercise.equipment,
         },
-        sets: item.workoutItemSets.map((set) => ({
+        sets: item.workoutItemSets.map((set: any) => ({
           id: set.id,
           type: set.type,
           targetLoad: Number(set.targetLoad),
