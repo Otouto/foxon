@@ -1,5 +1,6 @@
 import { useSearchParams, useRouter } from 'next/navigation';
-import { workoutSeedData } from '@/lib/seedData';
+import { workoutService } from '@/services/WorkoutService';
+import { sessionStorageService } from '@/services/SessionStorageService';
 
 interface UseWorkoutSessionReturn {
   workoutId: string | null;
@@ -18,13 +19,15 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
   const currentExerciseIndex = parseInt(searchParams.get('exercise') || '0');
   
   // Get workout data based on the workout parameter
-  const workout = workoutId ? workoutSeedData[workoutId] : null;
-  const currentExercise = workout?.exercises_list[currentExerciseIndex];
+  const workout = workoutId ? workoutService.getWorkout(workoutId) : null;
+  const currentExercise = workoutId ? workoutService.getExercise(workoutId, currentExerciseIndex) : null;
 
   const navigateToNextExercise = () => {
-    const nextExerciseIndex = currentExerciseIndex + 1;
-    if (nextExerciseIndex < (workout?.exercises_list.length || 0)) {
+    if (!workoutId) return;
+    
+    if (workoutService.hasNextExercise(workoutId, currentExerciseIndex)) {
       // Go to next exercise
+      const nextExerciseIndex = currentExerciseIndex + 1;
       router.push(`/session/log?workout=${workoutId}&exercise=${nextExerciseIndex}`);
     } else {
       // This is the last exercise, should finish workout
@@ -36,7 +39,7 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
     if (!workoutId) return;
     
     // Store final duration in session storage
-    sessionStorage.setItem(`workout_duration_${workoutId}`, duration.toString());
+    sessionStorageService.setWorkoutDuration(workoutId, duration);
     router.push(`/session/finish?workout=${workoutId}`);
   };
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { sessionStorageService } from '@/services/SessionStorageService';
 
 interface UseWorkoutTimerReturn {
   startTime: number | null;
@@ -14,15 +15,14 @@ export function useWorkoutTimer(workoutId: string | null): UseWorkoutTimerReturn
   useEffect(() => {
     if (!workoutId) return;
     
-    const sessionKey = `workout_timer_${workoutId}`;
-    const savedStartTime = sessionStorage.getItem(sessionKey);
+    const savedStartTime = sessionStorageService.getWorkoutStartTime(workoutId);
     
     if (savedStartTime) {
-      setStartTime(parseInt(savedStartTime));
+      setStartTime(savedStartTime);
     } else {
       const now = Date.now();
       setStartTime(now);
-      sessionStorage.setItem(sessionKey, now.toString());
+      sessionStorageService.setWorkoutStartTime(workoutId, now);
     }
   }, [workoutId]);
 

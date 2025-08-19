@@ -10,6 +10,7 @@ interface SetValue {
 interface Exercise {
   name: string;
   sets: SetValue[];
+  previousSession?: SetValue[];
 }
 
 interface ExerciseCardProps {
@@ -47,12 +48,10 @@ export function ExerciseCard({
       {/* Sets */}
       <div className="space-y-3">
         {setValues.map((set, index) => {
-          // Mock previous session data - in real app this would come from database
-          const previousSet = {
-            weight: isBodyweightExercise ? 0 : (index === 0 ? 24 : 28),
-            reps: isBodyweightExercise 
-              ? (index === 0 ? 8 : index === 1 ? 6 : index === 2 ? 4 : Math.max(4 - (index - 2), 1))
-              : 12
+          // Get previous session data from JSON, fallback to current set data
+          const previousSet = currentExercise.previousSession?.[index] || {
+            weight: set.weight,
+            reps: set.reps
           };
           
           return (

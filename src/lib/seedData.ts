@@ -9,6 +9,7 @@ export interface Exercise {
   name: string;
   sets: WorkoutSet[];
   notes?: string;
+  previousSession?: WorkoutSet[]; // Previous workout session data for comparison
 }
 
 export interface Workout {
@@ -36,6 +37,12 @@ export const workoutSeedData: Record<string, Workout> = {
           { reps: 12, weight: 12, notes: 'по 6кг в кожній руці' },
           { reps: 12, weight: 12, notes: 'по 6кг в кожній руці' }
         ],
+        previousSession: [
+          { reps: 10, weight: 10 },
+          { reps: 10, weight: 10 },
+          { reps: 8, weight: 10 },
+          { reps: 8, weight: 10 }
+        ],
         notes: 'Фокус на балансі та контролі руху'
       },
       {
@@ -46,6 +53,12 @@ export const workoutSeedData: Record<string, Workout> = {
           { reps: 10, weight: 100 },
           { reps: 10, weight: 100 }
         ],
+        previousSession: [
+          { reps: 12, weight: 70 },
+          { reps: 10, weight: 70 },
+          { reps: 8, weight: 90 },
+          { reps: 8, weight: 90 }
+        ],
         notes: 'Поступове збільшення ваги'
       },
       {
@@ -54,6 +67,11 @@ export const workoutSeedData: Record<string, Workout> = {
           { reps: 10, weight: 40 },
           { reps: 10, weight: 45 },
           { reps: 10, weight: 45 }
+        ],
+        previousSession: [
+          { reps: 12, weight: 35 },
+          { reps: 10, weight: 40 },
+          { reps: 8, weight: 40 }
         ],
         notes: 'Контроль негативної фази'
       },
@@ -65,6 +83,12 @@ export const workoutSeedData: Record<string, Workout> = {
           { reps: 12, weight: 40 },
           { reps: 12, weight: 45 }
         ],
+        previousSession: [
+          { reps: 12, weight: 35 },
+          { reps: 12, weight: 35 },
+          { reps: 10, weight: 40 },
+          { reps: 8, weight: 40 }
+        ],
         notes: 'Зведення лопаток в кінцевій точці'
       },
       {
@@ -74,6 +98,11 @@ export const workoutSeedData: Record<string, Workout> = {
           { reps: 10, weight: 20 },
           { reps: 10, weight: 20 }
         ],
+        previousSession: [
+          { reps: 12, weight: 17.5 },
+          { reps: 10, weight: 17.5 },
+          { reps: 8, weight: 20 }
+        ],
         notes: 'Повна амплітуда руху'
       },
       {
@@ -82,6 +111,11 @@ export const workoutSeedData: Record<string, Workout> = {
           { reps: 10, weight: 15 },
           { reps: 10, weight: 20 },
           { reps: 10, weight: 20 }
+        ],
+        previousSession: [
+          { reps: 12, weight: 12.5 },
+          { reps: 10, weight: 15 },
+          { reps: 8, weight: 17.5 }
         ],
         notes: 'Контрольований темп'
       }
@@ -103,6 +137,13 @@ export const workoutSeedData: Record<string, Workout> = {
           { reps: 12, weight: 28 },
           { reps: 12, weight: 28 }
         ],
+        previousSession: [
+          { reps: 12, weight: 20 },
+          { reps: 12, weight: 24 },
+          { reps: 10, weight: 24 },
+          { reps: 10, weight: 24 },
+          { reps: 8, weight: 24 }
+        ],
         notes: 'Широка постановка ніг'
       },
       {
@@ -111,6 +152,11 @@ export const workoutSeedData: Record<string, Workout> = {
           { reps: 8, weight: 0, notes: 'власна вага' },
           { reps: 6, weight: 0, notes: 'власна вага' },
           { reps: 4, weight: 0, notes: 'власна вага' }
+        ],
+        previousSession: [
+          { reps: 6, weight: 0 },
+          { reps: 5, weight: 0 },
+          { reps: 3, weight: 0 }
         ],
         notes: 'До відмови в кожному підході'
       },
@@ -121,6 +167,12 @@ export const workoutSeedData: Record<string, Workout> = {
           { reps: 12, weight: 0, notes: 'власна вага' },
           { reps: 12, weight: 0, notes: 'власна вага' },
           { reps: 12, weight: 0, notes: 'власна вага' }
+        ],
+        previousSession: [
+          { reps: 10, weight: 0 },
+          { reps: 10, weight: 0 },
+          { reps: 8, weight: 0 },
+          { reps: 8, weight: 0 }
         ],
         notes: 'Класичні віджимання'
       },
