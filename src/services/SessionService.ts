@@ -439,4 +439,30 @@ export class SessionService {
 
     return newSet;
   }
+
+  /**
+   * Delete a session and all its related data
+   */
+  static async deleteSession(sessionId: string, userId: string): Promise<boolean> {
+    try {
+      // Verify user owns the session
+      const session = await prisma.session.findFirst({
+        where: { id: sessionId, userId }
+      });
+
+      if (!session) {
+        throw new Error('Session not found or access denied');
+      }
+
+      // Delete session and all related data (cascade will handle the rest)
+      await prisma.session.delete({
+        where: { id: sessionId }
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Failed to delete session:', error);
+      return false;
+    }
+  }
 }

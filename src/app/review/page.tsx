@@ -2,9 +2,16 @@
 
 import { useState } from 'react';
 import { Calendar, TrendingUp } from 'lucide-react';
+import { useReviewData } from '@/hooks/useReviewData';
+import { SessionCard } from '@/components/review/SessionCard';
+import { ExerciseStatsCard } from '@/components/review/ExerciseStatsCard';
+import { LoadingState } from '@/components/review/LoadingState';
+import { ErrorState } from '@/components/review/ErrorState';
+import { EmptyState } from '@/components/review/EmptyState';
 
 export default function ReviewPage() {
   const [activeTab, setActiveTab] = useState<'sessions' | 'exercises'>('sessions');
+  const { sessions, exercises, isLoading, error, refetch, deleteSession } = useReviewData(activeTab);
 
   return (
     <div className="px-6 py-8 pb-24">
@@ -36,84 +43,39 @@ export default function ReviewPage() {
         </button>
       </div>
 
-      {/* Sessions Tab */}
-      {activeTab === 'sessions' && (
-        <div className="space-y-4">
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-900">Today</h3>
-              <span className="text-sm text-gray-500">Jan 15</span>
+      {/* Content */}
+      {error ? (
+        <ErrorState message={error} onRetry={refetch} />
+      ) : isLoading ? (
+        <LoadingState />
+      ) : (
+        <>
+          {/* Sessions Tab */}
+          {activeTab === 'sessions' && (
+            <div className="space-y-4">
+              {sessions.length === 0 ? (
+                <EmptyState type="sessions" />
+              ) : (
+                sessions.map((session) => (
+                  <SessionCard key={session.id} session={session} onDelete={deleteSession} />
+                ))
+              )}
             </div>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">Push Day</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">All-In</span>
-                  <div className="w-3 h-3 bg-red-400 rounded-full"></div>
-                </div>
-              </div>
-              <p className="text-sm text-gray-500">&ldquo;Crushed those bench sets! 💪&rdquo;</p>
-            </div>
-          </div>
+          )}
 
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-900">Yesterday</h3>
-              <span className="text-sm text-gray-500">Jan 14</span>
+          {/* Exercises Tab */}
+          {activeTab === 'exercises' && (
+            <div className="space-y-4">
+              {exercises.length === 0 ? (
+                <EmptyState type="exercises" />
+              ) : (
+                exercises.map((exercise) => (
+                  <ExerciseStatsCard key={exercise.exerciseId} exercise={exercise} />
+                ))
+              )}
             </div>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">Pull Day</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Steady</span>
-                  <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
-                </div>
-              </div>
-              <p className="text-sm text-gray-500">&ldquo;Good session, felt strong&rdquo;</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Exercises Tab */}
-      {activeTab === 'exercises' && (
-        <div className="space-y-4">
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <h3 className="font-semibold text-gray-900 mb-4">Bench Press</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Best Set</span>
-                <span className="font-medium">100kg × 8</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Total Volume</span>
-                <span className="font-medium">2,400kg</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Sessions</span>
-                <span className="font-medium">12</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <h3 className="font-semibold text-gray-900 mb-4">Deadlift</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Best Set</span>
-                <span className="font-medium">140kg × 5</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Total Volume</span>
-                <span className="font-medium">3,200kg</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Sessions</span>
-                <span className="font-medium">8</span>
-              </div>
-            </div>
-          </div>
-        </div>
+          )}
+        </>
       )}
     </div>
   );
