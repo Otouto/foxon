@@ -1,7 +1,29 @@
+'use client';
+
 import Link from 'next/link';
 import { ArrowLeft, Star } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function FinishSessionPage() {
+  const searchParams = useSearchParams();
+  const workoutId = searchParams.get('workout') || '1';
+  const [duration, setDuration] = useState<string>('00:00');
+  
+  useEffect(() => {
+    // Retrieve the stored duration from session storage
+    const storedDuration = sessionStorage.getItem(`workout_duration_${workoutId}`);
+    if (storedDuration) {
+      const seconds = parseInt(storedDuration);
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      setDuration(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+      
+      // Clean up the stored timer data
+      sessionStorage.removeItem(`workout_timer_${workoutId}`);
+      sessionStorage.removeItem(`workout_duration_${workoutId}`);
+    }
+  }, [workoutId]);
   return (
     <div className="px-6 py-8 pb-32">
       {/* Header */}
@@ -18,7 +40,7 @@ export default function FinishSessionPage() {
         
         <div className="grid grid-cols-2 gap-6 mb-4">
           <div className="text-center">
-            <p className="text-2xl font-bold text-gray-900">45:32</p>
+            <p className="text-2xl font-bold text-gray-900">{duration}</p>
             <p className="text-sm text-gray-500">Duration</p>
           </div>
           <div className="text-center">
