@@ -1,13 +1,12 @@
 import Link from 'next/link';
 import { ArrowLeft, Play, Edit, Target } from 'lucide-react';
-import { workoutSeedData } from '@/lib/seedData';
+import { WorkoutService } from '@/services/WorkoutService';
 
 export default async function WorkoutDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  // Using real seed data based on actual workout sessions
-  const workoutData = workoutSeedData;
   const { id } = await params;
-
-  const workout = workoutData[id as keyof typeof workoutData];
+  
+  // Fetch real workout from database
+  const workout = await WorkoutService.getWorkoutById(id);
 
   if (!workout) {
     return (
@@ -27,8 +26,8 @@ export default async function WorkoutDetailPage({ params }: { params: Promise<{ 
             <ArrowLeft size={24} className="text-gray-600" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{workout.name}</h1>
-            <p className="text-sm text-gray-500">{workout.exercises} exercises • {workout.duration} min</p>
+            <h1 className="text-2xl font-bold text-gray-900">{workout.title}</h1>
+            <p className="text-sm text-gray-500">{workout.exerciseCount} exercises • {workout.estimatedDuration} min</p>
           </div>
         </div>
         <Link href={`/workout/${id}/edit`} className="p-2 text-gray-400 hover:text-gray-600">
@@ -44,17 +43,17 @@ export default async function WorkoutDetailPage({ params }: { params: Promise<{ 
           </div>
           <div className="flex-1">
             <h2 className="font-semibold text-gray-900">Workout Overview</h2>
-            <p className="text-sm text-gray-500 mt-1">{workout.description}</p>
+            <p className="text-sm text-gray-500 mt-1">{workout.description || 'No description available'}</p>
           </div>
         </div>
         
         <div className="grid grid-cols-2 gap-4 text-center">
           <div>
-            <p className="text-2xl font-bold text-gray-900">{workout.exercises}</p>
+            <p className="text-2xl font-bold text-gray-900">{workout.exerciseCount}</p>
             <p className="text-sm text-gray-500">Exercises</p>
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{workout.duration}</p>
+            <p className="text-2xl font-bold text-gray-900">{workout.estimatedDuration}</p>
             <p className="text-sm text-gray-500">Minutes</p>
           </div>
         </div>
@@ -63,33 +62,39 @@ export default async function WorkoutDetailPage({ params }: { params: Promise<{ 
       {/* Exercise List */}
       <div className="space-y-4 mb-8">
         <h3 className="font-semibold text-gray-900">Exercises</h3>
-        {workout.exercises_list.map((exercise, index) => (
-          <div key={index} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+        {workout.items.map((item, index) => (
+          <div key={item.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
-                <h4 className="font-medium text-gray-900">{exercise.name}</h4>
+                <h4 className="font-medium text-gray-900">{item.exercise.name}</h4>
                 <p className="text-sm text-gray-500">
-                  {exercise.sets.length} sets
+                  {item.sets.length} sets
+                  {item.exercise.muscleGroup && (
+                    <span className="text-gray-400"> • {item.exercise.muscleGroup.name}</span>
+                  )}
                 </p>
               </div>
-              <div className="text-sm text-gray-400 font-medium">{index + 1}</div>
+              <div className="text-sm text-gray-400 font-medium">{item.order}</div>
             </div>
             
             {/* Sets breakdown */}
             <div className="space-y-2 mb-3">
-              {exercise.sets.map((set, setIndex) => (
-                <div key={setIndex} className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
-                  <span className="text-gray-600">Set {setIndex + 1}</span>
+              {item.sets.map((set, setIndex) => (
+                <div key={set.id} className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
+                  <span className="text-gray-600">
+                    Set {set.order}
+                    {set.type === 'WARMUP' && <span className="text-orange-500 ml-1">(Warmup)</span>}
+                  </span>
                   <span className="text-gray-900 font-medium">
-                    {set.reps} reps × {set.weight > 0 ? `${set.weight}kg` : 'власна вага'}
-                    {set.notes && set.notes !== 'власна вага' && <span className="text-gray-500 ml-2">({set.notes})</span>}
+                    {set.targetReps} reps × {set.targetLoad > 0 ? `${set.targetLoad}kg` : 'Bodyweight'}
+                    {set.notes && <span className="text-gray-500 ml-2">({set.notes})</span>}
                   </span>
                 </div>
               ))}
             </div>
             
-            {exercise.notes && (
-              <p className="text-xs text-gray-500 italic">💡 {exercise.notes}</p>
+            {item.notes && (
+              <p className="text-xs text-gray-500 italic">💡 {item.notes}</p>
             )}
           </div>
         ))}
@@ -102,7 +107,7 @@ export default async function WorkoutDetailPage({ params }: { params: Promise<{ 
           className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl flex items-center justify-center gap-3"
         >
           <Play size={20} />
-          Start {workout.name}
+          Start {workout.title}
         </Link>
       </div>
     </div>

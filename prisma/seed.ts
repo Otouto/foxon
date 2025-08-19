@@ -3,7 +3,8 @@ import {
   muscleGroupsSeed, 
   equipmentSeed, 
   exercisesSeed,
-  workoutSeedData 
+  workoutSeedData,
+  MOCK_USER
 } from '../src/lib/seedData'
 
 const prisma = new PrismaClient()
@@ -74,16 +75,21 @@ async function main() {
     })
   )
 
-  // Create a demo user (for testing purposes)
-  console.log('Creating demo user...')
-  const demoUser = await prisma.user.upsert({
-    where: { clerkUserId: 'demo-user-123' },
-    update: {},
+  // Create the mock user for testing
+  console.log('Creating mock user...')
+  const mockUser = await prisma.user.upsert({
+    where: { clerkUserId: MOCK_USER.clerkUserId },
+    update: {
+      displayName: MOCK_USER.displayName,
+      weeklyGoal: MOCK_USER.weeklyGoal,
+      progressionState: MOCK_USER.progressionState,
+    },
     create: {
-      clerkUserId: 'demo-user-123',
-      displayName: 'Demo User',
-      weeklyGoal: 2,
-      progressionState: 'FIT',
+      id: MOCK_USER.id,
+      clerkUserId: MOCK_USER.clerkUserId,
+      displayName: MOCK_USER.displayName,
+      weeklyGoal: MOCK_USER.weeklyGoal,
+      progressionState: MOCK_USER.progressionState,
     },
   })
 
@@ -94,12 +100,12 @@ async function main() {
   const workout1 = await prisma.workout.upsert({
     where: { id: 'workout-1' },
     update: {},
-    create: {
-      id: 'workout-1',
-      userId: demoUser.id,
-      title: workoutSeedData['1'].name,
-      description: workoutSeedData['1'].description,
-    },
+          create: {
+        id: 'workout-1',
+        userId: mockUser.id,
+        title: workoutSeedData['1'].name,
+        description: workoutSeedData['1'].description,
+      },
   })
 
   // Create workout items for Workout 1
@@ -156,12 +162,12 @@ async function main() {
   const workout2 = await prisma.workout.upsert({
     where: { id: 'workout-2' },
     update: {},
-    create: {
-      id: 'workout-2',
-      userId: demoUser.id,
-      title: workoutSeedData['2'].name,
-      description: workoutSeedData['2'].description,
-    },
+          create: {
+        id: 'workout-2',
+        userId: mockUser.id,
+        title: workoutSeedData['2'].name,
+        description: workoutSeedData['2'].description,
+      },
   })
 
   // Create workout items for Workout 2
@@ -219,8 +225,10 @@ async function main() {
   console.log(`  - ${muscleGroups.length} muscle groups`)
   console.log(`  - ${equipment.length} equipment types`)
   console.log(`  - ${exercises.length} exercises`)
-  console.log(`  - 1 demo user`)
+  console.log(`  - 1 mock user: ${mockUser.displayName} (${mockUser.clerkUserId})`)
   console.log(`  - 2 workout templates with planned sets`)
+  console.log(``)
+  console.log(`🧪 Ready for session testing!`)
 }
 
 main()

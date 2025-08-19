@@ -1,15 +1,11 @@
-'use client';
-
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Plus, Play } from 'lucide-react';
-import { legacyWorkouts } from '@/lib/seedData';
+import { Plus } from 'lucide-react';
+import { WorkoutService } from '@/services/WorkoutService';
+import { WorkoutCard } from '@/components/workout/WorkoutCard';
 
-export default function WorkoutPage() {
-  const router = useRouter();
-
-  // Using real seed data based on actual workout sessions
-  const workouts = legacyWorkouts;
+export default async function WorkoutPage() {
+  // Fetch real workouts from Supabase database
+  const workouts = await WorkoutService.getUserWorkouts();
 
   return (
     <div className="px-6 py-8 pb-24">
@@ -21,29 +17,7 @@ export default function WorkoutPage() {
         /* Workout List */
         <div className="space-y-4">
           {workouts.map((workout) => (
-            <div 
-              key={workout.id} 
-              className="bg-white rounded-2xl shadow-sm border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors"
-              onClick={() => router.push(`/workout/${workout.id}`)}
-            >
-              <div className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 mb-1">{workout.name}</h3>
-                    <p className="text-sm text-gray-500">{workout.exercises} exercises • {workout.duration} min</p>
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push(`/session/start?workoutId=${workout.id}`);
-                    }}
-                    className="bg-lime-400 text-black p-3 rounded-full hover:bg-lime-500 transition-colors"
-                  >
-                    <Play size={18} />
-                  </button>
-                </div>
-              </div>
-            </div>
+            <WorkoutCard key={workout.id} workout={workout} />
           ))}
         </div>
       ) : (

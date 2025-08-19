@@ -1,3 +1,12 @@
+// Mock User for testing without Clerk authentication
+export const MOCK_USER = {
+  id: 'user-dmytro-1',
+  clerkUserId: 'mock-clerk-dmytro-123',
+  displayName: 'Dmytro',
+  weeklyGoal: 2,
+  progressionState: 'FIT' as const
+};
+
 // Vocabulary interfaces matching new ERD structure
 export interface MuscleGroup {
   id: string;
@@ -531,12 +540,14 @@ export const legacyWorkouts = [
 export const sessionStorage: Record<string, Session> = {};
 
 // Helper functions to manage mock sessions
-export function createMockSession(workoutId: string): Session {
+export function createMockSession(workoutId: string, userId?: string): Session {
   const workout = workoutSeedData[workoutId];
   if (!workout) {
     throw new Error(`Workout with id ${workoutId} not found`);
   }
 
+  // Use the mock user if no userId provided
+  const sessionUserId = userId || MOCK_USER.id;
   const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   const now = new Date().toISOString();
 
@@ -575,11 +586,99 @@ export function createMockSession(workoutId: string): Session {
 }
 
 export function getSession(sessionId: string): Session | null {
-  return sessionStorage[sessionId] || null;
+  // Try in-memory first (for compatibility), then file storage
+  if (sessionStorage[sessionId]) {
+    return sessionStorage[sessionId];
+  }
+  
+  // In server environment, try file storage
+  if (typeof window === 'undefined') {
+    try {
+      const { loadSession } = require('./sessionStorage');
+      return loadSession(sessionId);
+    } catch (error) {
+      console.error('Failed to load session from file:', error);
+    }
+  }
+  
+  return null;
+}
+
+// New function to create sessions from real workout data
+export async function createSessionFromRealWorkout(workoutId: string, userId?: string): Promise<Session> {
+  // Import WorkoutService dynamically to avoid circular dependencies
+  const { WorkoutService } = await import('@/services/WorkoutService');
+  
+  // Fetch the real workout from database
+  const workout = await WorkoutService.getWorkoutById(workoutId);
+  if (!workout) {
+    throw new Error(`Workout with id ${workoutId} not found`);
+  }
+
+  // Use the mock user if no userId provided
+  const sessionUserId = userId || MOCK_USER.id;
+  const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const now = new Date().toISOString();
+
+  // Convert real workout data to session exercise format
+  const sessionExercises: SessionExercise[] = workout.items.map((item, index) => ({
+    id: `exercise_${sessionId}_${index}`,
+    exercise_id: item.exercise.id,
+    exercise_name: item.exercise.name,
+    order: item.order,
+    notes: item.notes || undefined,
+    sets: item.sets.map((set, setIndex) => ({
+      id: `set_${sessionId}_${index}_${setIndex}`,
+      type: set.type,
+      load: set.targetLoad,
+      reps: set.targetReps,
+      completed: false,
+      order: set.order
+    }))
+  }));
+
+  const session: Session = {
+    id: sessionId,
+    workout_id: workoutId,
+    workout_name: workout.title,
+    date: now,
+    total_volume: 0,
+    total_sets: 0,
+    status: 'ACTIVE',
+    current_exercise_index: 0,
+    exercises: sessionExercises,
+    created_at: now,
+    updated_at: now
+  };
+
+  sessionStorage[sessionId] = session;
+  
+  // Also save to file storage in server environment
+  if (typeof window === 'undefined') {
+    try {
+      const { saveSession } = require('./sessionStorage');
+      saveSession(sessionId, session);
+    } catch (error) {
+      console.error('Failed to save session to file:', error);
+    }
+  }
+  
+  return session;
 }
 
 export function updateSession(sessionId: string, updates: Partial<Session>): Session | null {
-  const session = sessionStorage[sessionId];
+  let session = sessionStorage[sessionId];
+  
+  // If not in memory, try to load from file storage
+  if (!session && typeof window === 'undefined') {
+    try {
+      const { loadSession } = require('./sessionStorage');
+      session = loadSession(sessionId);
+    } catch (error) {
+      console.error('Failed to load session from file:', error);
+    }
+  }
+  
   if (!session) return null;
 
   const updatedSession = {
@@ -589,7 +688,23 @@ export function updateSession(sessionId: string, updates: Partial<Session>): Ses
   };
 
   sessionStorage[sessionId] = updatedSession;
+  
+  // Also update file storage in server environment
+  if (typeof window === 'undefined') {
+    try {
+      const { saveSession } = require('./sessionStorage');
+      saveSession(sessionId, updatedSession);
+    } catch (error) {
+      console.error('Failed to save updated session to file:', error);
+    }
+  }
+  
   return updatedSession;
+}
+
+// Helper function to get the current mock user
+export function getCurrentMockUser() {
+  return MOCK_USER;
 }
 
 // Helper functions for vocabulary data

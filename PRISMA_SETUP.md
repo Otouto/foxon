@@ -70,27 +70,34 @@ The current schema includes:
 
 ## Usage in Code
 
+### Mock Authentication (for testing)
 ```typescript
+import { getCurrentUser, getCurrentUserId } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-// Example: Get all workouts
-const workouts = await prisma.workout.findMany()
+// Get the current mock user
+const user = getCurrentUser()
+const userId = getCurrentUserId()
+
+// Example: Get user's workouts
+const workouts = await prisma.workout.findMany({
+  where: { userId },
+  include: {
+    workoutItems: {
+      include: {
+        exercise: true,
+        workoutItemSets: true
+      }
+    }
+  }
+})
 
 // Example: Create a workout session
-const session = await prisma.workoutSession.create({
+const session = await prisma.session.create({
   data: {
-    userId: 'user-id',
-    workoutId: 'workout-id',
-    exercises: [
-      {
-        name: 'Bench Press',
-        sets: [
-          { reps: 8, weight: 135 },
-          { reps: 8, weight: 135 },
-          { reps: 6, weight: 145 }
-        ]
-      }
-    ]
+    userId,
+    workoutId: 'workout-1',
+    status: 'ACTIVE'
   }
 })
 ```

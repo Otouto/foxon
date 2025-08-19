@@ -2,7 +2,6 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, Suspense } from 'react';
-import { createMockSession } from '@/lib/seedData';
 
 function SessionStartContent() {
   const router = useRouter();
@@ -17,17 +16,37 @@ function SessionStartContent() {
       return;
     }
 
-    try {
-      // Create a new session for this workout
-      const session = createMockSession(workoutId);
-      
-      // Redirect to the session logging page with the new session ID
-      router.push(`/session/${session.id}/log`);
-    } catch (error) {
-      console.error('Failed to create session:', error);
-      // Redirect back to workouts on error
-      router.push('/workout');
+    async function createSession() {
+      try {
+        // Create a new session via API route
+        const response = await fetch('/api/sessions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ workoutId }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create session');
+        }
+
+        const data = await response.json();
+        
+        if (data.success && data.session) {
+          // Redirect to the session logging page with the new session ID
+          router.push(`/session/${data.session.id}/log`);
+        } else {
+          throw new Error('Invalid response from server');
+        }
+      } catch (error) {
+        console.error('Failed to create session:', error);
+        // Redirect back to workouts on error
+        router.push('/workout');
+      }
     }
+    
+    createSession();
   }, [searchParams, router]);
 
   // Show loading state while redirecting

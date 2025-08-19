@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { getSession, updateSession, type Session, type SessionExercise } from '@/lib/seedData';
+import { getSessionFromAPI, updateSessionViaAPI } from '@/lib/sessionClient';
+import type { Session, SessionExercise } from '@/lib/seedData';
 import { useWorkoutTimer } from '@/hooks/useWorkoutTimer';
 import { WorkoutHeader } from '@/components/workout/WorkoutHeader';
 import { ExerciseCard } from '@/components/workout/ExerciseCard';
@@ -22,20 +23,24 @@ export default function SessionLogPage() {
   const { elapsedTime, formatTime } = useWorkoutTimer(sessionId);
   
   useEffect(() => {
-    const sessionData = getSession(sessionId);
-    if (!sessionData) {
-      router.push('/workout');
-      return;
+    async function loadSession() {
+      const sessionData = await getSessionFromAPI(sessionId);
+      if (!sessionData) {
+        router.push('/workout');
+        return;
+      }
+      
+      setSession(sessionData);
+      const currentEx = sessionData.exercises[sessionData.current_exercise_index];
+      setCurrentExercise(currentEx);
+      
+      if (currentEx) {
+        setCompletedSets(currentEx.sets.map(set => set.completed));
+        setSetValues(currentEx.sets.map(set => ({ weight: set.load, reps: set.reps })));
+      }
     }
     
-    setSession(sessionData);
-    const currentEx = sessionData.exercises[sessionData.current_exercise_index];
-    setCurrentExercise(currentEx);
-    
-    if (currentEx) {
-      setCompletedSets(currentEx.sets.map(set => set.completed));
-      setSetValues(currentEx.sets.map(set => ({ weight: set.load, reps: set.reps })));
-    }
+    loadSession();
   }, [sessionId, router]);
 
   const toggleSetCompletion = (setIndex: number) => {
@@ -49,7 +54,7 @@ export default function SessionLogPage() {
     const updatedExercises = [...session.exercises];
     updatedExercises[session.current_exercise_index].sets[setIndex].completed = newCompletedSets[setIndex];
     
-    updateSession(sessionId, { exercises: updatedExercises });
+    updateSessionViaAPI(sessionId, { exercises: updatedExercises });
   };
 
   const updateSetValue = (setIndex: number, field: 'weight' | 'reps', value: number) => {
@@ -64,10 +69,10 @@ export default function SessionLogPage() {
     const fieldName = field === 'weight' ? 'load' : 'reps';
     updatedExercises[session.current_exercise_index].sets[setIndex][fieldName] = value;
     
-    updateSession(sessionId, { exercises: updatedExercises });
+    updateSessionViaAPI(sessionId, { exercises: updatedExercises });
   };
 
-  const addSet = () => {
+  const addSet = async () => {
     if (!session || !currentExercise) return;
     
     const newSet = {
@@ -82,7 +87,7 @@ export default function SessionLogPage() {
     const updatedExercises = [...session.exercises];
     updatedExercises[session.current_exercise_index].sets.push(newSet);
     
-    const updatedSession = updateSession(sessionId, { exercises: updatedExercises });
+    const updatedSession = await updateSessionViaAPI(sessionId, { exercises: updatedExercises });
     if (updatedSession) {
       setSession(updatedSession);
       setCurrentExercise(updatedSession.exercises[updatedSession.current_exercise_index]);
@@ -91,12 +96,12 @@ export default function SessionLogPage() {
     }
   };
 
-  const navigateToNextExercise = () => {
+  const navigateToNextExercise = async () => {
     if (!session) return;
     
     if (session.current_exercise_index + 1 < session.exercises.length) {
       // Move to next exercise
-      const updatedSession = updateSession(sessionId, { 
+      const updatedSession = await updateSessionViaAPI(sessionId, { 
         current_exercise_index: session.current_exercise_index + 1 
       });
       

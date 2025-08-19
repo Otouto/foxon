@@ -1,88 +1,366 @@
-import { workoutSeedData, type Workout, type Exercise } from '@/lib/seedData';
+import { prisma } from '@/lib/prisma';
+import { getCurrentUserId } from '@/lib/auth';
+import type { 
+  WorkoutListItem, 
+  WorkoutDetails, 
+  CreateWorkoutRequest, 
+  UpdateWorkoutRequest 
+} from '@/lib/types/workout';
 
-/**
- * Service for workout data operations
- * Provides a clean interface for workout data access and future extensibility
- */
-class WorkoutService {
+export class WorkoutService {
   /**
-   * Get workout by ID
+   * Get all workouts for the current user (for workout list page)
    */
-  getWorkout(workoutId: string): Workout | null {
-    try {
-      return workoutSeedData[workoutId] || null;
-    } catch (error) {
-      console.error('Failed to get workout:', error);
-      return null;
-    }
+  static async getUserWorkouts(): Promise<WorkoutListItem[]> {
+    const userId = getCurrentUserId();
+    
+    const workouts = await prisma.workout.findMany({
+      where: {
+        userId: userId,
+      },
+      include: {
+        workoutItems: {
+          include: {
+            workoutItemSets: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    return workouts.map((workout) => {
+      const exerciseCount = workout.workoutItems.length;
+      const totalSets = workout.workoutItems.reduce(
+        (total, item) => total + item.workoutItemSets.length, 
+        0
+      );
+      
+      // Estimate: 3 minutes per set + 1 minute rest between exercises
+      const estimatedDuration = totalSets * 3 + Math.max(0, exerciseCount - 1);
+
+      return {
+        id: workout.id,
+        title: workout.title,
+        description: workout.description,
+        exerciseCount,
+        estimatedDuration,
+        createdAt: workout.createdAt,
+        updatedAt: workout.updatedAt,
+      };
+    });
   }
 
   /**
-   * Get specific exercise from a workout
+   * Get detailed workout by ID (for workout detail page)
    */
-  getExercise(workoutId: string, exerciseIndex: number): Exercise | null {
-    try {
-      const workout = this.getWorkout(workoutId);
-      if (!workout || exerciseIndex < 0 || exerciseIndex >= workout.exercises_list.length) {
-        return null;
-      }
-      return workout.exercises_list[exerciseIndex];
-    } catch (error) {
-      console.error('Failed to get exercise:', error);
+  static async getWorkoutById(workoutId: string): Promise<WorkoutDetails | null> {
+    const userId = getCurrentUserId();
+    
+    const workout = await prisma.workout.findFirst({
+      where: {
+        id: workoutId,
+        userId: userId,
+      },
+      include: {
+        workoutItems: {
+          include: {
+            exercise: {
+              include: {
+                muscleGroup: {
+                  select: {
+                    name: true,
+                  },
+                },
+                equipment: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
+            workoutItemSets: {
+              orderBy: {
+                order: 'asc',
+              },
+            },
+          },
+          orderBy: {
+            order: 'asc',
+          },
+        },
+      },
+    });
+
+    if (!workout) {
       return null;
     }
+
+    const exerciseCount = workout.workoutItems.length;
+    const totalSets = workout.workoutItems.reduce(
+      (total, item) => total + item.workoutItemSets.length, 
+      0
+    );
+    const estimatedDuration = totalSets * 3 + Math.max(0, exerciseCount - 1);
+
+    return {
+      id: workout.id,
+      title: workout.title,
+      description: workout.description,
+      exerciseCount,
+      estimatedDuration,
+      createdAt: workout.createdAt,
+      updatedAt: workout.updatedAt,
+      items: workout.workoutItems.map((item) => ({
+        id: item.id,
+        order: item.order,
+        notes: item.notes,
+        exercise: {
+          id: item.exercise.id,
+          name: item.exercise.name,
+          description: item.exercise.description,
+          muscleGroup: item.exercise.muscleGroup,
+          equipment: item.exercise.equipment,
+        },
+        sets: item.workoutItemSets.map((set) => ({
+          id: set.id,
+          type: set.type,
+          targetLoad: Number(set.targetLoad),
+          targetReps: set.targetReps,
+          order: set.order,
+          notes: set.notes,
+        })),
+      })),
+    };
   }
 
   /**
-   * Check if there's a next exercise in the workout
+   * Create a new workout
    */
-  hasNextExercise(workoutId: string, currentIndex: number): boolean {
+  static async createWorkout(data: CreateWorkoutRequest): Promise<WorkoutDetails> {
+    const userId = getCurrentUserId();
+
+    const workout = await prisma.workout.create({
+      data: {
+        userId,
+        title: data.title,
+        description: data.description || null,
+        workoutItems: {
+          create: data.items.map((item) => ({
+            exerciseId: item.exerciseId,
+            order: item.order,
+            notes: item.notes || null,
+            workoutItemSets: {
+              create: item.sets.map((set) => ({
+                type: set.type,
+                targetLoad: set.targetLoad,
+                targetReps: set.targetReps,
+                order: set.order,
+                notes: set.notes || null,
+              })),
+            },
+          })),
+        },
+      },
+      include: {
+        workoutItems: {
+          include: {
+            exercise: {
+              include: {
+                muscleGroup: {
+                  select: {
+                    name: true,
+                  },
+                },
+                equipment: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
+            workoutItemSets: {
+              orderBy: {
+                order: 'asc',
+              },
+            },
+          },
+          orderBy: {
+            order: 'asc',
+          },
+        },
+      },
+    });
+
+    // Transform to match our interface
+    const exerciseCount = workout.workoutItems.length;
+    const totalSets = workout.workoutItems.reduce(
+      (total, item) => total + item.workoutItemSets.length, 
+      0
+    );
+    const estimatedDuration = totalSets * 3 + Math.max(0, exerciseCount - 1);
+
+    return {
+      id: workout.id,
+      title: workout.title,
+      description: workout.description,
+      exerciseCount,
+      estimatedDuration,
+      createdAt: workout.createdAt,
+      updatedAt: workout.updatedAt,
+      items: workout.workoutItems.map((item) => ({
+        id: item.id,
+        order: item.order,
+        notes: item.notes,
+        exercise: {
+          id: item.exercise.id,
+          name: item.exercise.name,
+          description: item.exercise.description,
+          muscleGroup: item.exercise.muscleGroup,
+          equipment: item.exercise.equipment,
+        },
+        sets: item.workoutItemSets.map((set) => ({
+          id: set.id,
+          type: set.type,
+          targetLoad: Number(set.targetLoad),
+          targetReps: set.targetReps,
+          order: set.order,
+          notes: set.notes,
+        })),
+      })),
+    };
+  }
+
+  /**
+   * Update an existing workout
+   */
+  static async updateWorkout(workoutId: string, data: UpdateWorkoutRequest): Promise<WorkoutDetails | null> {
+    const userId = getCurrentUserId();
+
+    // First verify the workout belongs to the user
+    const existingWorkout = await prisma.workout.findFirst({
+      where: {
+        id: workoutId,
+        userId: userId,
+      },
+    });
+
+    if (!existingWorkout) {
+      return null;
+    }
+
+    // Update the workout
+    const workout = await prisma.workout.update({
+      where: {
+        id: workoutId,
+      },
+      data: {
+        title: data.title,
+        description: data.description,
+        // Note: For now, we'll handle items updates separately
+        // In a full implementation, you'd need complex logic to handle
+        // adding/removing/updating workout items and sets
+      },
+      include: {
+        workoutItems: {
+          include: {
+            exercise: {
+              include: {
+                muscleGroup: {
+                  select: {
+                    name: true,
+                  },
+                },
+                equipment: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
+            workoutItemSets: {
+              orderBy: {
+                order: 'asc',
+              },
+            },
+          },
+          orderBy: {
+            order: 'asc',
+          },
+        },
+      },
+    });
+
+    // Transform to match our interface
+    const exerciseCount = workout.workoutItems.length;
+    const totalSets = workout.workoutItems.reduce(
+      (total, item) => total + item.workoutItemSets.length, 
+      0
+    );
+    const estimatedDuration = totalSets * 3 + Math.max(0, exerciseCount - 1);
+
+    return {
+      id: workout.id,
+      title: workout.title,
+      description: workout.description,
+      exerciseCount,
+      estimatedDuration,
+      createdAt: workout.createdAt,
+      updatedAt: workout.updatedAt,
+      items: workout.workoutItems.map((item) => ({
+        id: item.id,
+        order: item.order,
+        notes: item.notes,
+        exercise: {
+          id: item.exercise.id,
+          name: item.exercise.name,
+          description: item.exercise.description,
+          muscleGroup: item.exercise.muscleGroup,
+          equipment: item.exercise.equipment,
+        },
+        sets: item.workoutItemSets.map((set) => ({
+          id: set.id,
+          type: set.type,
+          targetLoad: Number(set.targetLoad),
+          targetReps: set.targetReps,
+          order: set.order,
+          notes: set.notes,
+        })),
+      })),
+    };
+  }
+
+  /**
+   * Delete a workout
+   */
+  static async deleteWorkout(workoutId: string): Promise<boolean> {
+    const userId = getCurrentUserId();
+
     try {
-      const workout = this.getWorkout(workoutId);
-      return workout ? currentIndex + 1 < workout.exercises_list.length : false;
+      await prisma.workout.deleteMany({
+        where: {
+          id: workoutId,
+          userId: userId,
+        },
+      });
+      return true;
     } catch (error) {
-      console.error('Failed to check next exercise:', error);
+      console.error('Failed to delete workout:', error);
       return false;
     }
   }
 
   /**
-   * Get all available workouts
+   * Get workout count for the current user
    */
-  getAllWorkouts(): Workout[] {
-    try {
-      return Object.values(workoutSeedData);
-    } catch (error) {
-      console.error('Failed to get all workouts:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Get workout IDs
-   */
-  getWorkoutIds(): string[] {
-    try {
-      return Object.keys(workoutSeedData);
-    } catch (error) {
-      console.error('Failed to get workout IDs:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Get previous session data for a specific exercise
-   */
-  getPreviousSessionData(workoutId: string, exerciseIndex: number): Exercise['previousSession'] {
-    try {
-      const exercise = this.getExercise(workoutId, exerciseIndex);
-      return exercise?.previousSession;
-    } catch (error) {
-      console.error('Failed to get previous session data:', error);
-      return undefined;
-    }
+  static async getUserWorkoutCount(): Promise<number> {
+    const userId = getCurrentUserId();
+    
+    return prisma.workout.count({
+      where: {
+        userId: userId,
+      },
+    });
   }
 }
-
-// Export singleton instance
-export const workoutService = new WorkoutService();

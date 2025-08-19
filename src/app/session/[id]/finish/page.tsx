@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { getSession, updateSession, type Session } from '@/lib/seedData';
+import { getSessionFromAPI, updateSessionViaAPI } from '@/lib/sessionClient';
+import type { Session } from '@/lib/seedData';
 
 export default function SessionFinishPage() {
   const params = useParams();
@@ -15,13 +16,14 @@ export default function SessionFinishPage() {
   const [duration, setDuration] = useState<string>('00:00');
   
   useEffect(() => {
-    const sessionData = getSession(sessionId);
-    if (!sessionData) {
-      router.push('/workout');
-      return;
-    }
-    
-    setSession(sessionData);
+    async function loadSession() {
+      const sessionData = await getSessionFromAPI(sessionId);
+      if (!sessionData) {
+        router.push('/workout');
+        return;
+      }
+      
+      setSession(sessionData);
     
     // Calculate session duration
     const startTime = new Date(sessionData.created_at).getTime();
@@ -39,12 +41,15 @@ export default function SessionFinishPage() {
         sum + ex.sets.filter(set => set.completed).reduce((exSum, set) => exSum + (set.load * set.reps), 0), 0
       );
       
-      updateSession(sessionId, { 
-        status: 'FINISHED',
-        total_sets: totalSets,
-        total_volume: totalVolume
-      });
+        updateSessionViaAPI(sessionId, { 
+          status: 'FINISHED',
+          total_sets: totalSets,
+          total_volume: totalVolume
+        });
+      }
     }
+    
+    loadSession();
   }, [sessionId, router]);
 
   const handleSaveAndComplete = () => {
