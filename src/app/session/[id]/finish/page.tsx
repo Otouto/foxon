@@ -1,34 +1,71 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Star } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { getSession, updateSession, type Session } from '@/lib/seedData';
 
-export default function FinishSessionPage() {
-  const searchParams = useSearchParams();
-  const workoutId = searchParams.get('workout') || '1';
+export default function SessionFinishPage() {
+  const params = useParams();
+  const router = useRouter();
+  const sessionId = params.id as string;
+  
+  const [session, setSession] = useState<Session | null>(null);
   const [duration, setDuration] = useState<string>('00:00');
   
   useEffect(() => {
-    // Retrieve the stored duration from session storage
-    const storedDuration = sessionStorage.getItem(`workout_duration_${workoutId}`);
-    if (storedDuration) {
-      const seconds = parseInt(storedDuration);
-      const mins = Math.floor(seconds / 60);
-      const secs = seconds % 60;
-      setDuration(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
-      
-      // Clean up the stored timer data
-      sessionStorage.removeItem(`workout_timer_${workoutId}`);
-      sessionStorage.removeItem(`workout_duration_${workoutId}`);
+    const sessionData = getSession(sessionId);
+    if (!sessionData) {
+      router.push('/workout');
+      return;
     }
-  }, [workoutId]);
+    
+    setSession(sessionData);
+    
+    // Calculate session duration
+    const startTime = new Date(sessionData.created_at).getTime();
+    const endTime = Date.now();
+    const durationSeconds = Math.floor((endTime - startTime) / 1000);
+    const mins = Math.floor(durationSeconds / 60);
+    const secs = durationSeconds % 60;
+    setDuration(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+    
+    // Mark session as finished if not already
+    if (sessionData.status === 'ACTIVE') {
+      // Calculate totals
+      const totalSets = sessionData.exercises.reduce((sum, ex) => sum + ex.sets.filter(set => set.completed).length, 0);
+      const totalVolume = sessionData.exercises.reduce((sum, ex) => 
+        sum + ex.sets.filter(set => set.completed).reduce((exSum, set) => exSum + (set.load * set.reps), 0), 0
+      );
+      
+      updateSession(sessionId, { 
+        status: 'FINISHED',
+        total_sets: totalSets,
+        total_volume: totalVolume
+      });
+    }
+  }, [sessionId, router]);
+
+  const handleSaveAndComplete = () => {
+    // In a real app, this would save the session seal to the database
+    router.push('/');
+  };
+
+  if (!session) {
+    return (
+      <div className="px-6 py-8">
+        <h1 className="text-2xl font-bold text-gray-900">Session not found</h1>
+        <Link href="/workout" className="text-cyan-400 mt-4 block">← Back to workouts</Link>
+      </div>
+    );
+  }
+
   return (
     <div className="px-6 py-8 pb-32">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
-        <Link href="/session/log" className="p-2 -ml-2">
+        <Link href={`/session/${sessionId}/log`} className="p-2 -ml-2">
           <ArrowLeft size={24} className="text-gray-600" />
         </Link>
         <h1 className="text-2xl font-bold text-gray-900">Session Complete</h1>
@@ -36,7 +73,7 @@ export default function FinishSessionPage() {
 
       {/* Session Summary */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Push Day Summary</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">{session.workout_name} Summary</h2>
         
         <div className="grid grid-cols-2 gap-6 mb-4">
           <div className="text-center">
@@ -44,19 +81,19 @@ export default function FinishSessionPage() {
             <p className="text-sm text-gray-500">Duration</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-gray-900">2,340kg</p>
+            <p className="text-2xl font-bold text-gray-900">{session.total_volume}kg</p>
             <p className="text-sm text-gray-500">Total Volume</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-6">
           <div className="text-center">
-            <p className="text-2xl font-bold text-gray-900">15</p>
+            <p className="text-2xl font-bold text-gray-900">{session.total_sets}</p>
             <p className="text-sm text-gray-500">Total Sets</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold lime-400">2 PRs! 🎉</p>
-            <p className="text-sm text-gray-500">Personal Records</p>
+            <p className="text-2xl font-bold text-lime-600">{session.exercises.length}</p>
+            <p className="text-sm text-gray-500">Exercises</p>
           </div>
         </div>
       </div>
@@ -115,9 +152,12 @@ export default function FinishSessionPage() {
 
       {/* Save Button */}
       <div className="fixed bottom-24 left-6 right-6">
-        <Link href="/" className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl text-center block">
+        <button 
+          onClick={handleSaveAndComplete}
+          className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl text-center block"
+        >
           Save & Complete
-        </Link>
+        </button>
       </div>
     </div>
   );

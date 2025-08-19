@@ -7,24 +7,24 @@ interface UseWorkoutTimerReturn {
   formatTime: (seconds: number) => string;
 }
 
-export function useWorkoutTimer(workoutId: string | null): UseWorkoutTimerReturn {
+export function useWorkoutTimer(sessionId: string | null): UseWorkoutTimerReturn {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
 
   // Initialize timer when component mounts or retrieve from session storage
   useEffect(() => {
-    if (!workoutId) return;
+    if (!sessionId) return;
     
-    const savedStartTime = sessionStorageService.getWorkoutStartTime(workoutId);
+    const savedStartTime = sessionStorageService.getSessionStartTime(sessionId);
     
     if (savedStartTime) {
       setStartTime(savedStartTime);
     } else {
       const now = Date.now();
       setStartTime(now);
-      sessionStorageService.setWorkoutStartTime(workoutId, now);
+      sessionStorageService.setSessionStartTime(sessionId, now);
     }
-  }, [workoutId]);
+  }, [sessionId]);
 
   // Update current time every second
   useEffect(() => {

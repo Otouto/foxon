@@ -21,6 +21,39 @@ export interface Workout {
   exercises_list: Exercise[];
 }
 
+// Session interfaces to mimic database structure
+export interface SessionSet {
+  id: string;
+  type: 'WARMUP' | 'NORMAL';
+  load: number;
+  reps: number;
+  completed: boolean;
+  order: number;
+}
+
+export interface SessionExercise {
+  id: string;
+  exercise_id: string;
+  exercise_name: string;
+  order: number;
+  notes?: string;
+  sets: SessionSet[];
+}
+
+export interface Session {
+  id: string;
+  workout_id: string;
+  workout_name: string;
+  date: string;
+  total_volume: number;
+  total_sets: number;
+  status: 'ACTIVE' | 'FINISHED';
+  current_exercise_index: number;
+  exercises: SessionExercise[];
+  created_at: string;
+  updated_at: string;
+}
+
 export const workoutSeedData: Record<string, Workout> = {
   '1': {
     id: '1',
@@ -222,3 +255,68 @@ export const legacyWorkouts = [
     duration: 55
   }
 ];
+
+// Mock session storage to mimic database
+export const sessionStorage: Record<string, Session> = {};
+
+// Helper functions to manage mock sessions
+export function createMockSession(workoutId: string): Session {
+  const workout = workoutSeedData[workoutId];
+  if (!workout) {
+    throw new Error(`Workout with id ${workoutId} not found`);
+  }
+
+  const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const now = new Date().toISOString();
+
+  const sessionExercises: SessionExercise[] = workout.exercises_list.map((exercise, index) => ({
+    id: `exercise_${sessionId}_${index}`,
+    exercise_id: `exercise_${index}`,
+    exercise_name: exercise.name,
+    order: index,
+    notes: exercise.notes,
+    sets: exercise.sets.map((set, setIndex) => ({
+      id: `set_${sessionId}_${index}_${setIndex}`,
+      type: 'NORMAL' as const,
+      load: set.weight,
+      reps: set.reps,
+      completed: false,
+      order: setIndex
+    }))
+  }));
+
+  const session: Session = {
+    id: sessionId,
+    workout_id: workoutId,
+    workout_name: workout.name,
+    date: now,
+    total_volume: 0,
+    total_sets: 0,
+    status: 'ACTIVE',
+    current_exercise_index: 0,
+    exercises: sessionExercises,
+    created_at: now,
+    updated_at: now
+  };
+
+  sessionStorage[sessionId] = session;
+  return session;
+}
+
+export function getSession(sessionId: string): Session | null {
+  return sessionStorage[sessionId] || null;
+}
+
+export function updateSession(sessionId: string, updates: Partial<Session>): Session | null {
+  const session = sessionStorage[sessionId];
+  if (!session) return null;
+
+  const updatedSession = {
+    ...session,
+    ...updates,
+    updated_at: new Date().toISOString()
+  };
+
+  sessionStorage[sessionId] = updatedSession;
+  return updatedSession;
+}

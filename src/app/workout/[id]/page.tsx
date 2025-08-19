@@ -97,7 +97,7 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
       {/* Start Button */}
       <div className="fixed bottom-24 left-6 right-6">
         <Link 
-          href={`/session/log?workout=${params.id}&exercise=0`}
+          href={`/session/start?workoutId=${params.id}`}
           className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl flex items-center justify-center gap-3"
         >
           <Play size={20} />

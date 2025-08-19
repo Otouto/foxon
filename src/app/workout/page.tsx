@@ -35,7 +35,7 @@ export default function WorkoutPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      router.push(`/session/log?workout=${workout.id}`);
+                      router.push(`/session/start?workoutId=${workout.id}`);
                     }}
                     className="bg-lime-400 text-black p-3 rounded-full hover:bg-lime-500 transition-colors"
                   >

@@ -1,75 +1,111 @@
 /**
- * Service for managing workout session data in browser storage
+ * Service for managing session data in browser storage
  * Provides a clean interface for session persistence operations
  */
 class SessionStorageService {
-  private static readonly TIMER_KEY_PREFIX = 'workout_timer_';
-  private static readonly DURATION_KEY_PREFIX = 'workout_duration_';
+  private static readonly TIMER_KEY_PREFIX = 'session_timer_';
+  private static readonly DURATION_KEY_PREFIX = 'session_duration_';
 
   /**
-   * Get workout timer start time
+   * Get session timer start time
    */
-  getWorkoutStartTime(workoutId: string): number | null {
+  getSessionStartTime(sessionId: string): number | null {
     try {
-      const key = `${SessionStorageService.TIMER_KEY_PREFIX}${workoutId}`;
+      const key = `${SessionStorageService.TIMER_KEY_PREFIX}${sessionId}`;
       const value = sessionStorage.getItem(key);
       return value ? parseInt(value, 10) : null;
     } catch (error) {
-      console.warn('Failed to get workout start time:', error);
+      console.warn('Failed to get session start time:', error);
       return null;
     }
   }
 
   /**
-   * Set workout timer start time
+   * Set session timer start time
    */
-  setWorkoutStartTime(workoutId: string, startTime: number): void {
+  setSessionStartTime(sessionId: string, startTime: number): void {
     try {
-      const key = `${SessionStorageService.TIMER_KEY_PREFIX}${workoutId}`;
+      const key = `${SessionStorageService.TIMER_KEY_PREFIX}${sessionId}`;
       sessionStorage.setItem(key, startTime.toString());
     } catch (error) {
-      console.warn('Failed to set workout start time:', error);
+      console.warn('Failed to set session start time:', error);
     }
   }
 
   /**
-   * Get workout duration
+   * Get session duration
    */
-  getWorkoutDuration(workoutId: string): number | null {
+  getSessionDuration(sessionId: string): number | null {
     try {
-      const key = `${SessionStorageService.DURATION_KEY_PREFIX}${workoutId}`;
+      const key = `${SessionStorageService.DURATION_KEY_PREFIX}${sessionId}`;
       const value = sessionStorage.getItem(key);
       return value ? parseInt(value, 10) : null;
     } catch (error) {
-      console.warn('Failed to get workout duration:', error);
+      console.warn('Failed to get session duration:', error);
       return null;
     }
   }
 
   /**
-   * Set workout duration
+   * Set session duration
    */
-  setWorkoutDuration(workoutId: string, duration: number): void {
+  setSessionDuration(sessionId: string, duration: number): void {
     try {
-      const key = `${SessionStorageService.DURATION_KEY_PREFIX}${workoutId}`;
+      const key = `${SessionStorageService.DURATION_KEY_PREFIX}${sessionId}`;
       sessionStorage.setItem(key, duration.toString());
     } catch (error) {
-      console.warn('Failed to set workout duration:', error);
+      console.warn('Failed to set session duration:', error);
     }
   }
 
   /**
-   * Clear all workout data for a specific workout
+   * Clear all session data for a specific session
    */
-  clearWorkoutData(workoutId: string): void {
+  clearSessionData(sessionId: string): void {
     try {
-      const timerKey = `${SessionStorageService.TIMER_KEY_PREFIX}${workoutId}`;
-      const durationKey = `${SessionStorageService.DURATION_KEY_PREFIX}${workoutId}`;
+      const timerKey = `${SessionStorageService.TIMER_KEY_PREFIX}${sessionId}`;
+      const durationKey = `${SessionStorageService.DURATION_KEY_PREFIX}${sessionId}`;
       sessionStorage.removeItem(timerKey);
       sessionStorage.removeItem(durationKey);
     } catch (error) {
-      console.warn('Failed to clear workout data:', error);
+      console.warn('Failed to clear session data:', error);
     }
+  }
+
+  // Legacy methods for backward compatibility (can be removed later)
+  /**
+   * @deprecated Use getSessionStartTime instead
+   */
+  getWorkoutStartTime(workoutId: string): number | null {
+    return this.getSessionStartTime(workoutId);
+  }
+
+  /**
+   * @deprecated Use setSessionStartTime instead
+   */
+  setWorkoutStartTime(workoutId: string, startTime: number): void {
+    this.setSessionStartTime(workoutId, startTime);
+  }
+
+  /**
+   * @deprecated Use getSessionDuration instead
+   */
+  getWorkoutDuration(workoutId: string): number | null {
+    return this.getSessionDuration(workoutId);
+  }
+
+  /**
+   * @deprecated Use setSessionDuration instead
+   */
+  setWorkoutDuration(workoutId: string, duration: number): void {
+    this.setSessionDuration(workoutId, duration);
+  }
+
+  /**
+   * @deprecated Use clearSessionData instead
+   */
+  clearWorkoutData(workoutId: string): void {
+    this.clearSessionData(workoutId);
   }
 }
 
