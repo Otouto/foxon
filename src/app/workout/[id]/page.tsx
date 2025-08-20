@@ -62,7 +62,7 @@ export default async function WorkoutDetailPage({ params }: { params: Promise<{ 
       {/* Exercise List */}
       <div className="space-y-4 mb-8">
         <h3 className="font-semibold text-gray-900">Exercises</h3>
-        {workout.items.map((item, index) => (
+        {workout.items.map((item) => (
           <div key={item.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
@@ -79,7 +79,7 @@ export default async function WorkoutDetailPage({ params }: { params: Promise<{ 
             
             {/* Sets breakdown */}
             <div className="space-y-2 mb-3">
-              {item.sets.map((set, setIndex) => (
+              {item.sets.map((set) => (
                 <div key={set.id} className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
                   <span className="text-gray-600">
                     Set {set.order}

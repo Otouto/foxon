@@ -64,10 +64,7 @@ export async function PATCH(
       );
     }
     
-    const userId = getCurrentUserId();
-
     const { id } = await params;
-    const updates = await request.json();
     
     if (!id) {
       return NextResponse.json(

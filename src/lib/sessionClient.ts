@@ -149,7 +149,8 @@ export async function getPreviousSessionData(
  * Legacy function for backward compatibility - will be removed
  * @deprecated Use batchUpdateSets instead
  */
-export async function updateSessionViaAPI(sessionId: string, updates: any): Promise<any | null> {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function updateSessionViaAPI(_sessionId: string, _updates: Record<string, unknown>): Promise<Record<string, unknown> | null> {
   console.warn('updateSessionViaAPI is deprecated. Use batchUpdateSets instead.');
   return null;
 }

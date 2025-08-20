@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { Session, SessionExercise, SessionSet, SessionStatus, SetType, EffortLevel } from '@prisma/client';
+import { SessionExercise, SessionSet, SessionStatus, SetType, EffortLevel } from '@prisma/client';
 
 export interface SessionWithDetails {
   id: string;

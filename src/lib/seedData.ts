@@ -547,6 +547,7 @@ export function createMockSession(workoutId: string, userId?: string): Session {
   }
 
   // Use the mock user if no userId provided
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const sessionUserId = userId || MOCK_USER.id;
   const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   const now = new Date().toISOString();
@@ -594,7 +595,7 @@ export function getSession(sessionId: string): Session | null {
   // In server environment, try file storage
   if (typeof window === 'undefined') {
     try {
-      const { loadSession } = require('./sessionStorage');
+      const { loadSession } = await import('./sessionStorage');
       return loadSession(sessionId);
     } catch (error) {
       console.error('Failed to load session from file:', error);
@@ -616,6 +617,7 @@ export async function createSessionFromRealWorkout(workoutId: string, userId?: s
   }
 
   // Use the mock user if no userId provided
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const sessionUserId = userId || MOCK_USER.id;
   const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   const now = new Date().toISOString();
@@ -656,7 +658,7 @@ export async function createSessionFromRealWorkout(workoutId: string, userId?: s
   // Also save to file storage in server environment
   if (typeof window === 'undefined') {
     try {
-      const { saveSession } = require('./sessionStorage');
+      const { saveSession } = await import('./sessionStorage');
       saveSession(sessionId, session);
     } catch (error) {
       console.error('Failed to save session to file:', error);
@@ -672,7 +674,7 @@ export function updateSession(sessionId: string, updates: Partial<Session>): Ses
   // If not in memory, try to load from file storage
   if (!session && typeof window === 'undefined') {
     try {
-      const { loadSession } = require('./sessionStorage');
+      const { loadSession } = await import('./sessionStorage');
       session = loadSession(sessionId);
     } catch (error) {
       console.error('Failed to load session from file:', error);
@@ -692,7 +694,7 @@ export function updateSession(sessionId: string, updates: Partial<Session>): Ses
   // Also update file storage in server environment
   if (typeof window === 'undefined') {
     try {
-      const { saveSession } = require('./sessionStorage');
+      const { saveSession } = await import('./sessionStorage');
       saveSession(sessionId, updatedSession);
     } catch (error) {
       console.error('Failed to save updated session to file:', error);
