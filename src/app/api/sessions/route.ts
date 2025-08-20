@@ -1,21 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SessionService } from '@/services/SessionService';
+import { SessionService, SessionWithDetails } from '@/services/SessionService';
 import { getCurrentUserId, isAuthenticated } from '@/lib/auth';
 
-async function createSessionWithRetry(workoutId: string, userId: string, maxRetries = 3): Promise<any> {
+async function createSessionWithRetry(workoutId: string, userId: string, maxRetries = 3): Promise<SessionWithDetails> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await SessionService.createSession({
         workoutId,
         userId
       });
-    } catch (error: any) {
-      const isTransactionError = error?.message?.includes('Transaction not found') || 
-                               error?.message?.includes('Transaction ID is invalid') ||
-                               error?.message?.includes('Transaction already closed');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isTransactionError = errorMessage.includes('Transaction not found') || 
+                               errorMessage.includes('Transaction ID is invalid') ||
+                               errorMessage.includes('Transaction already closed');
       
       if (isTransactionError && attempt < maxRetries) {
-        console.log(`Transaction error on attempt ${attempt}, retrying... Error: ${error.message}`);
+        console.log(`Transaction error on attempt ${attempt}, retrying... Error: ${errorMessage}`);
         // Wait briefly before retrying
         await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
         continue;
@@ -24,6 +25,9 @@ async function createSessionWithRetry(workoutId: string, userId: string, maxRetr
       throw error;
     }
   }
+  
+  // This should never be reached, but TypeScript requires it
+  throw new Error('Failed to create session after maximum retries');
 }
 
 export async function POST(request: NextRequest) {
