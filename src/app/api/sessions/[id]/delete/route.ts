@@ -4,11 +4,11 @@ import { SessionService } from '@/services/SessionService';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const userId = getCurrentUserId();
-    const sessionId = params.id;
+    const { id: sessionId } = await params;
 
     if (!sessionId) {
       return NextResponse.json(

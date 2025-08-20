@@ -595,7 +595,8 @@ export function getSession(sessionId: string): Session | null {
   // In server environment, try file storage
   if (typeof window === 'undefined') {
     try {
-      const { loadSession } = await import('./sessionStorage');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { loadSession } = require('./sessionStorage');
       return loadSession(sessionId);
     } catch (error) {
       console.error('Failed to load session from file:', error);
@@ -658,7 +659,8 @@ export async function createSessionFromRealWorkout(workoutId: string, userId?: s
   // Also save to file storage in server environment
   if (typeof window === 'undefined') {
     try {
-      const { saveSession } = await import('./sessionStorage');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { saveSession } = require('./sessionStorage');
       saveSession(sessionId, session);
     } catch (error) {
       console.error('Failed to save session to file:', error);
@@ -674,7 +676,8 @@ export function updateSession(sessionId: string, updates: Partial<Session>): Ses
   // If not in memory, try to load from file storage
   if (!session && typeof window === 'undefined') {
     try {
-      const { loadSession } = await import('./sessionStorage');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { loadSession } = require('./sessionStorage');
       session = loadSession(sessionId);
     } catch (error) {
       console.error('Failed to load session from file:', error);
@@ -694,7 +697,8 @@ export function updateSession(sessionId: string, updates: Partial<Session>): Ses
   // Also update file storage in server environment
   if (typeof window === 'undefined') {
     try {
-      const { saveSession } = await import('./sessionStorage');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { saveSession } = require('./sessionStorage');
       saveSession(sessionId, updatedSession);
     } catch (error) {
       console.error('Failed to save updated session to file:', error);

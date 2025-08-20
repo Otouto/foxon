@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { SessionExercise, SessionSet, SessionStatus, SetType, EffortLevel } from '@prisma/client';
+import { SessionSet, SessionStatus, SetType, EffortLevel } from '@prisma/client';
 
 export interface SessionWithDetails {
   id: string;
@@ -11,13 +11,27 @@ export interface SessionWithDetails {
   status: SessionStatus;
   createdAt: Date;
   updatedAt: Date;
-  sessionExercises: (SessionExercise & {
+  sessionExercises: {
+    id: string;
+    sessionId: string;
+    exerciseId: string;
+    order: number;
+    notes: string | null;
     exercise: {
       id: string;
       name: string;
     };
-    sessionSets: SessionSet[];
-  })[];
+    sessionSets: {
+      id: string;
+      sessionExerciseId: string;
+      type: SetType;
+      load: number;
+      reps: number;
+      completed: boolean;
+      order: number;
+      notes: string | null;
+    }[];
+  }[];
   workout?: {
     id: string;
     title: string;
@@ -169,7 +183,19 @@ export class SessionService {
       throw new Error('Failed to create session');
     }
 
-    return session as SessionWithDetails;
+    // Convert Prisma types to match our interface
+    return {
+      ...session,
+      totalVolume: Number(session.totalVolume),
+      totalSets: session.totalSets,
+      sessionExercises: session.sessionExercises.map(exercise => ({
+        ...exercise,
+        sessionSets: exercise.sessionSets.map(set => ({
+          ...set,
+          load: Number(set.load)
+        }))
+      }))
+    } as SessionWithDetails;
   }
 
   /**
@@ -199,7 +225,23 @@ export class SessionService {
       }
     });
 
-    return session as SessionWithDetails | null;
+    if (!session) {
+      return null;
+    }
+
+    // Convert Prisma types to match our interface
+    return {
+      ...session,
+      totalVolume: Number(session.totalVolume),
+      totalSets: session.totalSets,
+      sessionExercises: session.sessionExercises.map(exercise => ({
+        ...exercise,
+        sessionSets: exercise.sessionSets.map(set => ({
+          ...set,
+          load: Number(set.load)
+        }))
+      }))
+    } as SessionWithDetails;
   }
 
   /**
@@ -228,6 +270,7 @@ export class SessionService {
         switch (operation.operation) {
           case 'update':
             if (!operation.setId) throw new Error('Set ID required for update operation');
+            if (!operation.data) throw new Error('Data required for update operation');
             await tx.sessionSet.update({
               where: { id: operation.setId },
               data: operation.data
@@ -238,7 +281,7 @@ export class SessionService {
             if (!operation.setId) throw new Error('Set ID required for complete operation');
             await tx.sessionSet.update({
               where: { id: operation.setId },
-              data: { completed: true, ...operation.data }
+              data: { completed: true, ...(operation.data || {}) }
             });
             break;
 
@@ -328,7 +371,19 @@ export class SessionService {
       }
     });
 
-    return updatedSession as SessionWithDetails;
+    // Convert Prisma types to match our interface
+    return {
+      ...updatedSession,
+      totalVolume: Number(updatedSession.totalVolume),
+      totalSets: updatedSession.totalSets,
+      sessionExercises: updatedSession.sessionExercises.map(exercise => ({
+        ...exercise,
+        sessionSets: exercise.sessionSets.map(set => ({
+          ...set,
+          load: Number(set.load)
+        }))
+      }))
+    } as SessionWithDetails;
   }
 
   /**
@@ -390,7 +445,19 @@ export class SessionService {
       skip: offset
     });
 
-    return sessions as SessionWithDetails[];
+    // Convert Prisma types to match our interface
+    return sessions.map(session => ({
+      ...session,
+      totalVolume: Number(session.totalVolume),
+      totalSets: session.totalSets,
+      sessionExercises: session.sessionExercises.map(exercise => ({
+        ...exercise,
+        sessionSets: exercise.sessionSets.map(set => ({
+          ...set,
+          load: Number(set.load)
+        }))
+      }))
+    })) as SessionWithDetails[];
   }
 
   /**
