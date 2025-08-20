@@ -109,6 +109,36 @@ export function useInMemorySession(workoutId: string, preloadedData?: PreloadedW
       setIsInitializing(true);
       setError(null);
 
+      // First, try to recover existing session from localStorage
+      const savedSessionKey = `workout_session_${workoutId}`;
+      const savedSession = localStorage.getItem(savedSessionKey);
+      
+      if (savedSession) {
+        try {
+          const parsedSession: InMemorySession = JSON.parse(savedSession);
+          // Validate that it's the right workout
+          if (parsedSession.workoutId === workoutId) {
+            console.log('🔄 Recovered session from localStorage for workout:', workoutId, parsedSession);
+            // Convert date strings back to Date objects
+            parsedSession.startTime = new Date(parsedSession.startTime);
+            setSession(parsedSession);
+            startTimeRef.current = parsedSession.startTime;
+
+            // Start duration timer
+            timerRef.current = setInterval(() => {
+              setSession(prev => prev ? { ...prev, duration: Math.floor((Date.now() - startTimeRef.current!.getTime()) / 1000) } : null);
+            }, 1000);
+
+            setIsInitializing(false);
+            return;
+          }
+        } catch (parseError) {
+          console.warn('Failed to parse saved session, creating new one:', parseError);
+          localStorage.removeItem(savedSessionKey);
+        }
+      }
+
+      // If no saved session or recovery failed, create new session
       let workout: WorkoutDetails;
       let previousData = new Map<string, { load: number; reps: number }[]>();
 
@@ -137,7 +167,7 @@ export function useInMemorySession(workoutId: string, preloadedData?: PreloadedW
       }, 1000);
 
       // Save to localStorage for crash recovery
-      localStorage.setItem(`workout_session_${workoutId}`, JSON.stringify(inMemorySession));
+      localStorage.setItem(savedSessionKey, JSON.stringify(inMemorySession));
 
     } catch (error) {
       console.error('Failed to initialize session:', error);

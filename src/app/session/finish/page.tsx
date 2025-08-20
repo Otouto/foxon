@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useRef, useMemo } from 'react';
 import { useInMemorySession } from '@/hooks/useInMemorySession';
 import { useWorkoutPreload } from '@/hooks/useWorkoutPreload';
 import { EffortLevel } from '@prisma/client';
@@ -38,6 +38,12 @@ interface CompletedSessionData {
   }>;
 }
 
+interface BackgroundSaveState {
+  status: 'idle' | 'saving' | 'completed' | 'error';
+  sessionId?: string;
+  error?: string;
+}
+
 function SessionFinishContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -54,16 +60,53 @@ function SessionFinishContent() {
     clearSession,
   } = useInMemorySession(workoutId || '', preloadedData);
 
-  const [completedSession, setCompletedSession] = useState<CompletedSessionData | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  // Background save state
+  const [backgroundSave, setBackgroundSave] = useState<BackgroundSaveState>({ status: 'idle' });
+  const backgroundSaveRef = useRef<Promise<string> | null>(null);
+  
+  // Reflection form state
   const [effort, setEffort] = useState<EffortLevel>(EffortLevel.HARD);
   const [vibeLine, setVibeLine] = useState('');
   const [note, setNote] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmittingReflection, setIsSubmittingReflection] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+  const [summaryEndTime, setSummaryEndTime] = useState<Date | null>(null);
   
-  // Calculate session statistics when session is available
+  // Session data for summary
+  const [completedSession, setCompletedSession] = useState<CompletedSessionData | null>(null);
+  
+  // Memoize summary data calculation to prevent re-render loops
+  const summaryData = useMemo(() => {
+    if (!showSummary) return null;
+    
+    return completedSession || (session && summaryEndTime ? {
+      workoutId: session.workoutId,
+      workoutTitle: session.workoutTitle,
+      startTime: session.startTime,
+      endTime: summaryEndTime,
+      duration: session.duration,
+      totalSets: session.exercises.reduce((total, ex) => total + ex.sets.filter(set => set.completed).length, 0),
+      totalVolume: session.exercises.reduce((total, ex) => 
+        total + ex.sets.filter(set => set.completed).reduce((sum, set) => sum + (set.actualLoad * set.actualReps), 0), 0
+      ),
+      exercises: session.exercises
+    } : null);
+  }, [showSummary, completedSession, session, summaryEndTime]);
+  
+  // Cleanup localStorage on component unmount to ensure fresh sessions
   useEffect(() => {
-    if (session) {
+    return () => {
+      // Only clear if we've successfully shown the summary (meaning session was completed)
+      if (showSummary && workoutId) {
+        localStorage.removeItem(`workout_session_${workoutId}`);
+        console.log('🧹 Cleanup: Cleared localStorage on unmount for workout:', workoutId);
+      }
+    };
+  }, [showSummary, workoutId]);
+  
+  // Calculate session statistics and start background save when session is available
+  useEffect(() => {
+    if (session && backgroundSave.status === 'idle') {
       const endTime = new Date();
       let totalSets = 0;
       let totalVolume = 0;
@@ -89,7 +132,7 @@ function SessionFinishContent() {
         };
       });
 
-      setCompletedSession({
+      const sessionData: CompletedSessionData = {
         workoutId: session.workoutId,
         workoutTitle: session.workoutTitle,
         startTime: session.startTime,
@@ -98,9 +141,53 @@ function SessionFinishContent() {
         totalSets,
         totalVolume,
         exercises: exercisesData,
+      };
+
+      setCompletedSession(sessionData);
+      
+      // Start background save immediately
+      startBackgroundSave(sessionData);
+    }
+  }, [session, backgroundSave.status]);
+
+  // Background save function
+  const startBackgroundSave = async (sessionData: CompletedSessionData) => {
+    setBackgroundSave({ status: 'saving' });
+
+    try {
+      const savePromise = fetch('/api/sessions/complete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sessionData }),
+      }).then(async (response) => {
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to save session: ${response.status} ${errorText}`);
+        }
+        const result = await response.json();
+        return result.sessionId;
+      });
+
+      // Store the promise for later use
+      backgroundSaveRef.current = savePromise;
+
+      const sessionId = await savePromise;
+      
+      setBackgroundSave({ 
+        status: 'completed', 
+        sessionId 
+      });
+      
+    } catch (error) {
+      console.error('Background save failed:', error);
+      setBackgroundSave({ 
+        status: 'error', 
+        error: error instanceof Error ? error.message : 'Failed to save session' 
       });
     }
-  }, [session]);
+  };
 
   const handleSaveAndComplete = async () => {
     if (!vibeLine.trim()) {
@@ -108,33 +195,23 @@ function SessionFinishContent() {
       return;
     }
 
-    if (!completedSession) {
-      alert('Session data not available');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setSaveError(null);
+    setIsSubmittingReflection(true);
     
     try {
-      // Save session to database
-      const sessionResponse = await fetch('/api/sessions/complete', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sessionData: completedSession,
-        }),
-      });
+      let sessionId: string;
 
-      if (!sessionResponse.ok) {
-        throw new Error('Failed to save session');
+      // Wait for background save to complete if still in progress
+      if (backgroundSave.status === 'saving' && backgroundSaveRef.current) {
+        sessionId = await backgroundSaveRef.current;
+      } else if (backgroundSave.status === 'completed' && backgroundSave.sessionId) {
+        sessionId = backgroundSave.sessionId;
+      } else if (backgroundSave.status === 'error') {
+        throw new Error(backgroundSave.error || 'Session save failed');
+      } else {
+        throw new Error('Session not ready for reflection');
       }
 
-      const { sessionId } = await sessionResponse.json();
-
-      // Save session seal
+      // Save session seal/reflection
       const sealData: SessionSealData = {
         effort,
         vibeLine: vibeLine.trim(),
@@ -150,20 +227,35 @@ function SessionFinishContent() {
       });
 
       if (!sealResponse.ok) {
-        throw new Error('Failed to save session reflection');
+        const errorText = await sealResponse.text();
+        throw new Error(`Failed to save session reflection: ${sealResponse.status} ${errorText}`);
       }
 
-      // Clear in-memory session data
-      clearSession();
-
-      // Redirect to home/review
-      router.push('/');
+      // Set summary data first
+      setSummaryEndTime(new Date()); // Set stable end time
+      setShowSummary(true);
+      
+      // Clear session data immediately after setting summary state
+      if (workoutId) {
+        const storageKey = `workout_session_${workoutId}`;
+        const hadData = localStorage.getItem(storageKey) !== null;
+        localStorage.removeItem(storageKey);
+        console.log('🧹 Cleared localStorage for workout:', workoutId, 'Had data:', hadData);
+        
+        // Also clear any other session-related data that might exist
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('workout_session_') || key.includes(workoutId)) {
+            localStorage.removeItem(key);
+            console.log('🧹 Also cleared related key:', key);
+          }
+        });
+      }
       
     } catch (error) {
-      console.error('Failed to save session:', error);
-      setSaveError(error instanceof Error ? error.message : 'Failed to save session');
+      console.error('Failed to save reflection:', error);
+      alert(error instanceof Error ? error.message : 'Failed to save reflection');
     } finally {
-      setIsSubmitting(false);
+      setIsSubmittingReflection(false);
     }
   };
 
@@ -194,13 +286,74 @@ function SessionFinishContent() {
     );
   }
 
-  // Show loading state
-  if (isInitializing || !session || !completedSession) {
+  // Show summary after reflection is submitted (check this FIRST)
+  if (showSummary) {
+    if (!summaryData) {
+      return (
+        <div className="px-6 py-8">
+          <h1 className="text-2xl font-bold text-gray-900">Error</h1>
+          <p className="text-red-600 mt-2">Session data not available</p>
+          <button onClick={() => router.push('/')} className="text-cyan-400 mt-4 block">← Back to home</button>
+        </div>
+      );
+    }
+    return (
+      <div className="px-6 py-8 pb-32">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <button onClick={() => router.push('/')} className="p-2 -ml-2">
+            <ArrowLeft size={24} className="text-gray-600" />
+          </button>
+          <h1 className="text-2xl font-bold text-gray-900">Session Complete</h1>
+        </div>
+
+        {/* Session Summary */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">{summaryData.workoutTitle} Summary</h2>
+          
+          <div className="grid grid-cols-2 gap-6 mb-4">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-gray-900">{formatDuration(summaryData.duration)}</p>
+              <p className="text-sm text-gray-500">Duration</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-gray-900">{summaryData.totalVolume}kg</p>
+              <p className="text-sm text-gray-500">Total Volume</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-gray-900">{summaryData.totalSets}</p>
+              <p className="text-sm text-gray-500">Total Sets</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-lime-600">{summaryData.exercises.length}</p>
+              <p className="text-sm text-gray-500">Exercises</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation button */}
+        <div className="fixed bottom-24 left-6 right-6">
+          <button 
+            onClick={() => router.push('/')}
+            className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl text-center block"
+          >
+            Back to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state only if session is still initializing
+  if (isInitializing || !session) {
     return (
       <div className="px-6 py-8 flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-lime-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Preparing session summary...</p>
+          <p className="text-gray-600">Loading session...</p>
         </div>
       </div>
     );
@@ -216,34 +369,25 @@ function SessionFinishContent() {
         <h1 className="text-2xl font-bold text-gray-900">Session Complete</h1>
       </div>
 
-      {/* Session Summary */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">{completedSession.workoutTitle} Summary</h2>
-        
-        <div className="grid grid-cols-2 gap-6 mb-4">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-gray-900">{formatDuration(completedSession.duration)}</p>
-            <p className="text-sm text-gray-500">Duration</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-gray-900">{completedSession.totalVolume}kg</p>
-            <p className="text-sm text-gray-500">Total Volume</p>
+      {/* Background save status indicator */}
+      {backgroundSave.status === 'saving' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-blue-700 text-sm">Saving your session in the background...</p>
           </div>
         </div>
+      )}
 
-        <div className="grid grid-cols-2 gap-6">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-gray-900">{completedSession.totalSets}</p>
-            <p className="text-sm text-gray-500">Total Sets</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-lime-600">{completedSession.exercises.length}</p>
-            <p className="text-sm text-gray-500">Exercises</p>
-          </div>
+      {backgroundSave.status === 'error' && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6">
+          <p className="text-red-700 text-sm">
+            Error saving session: {backgroundSave.error}. Please try again.
+          </p>
         </div>
-      </div>
+      )}
 
-      {/* Session Seal */}
+      {/* Session Reflection */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-8">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">How was your session?</h3>
         
@@ -304,22 +448,17 @@ function SessionFinishContent() {
           />
         </div>
 
-        {/* Save Error */}
-        {saveError && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-600 text-sm">{saveError}</p>
-          </div>
-        )}
+
       </div>
 
       {/* Save Button */}
       <div className="fixed bottom-24 left-6 right-6">
         <button 
           onClick={handleSaveAndComplete}
-          disabled={isSubmitting || !vibeLine.trim()}
+          disabled={isSubmittingReflection || !vibeLine.trim() || backgroundSave.status === 'error'}
           className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl text-center block disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isSubmitting ? 'Saving...' : 'Save & Complete'}
+          {isSubmittingReflection ? 'Saving Reflection...' : 'Save & Complete'}
         </button>
       </div>
     </div>
