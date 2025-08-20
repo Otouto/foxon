@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import type { WorkoutListItem } from '@/lib/types/workout';
 import type { PreloadedWorkoutData } from '@/services/WorkoutPreloadService';
 

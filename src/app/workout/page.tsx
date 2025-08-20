@@ -48,7 +48,7 @@ export default function WorkoutPage() {
     }
 
     loadWorkouts();
-  }, []); // Empty dependency array - only run once
+  }, [hasLoaded, preloadWorkouts]); // Include dependencies
 
   if (isLoading) {
     return (

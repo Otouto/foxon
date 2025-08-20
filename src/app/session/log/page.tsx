@@ -30,7 +30,6 @@ function SessionLogContent() {
     toggleSetCompletion,
     addSet,
     navigateToNextExercise,
-    navigateToPreviousExercise,
     formatDuration,
     canFinishWorkout,
     initializeSession,

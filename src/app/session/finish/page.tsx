@@ -55,7 +55,6 @@ function SessionFinishContent() {
   } = useInMemorySession(workoutId || '', preloadedData);
 
   const [completedSession, setCompletedSession] = useState<CompletedSessionData | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [effort, setEffort] = useState<EffortLevel>(EffortLevel.HARD);
   const [vibeLine, setVibeLine] = useState('');

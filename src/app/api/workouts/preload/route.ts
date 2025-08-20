@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { WorkoutPreloadService } from '@/services/WorkoutPreloadService';
 import { getCurrentUserId, isAuthenticated } from '@/lib/auth';
+import type { WorkoutDetails } from '@/lib/types/workout';
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,7 +27,11 @@ export async function POST(request: NextRequest) {
     const preloadedData = await WorkoutPreloadService.preloadMultipleWorkouts(workoutIds, userId);
 
     // Convert Map to object for JSON response
-    const responseData: Record<string, any> = {};
+    const responseData: Record<string, {
+      workout: WorkoutDetails;
+      previousSessionData: Record<string, { load: number; reps: number }[]>;
+      lastSessionDate: Date | null;
+    }> = {};
     preloadedData.forEach((data, workoutId) => {
       responseData[workoutId] = {
         workout: data.workout,

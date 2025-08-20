@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { WorkoutService } from '@/services/WorkoutService';
-import { getCurrentUserId, isAuthenticated } from '@/lib/auth';
+import { isAuthenticated } from '@/lib/auth';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Check authentication
     if (!isAuthenticated()) {

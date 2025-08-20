@@ -77,7 +77,7 @@ export function useInMemorySession(workoutId: string, preloadedData?: PreloadedW
       exerciseName: item.exercise.name,
       order: item.order,
       notes: item.notes || undefined,
-      sets: item.sets.map((set, index) => ({
+      sets: item.sets.map((set) => ({
         id: generateTempId(),
         type: set.type as SetType,
         targetLoad: set.targetLoad,
