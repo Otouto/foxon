@@ -2,6 +2,30 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SessionService } from '@/services/SessionService';
 import { getCurrentUserId, isAuthenticated } from '@/lib/auth';
 
+async function createSessionWithRetry(workoutId: string, userId: string, maxRetries = 3): Promise<any> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await SessionService.createSession({
+        workoutId,
+        userId
+      });
+    } catch (error: any) {
+      const isTransactionError = error?.message?.includes('Transaction not found') || 
+                               error?.message?.includes('Transaction ID is invalid') ||
+                               error?.message?.includes('Transaction already closed');
+      
+      if (isTransactionError && attempt < maxRetries) {
+        console.log(`Transaction error on attempt ${attempt}, retrying... Error: ${error.message}`);
+        // Wait briefly before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        continue;
+      }
+      
+      throw error;
+    }
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Get authenticated user (using mock auth for now)
@@ -23,11 +47,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create session using database service
-    const session = await SessionService.createSession({
-      workoutId,
-      userId
-    });
+    // Create session using database service with retry logic
+    const session = await createSessionWithRetry(workoutId, userId);
 
     return NextResponse.json({ 
       success: true, 
@@ -38,7 +59,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Failed to create session:', error);
+    console.error('Failed to create session after retries:', error);
     
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to create session' },

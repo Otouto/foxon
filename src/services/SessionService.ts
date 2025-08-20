@@ -119,7 +119,7 @@ export class SessionService {
       throw new Error(`Workout with id ${workoutId} not found`);
     }
 
-    // Create the session and all related data in a transaction
+    // Create the session and all related data in a transaction with increased timeout
     const session = await prisma.$transaction(async (tx) => {
       // Create the session
       const newSession = await tx.session.create({
@@ -130,31 +130,43 @@ export class SessionService {
         }
       });
 
-      // Create session exercises and sets
-      for (const workoutItem of workout.workoutItems) {
-        const sessionExercise = await tx.sessionExercise.create({
-          data: {
-            sessionId: newSession.id,
-            exerciseId: workoutItem.exerciseId,
-            order: workoutItem.order,
-            notes: workoutItem.notes,
-          }
-        });
+      // Batch create session exercises and sets for better performance
+      const sessionExercisesData = workout.workoutItems.map(workoutItem => ({
+        sessionId: newSession.id,
+        exerciseId: workoutItem.exerciseId,
+        order: workoutItem.order,
+        notes: workoutItem.notes,
+      }));
 
-        // Create session sets based on workout item sets
+      // Create all session exercises at once
+      const createdExercises = await Promise.all(
+        sessionExercisesData.map(data => tx.sessionExercise.create({ data }))
+      );
+
+      // Prepare all session sets data
+      const sessionSetsData = [];
+      for (let i = 0; i < workout.workoutItems.length; i++) {
+        const workoutItem = workout.workoutItems[i];
+        const sessionExercise = createdExercises[i];
+        
         for (const workoutSet of workoutItem.workoutItemSets) {
-          await tx.sessionSet.create({
-            data: {
-              sessionExerciseId: sessionExercise.id,
-              type: workoutSet.type,
-              load: workoutSet.targetLoad,
-              reps: workoutSet.targetReps,
-              completed: false,
-              order: workoutSet.order,
-              notes: workoutSet.notes,
-            }
+          sessionSetsData.push({
+            sessionExerciseId: sessionExercise.id,
+            type: workoutSet.type,
+            load: workoutSet.targetLoad,
+            reps: workoutSet.targetReps,
+            completed: false,
+            order: workoutSet.order,
+            notes: workoutSet.notes,
           });
         }
+      }
+
+      // Create all session sets at once
+      if (sessionSetsData.length > 0) {
+        await Promise.all(
+          sessionSetsData.map(data => tx.sessionSet.create({ data }))
+        );
       }
 
       // Return the complete session with all related data
@@ -177,6 +189,9 @@ export class SessionService {
           }
         }
       });
+    }, {
+      maxWait: 10000, // Maximum wait time to acquire a transaction: 10 seconds
+      timeout: 30000, // Maximum duration of the transaction: 30 seconds
     });
 
     if (!session) {
@@ -308,6 +323,9 @@ export class SessionService {
             break;
         }
       }
+    }, {
+      maxWait: 5000, // Maximum wait time: 5 seconds
+      timeout: 15000, // Maximum duration: 15 seconds
     });
 
     // Return updated session
@@ -577,3 +595,4 @@ export class SessionService {
     }
   }
 }
+
