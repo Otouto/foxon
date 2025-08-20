@@ -1,21 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SessionService } from '@/services/SessionService';
+import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, isAuthenticated } from '@/lib/auth';
-import { z } from 'zod';
+import { EffortLevel, SessionStatus } from '@prisma/client';
 
-// Validation schema for session seal
-const SessionSealSchema = z.object({
-  effort: z.enum(['EASY', 'STEADY', 'HARD', 'ALL_IN']),
-  vibeLine: z.string().min(1, 'Vibe line is required').max(200, 'Vibe line too long'),
-  note: z.string().max(1000, 'Note too long').optional(),
-});
+interface SessionSealData {
+  effort: EffortLevel;
+  vibeLine: string;
+  note?: string;
+}
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Get authenticated user (using mock auth for now)
+    // Check authentication
     if (!isAuthenticated()) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -24,8 +23,8 @@ export async function POST(
     }
     
     const userId = getCurrentUserId();
-
     const { id: sessionId } = await params;
+    const sealData: SessionSealData = await request.json();
     
     if (!sessionId) {
       return NextResponse.json(
@@ -34,35 +33,55 @@ export async function POST(
       );
     }
 
-    const body = await request.json();
-    
-    // Validate request body
-    const validation = SessionSealSchema.safeParse(body);
-    if (!validation.success) {
+    if (!sealData.effort || !sealData.vibeLine) {
       return NextResponse.json(
-        { 
-          error: 'Invalid request data',
-          details: validation.error.issues
-        },
+        { error: 'Effort level and vibe line are required' },
         { status: 400 }
       );
     }
 
-    const sealData = validation.data;
+    // Verify user owns the session and it's finished
+    const session = await prisma.session.findFirst({
+      where: { 
+        id: sessionId, 
+        userId, 
+        status: SessionStatus.FINISHED 
+      }
+    });
 
-    // Create the session seal
-    await SessionService.createSessionSeal(sessionId, userId, sealData);
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Session not found, access denied, or session not finished' },
+        { status: 404 }
+      );
+    }
+
+    // Create or update session seal
+    await prisma.sessionSeal.upsert({
+      where: { sessionId },
+      update: {
+        effort: sealData.effort,
+        vibeLine: sealData.vibeLine,
+        note: sealData.note,
+      },
+      create: {
+        sessionId,
+        effort: sealData.effort,
+        vibeLine: sealData.vibeLine,
+        note: sealData.note,
+      }
+    });
 
     return NextResponse.json({ 
-      success: true, 
-      message: 'Session seal created successfully'
+      success: true,
+      message: 'Session reflection saved successfully'
     });
 
   } catch (error) {
-    console.error('Failed to create session seal:', error);
+    console.error('Failed to save session seal:', error);
     
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to create session seal' },
+      { error: error instanceof Error ? error.message : 'Failed to save session reflection' },
       { status: 500 }
     );
   }
