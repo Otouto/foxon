@@ -1,6 +1,7 @@
 'use client';
 
 import { useSessionReflection, type ReflectionFormData } from '@/hooks/useSessionReflection';
+import { SessionErrorBoundary } from './SessionErrorBoundary';
 
 interface SessionReflectionFormProps {
   onSubmit: (data: ReflectionFormData) => Promise<void>;
@@ -12,7 +13,7 @@ interface SessionReflectionFormProps {
  * Form component for session reflection (effort, vibe line, notes)
  * Handles all form UI and validation using the useSessionReflection hook
  */
-export function SessionReflectionForm({ 
+function SessionReflectionFormContent({ 
   onSubmit, 
   disabled = false, 
   className = "" 
@@ -91,5 +92,22 @@ export function SessionReflectionForm({
         </button>
       </div>
     </div>
+  );
+}
+
+export function SessionReflectionForm(props: SessionReflectionFormProps) {
+  return (
+    <SessionErrorBoundary
+      fallback={
+        <div className={`bg-white rounded-2xl p-6 shadow-sm border border-gray-100 ${props.className || ''}`}>
+          <div className="text-center py-8">
+            <p className="text-gray-600 mb-4">Unable to load reflection form</p>
+            <p className="text-sm text-gray-500">Please refresh the page or try again later.</p>
+          </div>
+        </div>
+      }
+    >
+      <SessionReflectionFormContent {...props} />
+    </SessionErrorBoundary>
   );
 }

@@ -11,6 +11,7 @@ import type { ReflectionFormData } from '@/hooks/useSessionReflection';
 import type { SessionSealData } from '@/services/SessionCompletionService';
 import { SessionReflectionForm } from '@/components/session/SessionReflectionForm';
 import { BackgroundSaveIndicator } from '@/components/session/BackgroundSaveIndicator';
+import { SessionErrorBoundary } from '@/components/session/SessionErrorBoundary';
 
 function SessionFinishContent() {
   const router = useRouter();
@@ -285,8 +286,10 @@ function LoadingFallback() {
 
 export default function SessionFinishPage() {
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <SessionFinishContent />
-    </Suspense>
+    <SessionErrorBoundary>
+      <Suspense fallback={<LoadingFallback />}>
+        <SessionFinishContent />
+      </Suspense>
+    </SessionErrorBoundary>
   );
 }
