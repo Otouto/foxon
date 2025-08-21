@@ -1,14 +1,32 @@
 import { prisma } from '@/lib/prisma';
 import { SessionSet, SessionStatus, SetType, EffortLevel } from '@prisma/client';
 
+// Devotion score pillar data
+export interface DevotionPillars {
+  EC: number; // Exercise Coverage (0-1)
+  SC: number; // Set Completion (0-1)
+  RF: number; // Rep Fidelity (0-1)
+  LF?: number; // Load Fidelity (0-1, optional for bodyweight sessions)
+}
+
+// Deviation explanation for "Why this score?" sheet
+export interface DevotionDeviation {
+  type: 'missed_sets' | 'rep_variance' | 'load_variance' | 'missed_exercise';
+  exerciseName: string;
+  description: string; // e.g., "Missed 1 set on Жим платформи"
+  impact: number; // How much this affected the score (0-1)
+}
+
 export interface SessionWithDetails {
   id: string;
   userId: string;
   workoutId: string | null;
   date: Date;
-  totalVolume: number;
-  totalSets: number;
   status: SessionStatus;
+  devotionScore: number | null; // 0-100 Commitment & Devotion Score
+  devotionGrade: string | null; // "Dialed in", "On plan", "Loose", "Off plan"
+  devotionPillars: DevotionPillars | null; // Pillar scores for visualization
+  devotionDeviations: DevotionDeviation[] | null; // Top 3 deviations
   createdAt: Date;
   updatedAt: Date;
   sessionExercises: {
@@ -201,8 +219,7 @@ export class SessionService {
     // Convert Prisma types to match our interface
     return {
       ...session,
-      totalVolume: Number(session.totalVolume),
-      totalSets: session.totalSets,
+
       sessionExercises: session.sessionExercises.map(exercise => ({
         ...exercise,
         sessionSets: exercise.sessionSets.map(set => ({
@@ -247,8 +264,10 @@ export class SessionService {
     // Convert Prisma types to match our interface
     return {
       ...session,
-      totalVolume: Number(session.totalVolume),
-      totalSets: session.totalSets,
+      devotionScore: session.devotionScore,
+      devotionGrade: session.devotionGrade,
+      devotionPillars: session.devotionPillars ? JSON.parse(JSON.stringify(session.devotionPillars)) : null,
+      devotionDeviations: session.devotionDeviations ? JSON.parse(JSON.stringify(session.devotionDeviations)) : null,
       sessionExercises: session.sessionExercises.map(exercise => ({
         ...exercise,
         sessionSets: exercise.sessionSets.map(set => ({
@@ -338,7 +357,7 @@ export class SessionService {
   }
 
   /**
-   * Finish a session and calculate totals
+   * Finish a session (devotion score calculation will be handled separately)
    */
   static async finishSession(sessionId: string, userId: string): Promise<SessionWithDetails> {
     const session = await this.getSession(sessionId, userId);
@@ -351,25 +370,11 @@ export class SessionService {
       throw new Error('Session is already finished');
     }
 
-    // Calculate totals
-    let totalSets = 0;
-    let totalVolume = 0;
-
-    for (const exercise of session.sessionExercises) {
-      const completedSets = exercise.sessionSets.filter(set => set.completed);
-      totalSets += completedSets.length;
-      totalVolume += completedSets.reduce((sum, set) => {
-        return sum + (Number(set.load) * set.reps);
-      }, 0);
-    }
-
-    // Update session with totals and mark as finished
+    // Simply mark session as finished - devotion scoring will be handled by DevotionScoringService
     const updatedSession = await prisma.session.update({
       where: { id: sessionId },
       data: {
         status: SessionStatus.FINISHED,
-        totalSets,
-        totalVolume,
       },
       include: {
         sessionExercises: {
@@ -392,8 +397,10 @@ export class SessionService {
     // Convert Prisma types to match our interface
     return {
       ...updatedSession,
-      totalVolume: Number(updatedSession.totalVolume),
-      totalSets: updatedSession.totalSets,
+      devotionScore: updatedSession.devotionScore,
+      devotionGrade: updatedSession.devotionGrade,
+      devotionPillars: updatedSession.devotionPillars ? JSON.parse(JSON.stringify(updatedSession.devotionPillars)) : null,
+      devotionDeviations: updatedSession.devotionDeviations ? JSON.parse(JSON.stringify(updatedSession.devotionDeviations)) : null,
       sessionExercises: updatedSession.sessionExercises.map(exercise => ({
         ...exercise,
         sessionSets: exercise.sessionSets.map(set => ({
@@ -466,8 +473,7 @@ export class SessionService {
     // Convert Prisma types to match our interface
     return sessions.map(session => ({
       ...session,
-      totalVolume: Number(session.totalVolume),
-      totalSets: session.totalSets,
+
       sessionExercises: session.sessionExercises.map(exercise => ({
         ...exercise,
         sessionSets: exercise.sessionSets.map(set => ({

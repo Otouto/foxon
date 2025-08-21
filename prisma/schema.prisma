@@ -157,15 +157,17 @@ model WorkoutItemSet {
 
 // Actual Workout Sessions
 model Session {
-  id          String        @id @default(cuid())
-  userId      String        @map("user_id")
-  workoutId   String?       @map("workout_id")
-  date        DateTime      @default(now())
-  totalVolume Decimal       @default(0) @map("total_volume")
-  totalSets   Int           @default(0) @map("total_sets")
-  status      SessionStatus @default(ACTIVE)
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
+  id               String        @id @default(cuid())
+  userId           String        @map("user_id")
+  workoutId        String?       @map("workout_id")
+  date             DateTime      @default(now())
+  status           SessionStatus @default(ACTIVE)
+  devotionScore    Int?          @map("devotion_score") // 0-100 Commitment & Devotion Score
+  devotionGrade    String?       @map("devotion_grade") // "Dialed in", "On plan", "Loose", "Off plan"
+  devotionPillars  Json?         @map("devotion_pillars") // {EC: 0.95, SC: 0.88, RF: 0.92, LF: 0.85}
+  devotionDeviations Json?       @map("devotion_deviations") // Top 3 deviations for "Why this score?"
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
 
   // Relations
   user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)

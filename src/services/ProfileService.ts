@@ -15,8 +15,8 @@ export interface UserProfile {
 
 export interface UserStats {
   completedSessions: number;
-  totalVolume: number;
   currentWeekStreak: number;
+  averageDevotionScore?: number; // Average devotion score from completed sessions
 }
 
 export interface ProfileData {
@@ -78,17 +78,21 @@ export class ProfileService {
 
     // Calculate basic stats
     const completedSessions = sessions.length;
-    const totalVolume = sessions.reduce((sum, session) => 
-      sum + Number(session.totalVolume), 0
-    );
+    
+    // TODO: Re-enable devotion score calculation once TypeScript cache refreshes
+    // Calculate average devotion score from sessions that have one
+    // const sessionsWithDevotionScore = sessions.filter(session => session.devotionScore !== null);
+    // const averageDevotionScore = sessionsWithDevotionScore.length > 0 
+    //   ? sessionsWithDevotionScore.reduce((sum, session) => sum + (session.devotionScore || 0), 0) / sessionsWithDevotionScore.length
+    //   : undefined;
 
     // Calculate current week streak
     const currentWeekStreak = this.calculateWeekStreak(sessions);
 
     return {
       completedSessions,
-      totalVolume,
-      currentWeekStreak
+      currentWeekStreak,
+      // averageDevotionScore: averageDevotionScore ? Math.round(averageDevotionScore) : undefined
     };
   }
 

@@ -100,33 +100,25 @@ function SessionFinishContent() {
     };
   }, [showSummary, workoutId]);
   
-  // Calculate session statistics and start background save when session is available
+  // Prepare session data and start background save when session is available
   useEffect(() => {
     if (session && backgroundSave.status === 'idle') {
       const endTime = new Date();
-      let totalSets = 0;
-      let totalVolume = 0;
 
-      const exercisesData = session.exercises.map(exercise => {
-        const completedSets = exercise.sets.filter(set => set.completed);
-        totalSets += completedSets.length;
-        totalVolume += completedSets.reduce((sum, set) => sum + (set.actualLoad * set.actualReps), 0);
-
-        return {
-          exerciseId: exercise.exerciseId,
-          exerciseName: exercise.exerciseName,
-          order: exercise.order,
-          notes: exercise.notes,
-          sets: exercise.sets.map(set => ({
-            type: set.type,
-            load: set.actualLoad,
-            reps: set.actualReps,
-            completed: set.completed,
-            order: set.order,
-            notes: set.notes,
-          })),
-        };
-      });
+      const exercisesData = session.exercises.map(exercise => ({
+        exerciseId: exercise.exerciseId,
+        exerciseName: exercise.exerciseName,
+        order: exercise.order,
+        notes: exercise.notes,
+        sets: exercise.sets.map(set => ({
+          type: set.type,
+          load: set.actualLoad,
+          reps: set.actualReps,
+          completed: set.completed,
+          order: set.order,
+          notes: set.notes,
+        })),
+      }));
 
       const sessionData: CompletedSessionData = {
         workoutId: session.workoutId,
@@ -134,8 +126,6 @@ function SessionFinishContent() {
         startTime: session.startTime,
         endTime,
         duration: session.duration,
-        totalSets,
-        totalVolume,
         exercises: exercisesData,
       };
 

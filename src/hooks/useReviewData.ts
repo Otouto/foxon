@@ -6,9 +6,9 @@ export interface SessionReviewData {
   id: string;
   date: Date;
   workoutTitle: string | null;
-  totalVolume: number;
-  totalSets: number;
   status: string;
+  devotionScore?: number | null;
+  devotionGrade?: string | null;
   effort?: string;
   vibeLine?: string;
   note?: string;

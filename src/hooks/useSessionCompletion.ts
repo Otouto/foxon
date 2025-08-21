@@ -7,8 +7,6 @@ export interface CompletedSessionData {
   startTime: Date;
   endTime: Date;
   duration: number;
-  totalSets: number;
-  totalVolume: number;
   exercises: Array<{
     exerciseId: string;
     exerciseName: string;

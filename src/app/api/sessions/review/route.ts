@@ -6,9 +6,9 @@ export interface SessionReviewData {
   id: string;
   date: Date;
   workoutTitle: string | null;
-  totalVolume: number;
-  totalSets: number;
   status: string;
+  devotionScore?: number | null;
+  devotionGrade?: string | null;
   effort?: string;
   vibeLine?: string;
   note?: string;
@@ -53,9 +53,9 @@ export async function GET(request: NextRequest) {
         id: session.id,
         date: session.date,
         workoutTitle: session.workout?.title || null,
-        totalVolume: Number(session.totalVolume),
-        totalSets: session.totalSets,
         status: session.status,
+        devotionScore: session.devotionScore,
+        devotionGrade: session.devotionGrade,
         effort: session.sessionSeal?.effort,
         vibeLine: session.sessionSeal?.vibeLine,
         note: session.sessionSeal?.note || undefined

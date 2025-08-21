@@ -88,8 +88,8 @@ export function SessionCard({ session, onDelete }: SessionCardProps) {
         </div>
         
         <div className="flex items-center justify-between text-sm text-gray-500">
-          <span>{session.totalSets} sets</span>
-          <span>{session.totalVolume.toLocaleString()}kg volume</span>
+          <span>{session.devotionScore ? `${session.devotionScore}/100` : 'No score'}</span>
+          <span>{session.devotionGrade || 'Not graded'}</span>
         </div>
         
         {session.vibeLine && (
@@ -114,7 +114,7 @@ export function SessionCard({ session, onDelete }: SessionCardProps) {
                   {session.workoutTitle || 'Custom Workout'}
                 </p>
                 <p className="text-sm text-gray-500">
-                  {formatDate(session.date)} • {session.totalSets} sets • {session.totalVolume.toLocaleString()}kg
+                  {formatDate(session.date)} • {session.devotionScore ? `${session.devotionScore}/100` : 'No score'}
                 </p>
               </div>
               <p className="text-gray-600 mb-8 leading-relaxed">

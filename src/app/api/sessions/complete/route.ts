@@ -9,8 +9,6 @@ interface CompletedSessionData {
   startTime: Date;
   endTime: Date;
   duration: number;
-  totalSets: number;
-  totalVolume: number;
   exercises: Array<{
     exerciseId: string;
     exerciseName: string;
@@ -56,8 +54,6 @@ export async function POST(request: NextRequest) {
           workoutId: sessionData.workoutId,
           status: SessionStatus.FINISHED,
           date: new Date(sessionData.startTime),
-          totalVolume: sessionData.totalVolume,
-          totalSets: sessionData.totalSets,
           createdAt: new Date(sessionData.startTime),
           updatedAt: new Date(sessionData.endTime),
         }

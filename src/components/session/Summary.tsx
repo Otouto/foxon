@@ -5,8 +5,8 @@ import { formatDuration } from '@/lib/utils'
 interface SummaryData {
   workoutTitle?: string
   duration: number
-  totalVolume: number
-  totalSets: number
+  totalVolume?: number // Temporary: will be replaced with devotion score
+  totalSets?: number   // Temporary: will be replaced with devotion score
   exercises: Array<{ 
     id?: string
     name?: string
@@ -45,14 +45,14 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
           <p className="text-sm text-gray-500">Duration</p>
         </div>
         <div className="text-center">
-          <p className="text-2xl font-bold text-gray-900">{data.totalVolume}kg</p>
+          <p className="text-2xl font-bold text-gray-900">{data.totalVolume || 0}kg</p>
           <p className="text-sm text-gray-500">Total Volume</p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-6">
         <div className="text-center">
-          <p className="text-2xl font-bold text-gray-900">{data.totalSets}</p>
+          <p className="text-2xl font-bold text-gray-900">{data.totalSets || 0}</p>
           <p className="text-sm text-gray-500">Total Sets</p>
         </div>
         <div className="text-center">

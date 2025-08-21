@@ -18,13 +18,7 @@ export default async function ProfilePage() {
   const { user, stats } = profileData;
   const progressionInfo = ProfileService.getProgressionInfo(user.progressionState);
   
-  // Format volume display
-  const formatVolume = (volume: number) => {
-    if (volume >= 1000) {
-      return `${(volume / 1000).toFixed(1)}k`;
-    }
-    return volume.toString();
-  };
+  // Removed formatVolume function - no longer needed with devotion scoring
 
   // Get user initials for avatar
   const getUserInitials = (name: string | null) => {
@@ -69,8 +63,8 @@ export default async function ProfilePage() {
             <p className="text-sm text-gray-500">Week Streak</p>
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{formatVolume(stats.totalVolume)}</p>
-            <p className="text-sm text-gray-500">Total Volume</p>
+            <p className="text-2xl font-bold text-gray-900">{stats.averageDevotionScore || 'N/A'}</p>
+            <p className="text-sm text-gray-500">Avg Devotion Score</p>
           </div>
         </div>
       </div>
