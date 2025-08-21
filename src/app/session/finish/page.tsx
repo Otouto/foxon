@@ -7,8 +7,10 @@ import { useEffect, useState, Suspense, useMemo, useCallback } from 'react';
 import { useInMemorySession } from '@/hooks/useInMemorySession';
 import { useWorkoutPreload } from '@/hooks/useWorkoutPreload';
 import { useSessionCompletion, type CompletedSessionData } from '@/hooks/useSessionCompletion';
-import { useSessionReflection, type ReflectionFormData } from '@/hooks/useSessionReflection';
+import type { ReflectionFormData } from '@/hooks/useSessionReflection';
 import type { SessionSealData } from '@/services/SessionCompletionService';
+import { SessionReflectionForm } from '@/components/session/SessionReflectionForm';
+import { BackgroundSaveIndicator } from '@/components/session/BackgroundSaveIndicator';
 
 function SessionFinishContent() {
   const router = useRouter();
@@ -59,10 +61,7 @@ function SessionFinishContent() {
     }
   }, [sealSession, workoutId]);
 
-  // Reflection form hook
-  const reflection = useSessionReflection({ 
-    onSubmit: handleReflectionSubmit 
-  });
+
   const [showSummary, setShowSummary] = useState(false);
   const [summaryEndTime, setSummaryEndTime] = useState<Date | null>(null);
   
@@ -259,94 +258,16 @@ function SessionFinishContent() {
       </div>
 
       {/* Background save status indicator */}
-      {backgroundSave.status === 'saving' && (
-        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-blue-700 text-sm">Saving your session in the background...</p>
-          </div>
-        </div>
-      )}
+      <BackgroundSaveIndicator saveState={backgroundSave} className="mb-6" />
 
-      {backgroundSave.status === 'error' && (
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6">
-          <p className="text-red-700 text-sm">
-            Error saving session: {backgroundSave.error}. Please try again.
-          </p>
-        </div>
-      )}
+      {/* Session Reflection Form */}
+      <SessionReflectionForm 
+        onSubmit={handleReflectionSubmit}
+        disabled={backgroundSave.status === 'error'}
+        className="mb-32"
+      />
 
-      {/* Session Reflection */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-8">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">How was your session?</h3>
-        
-        {/* Effort Rating */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Effort Level
-          </label>
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-gray-500">Easy</span>
-            <div className="flex-1 mx-4">
-              <input
-                type="range"
-                min="1"
-                max="4"
-                value={reflection.getEffortValue()}
-                onChange={(e) => reflection.handleEffortChange(parseInt(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-              />
-            </div>
-            <span className="text-xs text-gray-500">All-In</span>
-          </div>
-          <div className="text-center mt-2">
-            <span className="text-sm font-medium text-lime-600">{reflection.effort}</span>
-          </div>
-        </div>
-
-        {/* One-line Vibe */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            One-line vibe <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            placeholder="e.g., Crushed those bench sets!"
-            value={reflection.vibeLine}
-            onChange={(e) => reflection.setVibeLine(e.target.value)}
-            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-transparent"
-            maxLength={200}
-          />
-        </div>
-
-        {/* Optional Note */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Additional notes (optional)
-          </label>
-          <textarea
-            placeholder="Any additional thoughts about this session..."
-            rows={3}
-            value={reflection.note}
-            onChange={(e) => reflection.setNote(e.target.value)}
-            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-transparent resize-none"
-            maxLength={1000}
-          />
-        </div>
-
-
-      </div>
-
-      {/* Save Button */}
-      <div className="fixed bottom-24 left-6 right-6">
-        <button 
-          onClick={reflection.handleSubmit}
-          disabled={reflection.isSubmitting || !reflection.isValid || backgroundSave.status === 'error'}
-          className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl text-center block disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {reflection.isSubmitting ? 'Saving Reflection...' : 'Save & Complete'}
-        </button>
-      </div>
+      {/* Fixed button is now handled inside the form component */}
     </div>
   );
 }
