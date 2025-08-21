@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { SessionCompletionService, type SessionSealData } from '@/services/SessionCompletionService';
 
 export interface CompletedSessionData {
   workoutId: string;
@@ -24,12 +25,6 @@ export interface CompletedSessionData {
   }>;
 }
 
-export interface SessionSealData {
-  effort: string;
-  vibeLine: string;
-  note?: string;
-}
-
 interface BackgroundSaveState {
   status: 'idle' | 'saving' | 'completed' | 'error';
   sessionId?: string;
@@ -46,20 +41,7 @@ export function useSessionCompletion() {
     setBackgroundSave({ status: 'saving' });
 
     try {
-      const savePromise = fetch('/api/sessions/complete', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ sessionData }),
-      }).then(async (response) => {
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Failed to save session: ${response.status} ${errorText}`);
-        }
-        const result = await response.json();
-        return result.sessionId;
-      });
+      const savePromise = SessionCompletionService.saveSession(sessionData);
 
       // Store the promise for later use
       backgroundSaveRef.current = savePromise;
@@ -96,19 +78,8 @@ export function useSessionCompletion() {
       throw new Error('Session not ready for reflection');
     }
 
-    // Save session seal/reflection
-    const sealResponse = await fetch(`/api/sessions/${sessionId}/seal`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(sealData),
-    });
-
-    if (!sealResponse.ok) {
-      const errorText = await sealResponse.text();
-      throw new Error(`Failed to save session reflection: ${sealResponse.status} ${errorText}`);
-    }
+    // Save session seal/reflection using service
+    await SessionCompletionService.sealSession(sessionId, sealData);
 
     return sessionId;
   }, [backgroundSave]);

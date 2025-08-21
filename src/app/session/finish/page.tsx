@@ -8,6 +8,7 @@ import { useInMemorySession } from '@/hooks/useInMemorySession';
 import { useWorkoutPreload } from '@/hooks/useWorkoutPreload';
 import { useSessionCompletion, type CompletedSessionData } from '@/hooks/useSessionCompletion';
 import { useSessionReflection, type ReflectionFormData } from '@/hooks/useSessionReflection';
+import type { SessionSealData } from '@/services/SessionCompletionService';
 
 function SessionFinishContent() {
   const router = useRouter();
@@ -29,7 +30,7 @@ function SessionFinishContent() {
   
   // Handle reflection form submission
   const handleReflectionSubmit = useCallback(async (formData: ReflectionFormData) => {
-    const sealData = {
+    const sealData: SessionSealData = {
       effort: formData.effort.toString(),
       vibeLine: formData.vibeLine,
       note: formData.note
