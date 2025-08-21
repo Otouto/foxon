@@ -93,6 +93,12 @@ async function main() {
     },
   })
 
+  // Clear existing workout data to ensure fresh seeding
+  console.log('Clearing existing workout data...')
+  await prisma.workoutItemSet.deleteMany({})
+  await prisma.workoutItem.deleteMany({})
+  await prisma.workout.deleteMany({})
+
   // Create workout templates from our seed data
   console.log('Creating workout templates...')
   
@@ -109,14 +115,26 @@ async function main() {
   })
 
   // Create workout items for Workout 1
-  const workout1Exercises = [
-    { exerciseKey: 'single-leg-squats', order: 1, sets: workoutSeedData['1'].exercises_list[0].sets },
-    { exerciseKey: 'leg-press', order: 2, sets: workoutSeedData['1'].exercises_list[1].sets },
-    { exerciseKey: 'chest-press', order: 3, sets: workoutSeedData['1'].exercises_list[2].sets },
-    { exerciseKey: 'horizontal-row', order: 4, sets: workoutSeedData['1'].exercises_list[3].sets },
-    { exerciseKey: 'tricep-extension', order: 5, sets: workoutSeedData['1'].exercises_list[4].sets },
-    { exerciseKey: 'barbell-bicep-curl', order: 6, sets: workoutSeedData['1'].exercises_list[5].sets },
-  ]
+  const workout1Exercises = workoutSeedData['1'].exercises_list.map((exercise, index) => {
+    // Map exercise names to exercise keys
+    const exerciseKeyMap: Record<string, string> = {
+      'Присідання на 1 нозі': 'single-leg-squats',
+      'Вертикальна тяга': 'vertical-pull',
+      'Жим платформи': 'leg-press',
+      'Жим на грудь': 'chest-press',
+      'Горизонтальна тяга': 'horizontal-row',
+      'Розгинання на трицепс': 'tricep-extension',
+      'Згинання штанги на біцепс': 'barbell-bicep-curl'
+    };
+    
+    console.log(`Mapping exercise "${exercise.name}" to key: ${exerciseKeyMap[exercise.name]}`);
+    
+    return {
+      exerciseKey: exerciseKeyMap[exercise.name],
+      order: index + 1,
+      sets: exercise.sets
+    };
+  });
 
   for (const item of workout1Exercises) {
     const workoutItem = await prisma.workoutItem.upsert({
@@ -171,14 +189,25 @@ async function main() {
   })
 
   // Create workout items for Workout 2
-  const workout2Exercises = [
-    { exerciseKey: 'sumo-squat-kettlebell', order: 1, sets: workoutSeedData['2'].exercises_list[0].sets },
-    { exerciseKey: 'pull-ups', order: 2, sets: workoutSeedData['2'].exercises_list[1].sets },
-    { exerciseKey: 'push-ups', order: 3, sets: workoutSeedData['2'].exercises_list[2].sets },
-    { exerciseKey: 'machine-row', order: 4, sets: workoutSeedData['2'].exercises_list[3].sets },
-    { exerciseKey: 'dumbbell-flyes', order: 5, sets: workoutSeedData['2'].exercises_list[4].sets },
-    { exerciseKey: 'rear-delt-flyes', order: 6, sets: workoutSeedData['2'].exercises_list[5].sets },
-  ]
+  const workout2Exercises = workoutSeedData['2'].exercises_list.map((exercise, index) => {
+    // Map exercise names to exercise keys
+    const exerciseKeyMap: Record<string, string> = {
+      'Присідання сумо з гирею': 'sumo-squat-kettlebell',
+      'Підтягування': 'pull-ups',
+      'Віджимання класика': 'push-ups',
+      'Тяга в нахилі по 1 руці': 'one-arm-bent-row',
+      'Розводка гантелей бабочка': 'dumbbell-flyes',
+      'Жим на плечі з гантелями': 'dumbbell-shoulder-press'
+    };
+    
+    console.log(`Mapping exercise "${exercise.name}" to key: ${exerciseKeyMap[exercise.name]}`);
+    
+    return {
+      exerciseKey: exerciseKeyMap[exercise.name],
+      order: index + 1,
+      sets: exercise.sets
+    };
+  });
 
   for (const item of workout2Exercises) {
     const workoutItem = await prisma.workoutItem.upsert({

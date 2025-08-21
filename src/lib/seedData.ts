@@ -130,6 +130,13 @@ export const equipmentSeed: Record<string, Equipment> = {
     description: 'Канати для тяги',
     created_at: now,
     updated_at: now
+  },
+  'rope': {
+    id: 'rope',
+    name: 'Мотузка',
+    description: 'Мотузки для тренажерів',
+    created_at: now,
+    updated_at: now
   }
 };
 
@@ -182,30 +189,8 @@ export const exercisesSeed: Record<string, ExerciseDefinition> = {
     muscle_group: muscleGroupsSeed['back'],
     equipment: equipmentSeed['machine']
   },
-  'tricep-extension': {
-    id: 'tricep-extension',
-    name: 'Розгинання на трицепс з канатом',
-    description: 'Ізольована вправа на трицепс',
-    muscle_group_id: 'arms',
-    equipment_id: 'cable',
-    instructions: 'Повна амплітуда руху.',
-    created_at: now,
-    updated_at: now,
-    muscle_group: muscleGroupsSeed['arms'],
-    equipment: equipmentSeed['cable']
-  },
-  'barbell-bicep-curl': {
-    id: 'barbell-bicep-curl',
-    name: 'Штанга на біцепс',
-    description: 'Базова вправа на біцепс',
-    muscle_group_id: 'arms',
-    equipment_id: 'barbell',
-    instructions: 'Контрольований темп виконання.',
-    created_at: now,
-    updated_at: now,
-    muscle_group: muscleGroupsSeed['arms'],
-    equipment: equipmentSeed['barbell']
-  },
+
+
   'sumo-squat-kettlebell': {
     id: 'sumo-squat-kettlebell',
     name: 'Присідання сумо з гирею',
@@ -242,21 +227,10 @@ export const exercisesSeed: Record<string, ExerciseDefinition> = {
     muscle_group: muscleGroupsSeed['chest'],
     equipment: equipmentSeed['bodyweight']
   },
-  'machine-row': {
-    id: 'machine-row',
-    name: 'Тяга в тренажері',
-    description: 'Тяга сидячи в тренажері',
-    muscle_group_id: 'back',
-    equipment_id: 'machine',
-    instructions: 'Поступове збільшення ваги.',
-    created_at: now,
-    updated_at: now,
-    muscle_group: muscleGroupsSeed['back'],
-    equipment: equipmentSeed['machine']
-  },
+
   'dumbbell-flyes': {
     id: 'dumbbell-flyes',
-    name: 'Розводка гантелей - бабочка',
+    name: 'Розводка гантелей бабочка',
     description: 'Розводка гантелей для грудей',
     muscle_group_id: 'chest',
     equipment_id: 'dumbbells',
@@ -277,6 +251,79 @@ export const exercisesSeed: Record<string, ExerciseDefinition> = {
     updated_at: now,
     muscle_group: muscleGroupsSeed['shoulders'],
     equipment: equipmentSeed['machine']
+  },
+  'machine-row': {
+    id: 'machine-row',
+    name: 'Тяга в тренажері',
+    description: 'Тяга сидячи в тренажері',
+    muscle_group_id: 'back',
+    equipment_id: 'machine',
+    instructions: 'Поступове збільшення ваги.',
+    created_at: now,
+    updated_at: now,
+    muscle_group: muscleGroupsSeed['back'],
+    equipment: equipmentSeed['machine']
+  },
+
+  'vertical-pull': {
+    id: 'vertical-pull',
+    name: 'Вертикальна тяга',
+    description: 'Вертикальна тяга в тренажері',
+    muscle_group_id: 'back',
+    equipment_id: 'machine',
+    instructions: 'Тяга блоку до грудей, зведення лопаток.',
+    created_at: now,
+    updated_at: now,
+    muscle_group: muscleGroupsSeed['back'],
+    equipment: equipmentSeed['machine']
+  },
+  'tricep-extension': {
+    id: 'tricep-extension',
+    name: 'Розгинання на трицепс',
+    description: 'Ізольована вправа на трицепс',
+    muscle_group_id: 'arms',
+    equipment_id: 'machine',
+    instructions: 'Повна амплітуда руху, контроль негативної фази.',
+    created_at: now,
+    updated_at: now,
+    muscle_group: muscleGroupsSeed['arms'],
+    equipment: equipmentSeed['machine']
+  },
+  'barbell-bicep-curl': {
+    id: 'barbell-bicep-curl',
+    name: 'Згинання штанги на біцепс',
+    description: 'Базова вправа на біцепс зі штангою',
+    muscle_group_id: 'arms',
+    equipment_id: 'barbell',
+    instructions: 'Контрольований темп виконання, повна амплітуда.',
+    created_at: now,
+    updated_at: now,
+    muscle_group: muscleGroupsSeed['arms'],
+    equipment: equipmentSeed['barbell']
+  },
+  'one-arm-bent-row': {
+    id: 'one-arm-bent-row',
+    name: 'Тяга в нахилі по 1 руці',
+    description: 'Тяга гантелі однією рукою в нахилі',
+    muscle_group_id: 'back',
+    equipment_id: 'dumbbells',
+    instructions: 'Тримай спину прямо, тягни гантелю до пояса.',
+    created_at: now,
+    updated_at: now,
+    muscle_group: muscleGroupsSeed['back'],
+    equipment: equipmentSeed['dumbbells']
+  },
+  'dumbbell-shoulder-press': {
+    id: 'dumbbell-shoulder-press',
+    name: 'Жим на плечі з гантелями',
+    description: 'Жим гантелей над головою для плечей',
+    muscle_group_id: 'shoulders',
+    equipment_id: 'dumbbells',
+    instructions: 'Жим гантелей над головою, контроль негативної фази.',
+    created_at: now,
+    updated_at: now,
+    muscle_group: muscleGroupsSeed['shoulders'],
+    equipment: equipmentSeed['dumbbells']
   }
 };
 
@@ -299,10 +346,19 @@ export const workoutSeedData = {
         notes: 'Фокус на балансі та контролі руху'
       },
       {
+        name: 'Вертикальна тяга',
+        sets: [
+          { reps: 12, weight: 40 },
+          { reps: 12, weight: 40 }
+        ],
+        notes: 'Контроль негативної фази'
+      },
+      {
         name: 'Жим платформи',
         sets: [
           { reps: 10, weight: 75 },
-          { reps: 10, weight: 75 },
+          { reps: 10, weight: 100 },
+          { reps: 10, weight: 100 },
           { reps: 10, weight: 100 },
           { reps: 10, weight: 100 }
         ],
@@ -311,16 +367,17 @@ export const workoutSeedData = {
       {
         name: 'Жим на грудь',
         sets: [
-          { reps: 10, weight: 40 },
-          { reps: 10, weight: 45 },
-          { reps: 10, weight: 45 }
+          { reps: 12, weight: 40 },
+          { reps: 12, weight: 45 },
+          { reps: 12, weight: 50 },
+          { reps: 12, weight: 50 }
         ],
         notes: 'Контроль негативної фази'
       },
       {
         name: 'Горизонтальна тяга',
         sets: [
-          { reps: 12, weight: 40 },
+          { reps: 12, weight: 35 },
           { reps: 12, weight: 40 },
           { reps: 12, weight: 40 },
           { reps: 12, weight: 45 }
@@ -328,22 +385,23 @@ export const workoutSeedData = {
         notes: 'Зведення лопаток в кінцевій точці'
       },
       {
-        name: 'Розгинання на трицепс з канатом',
+        name: 'Розгинання на трицепс',
         sets: [
-          { reps: 10, weight: 20 },
-          { reps: 10, weight: 20 },
-          { reps: 10, weight: 20 }
+          { reps: 12, weight: 30 },
+          { reps: 12, weight: 30 },
+          { reps: 12, weight: 30 },
+          { reps: 12, weight: 35 }
         ],
         notes: 'Повна амплітуда руху'
       },
       {
-        name: 'Штанга на біцепс',
+        name: 'Згинання штанги на біцепс',
         sets: [
-          { reps: 10, weight: 15 },
-          { reps: 10, weight: 20 },
-          { reps: 10, weight: 20 }
+          { reps: 12, weight: 15 },
+          { reps: 12, weight: 20 },
+          { reps: 12, weight: 20 }
         ],
-        notes: 'Контрольований темп'
+        notes: 'Контрольований темп виконання'
       }
     ]
   },
@@ -355,10 +413,10 @@ export const workoutSeedData = {
         name: 'Присідання сумо з гирею',
         sets: [
           { reps: 12, weight: 24 },
-          { reps: 12, weight: 28 },
-          { reps: 12, weight: 28 },
-          { reps: 12, weight: 28 },
-          { reps: 12, weight: 28 }
+          { reps: 12, weight: 24 },
+          { reps: 12, weight: 24 },
+          { reps: 12, weight: 24 },
+          { reps: 12, weight: 24 }
         ],
         notes: 'Широка постановка ніг'
       },
@@ -366,8 +424,8 @@ export const workoutSeedData = {
         name: 'Підтягування',
         sets: [
           { reps: 8, weight: 0, notes: 'власна вага' },
-          { reps: 6, weight: 0, notes: 'власна вага' },
-          { reps: 4, weight: 0, notes: 'власна вага' }
+          { reps: 8, weight: 0, notes: 'власна вага' },
+          { reps: 8, weight: 0, notes: 'власна вага' }
         ],
         notes: 'До відмови в кожному підході'
       },
@@ -379,34 +437,38 @@ export const workoutSeedData = {
           { reps: 12, weight: 0, notes: 'власна вага' },
           { reps: 12, weight: 0, notes: 'власна вага' }
         ],
-        notes: 'Класичні віджимання'
+        notes: 'Класичні віджимання від підлоги'
       },
       {
-        name: 'Тяга в тренажері',
+        name: 'Тяга в нахилі по 1 руці',
         sets: [
-          { reps: 10, weight: 20 },
-          { reps: 10, weight: 30 },
-          { reps: 10, weight: 30 }
+          { reps: 12, weight: 12 },
+          { reps: 12, weight: 12 },
+          { reps: 12, weight: 12 },
+          { reps: 12, weight: 12 }
         ],
-        notes: 'Поступове збільшення ваги'
+        notes: 'Тяга гантелі однією рукою'
       },
       {
-        name: 'Розводка гантелей - бабочка',
+        name: 'Розводка гантелей бабочка',
         sets: [
-          { reps: 10, weight: 12 },
-          { reps: 10, weight: 14 },
-          { reps: 10, weight: 14 }
+          { reps: 12, weight: 12 },
+          { reps: 12, weight: 12 },
+          { reps: 12, weight: 12 },
+          { reps: 12, weight: 12 }
         ],
         notes: 'Контроль в негативній фазі'
       },
       {
-        name: 'Задня дельта',
+        name: 'Жим на плечі з гантелями',
         sets: [
-          { reps: 10, weight: 15 },
-          { reps: 10, weight: 20 },
-          { reps: 8, weight: 20 }
+          { reps: 12, weight: 9 },
+          { reps: 12, weight: 9 },
+          { reps: 12, weight: 9 },
+          { reps: 12, weight: 9 },
+          { reps: 12, weight: 9 }
         ],
-        notes: 'Фокус на задню дельтовидну'
+        notes: 'Жим гантелей над головою'
       }
     ]
   }
