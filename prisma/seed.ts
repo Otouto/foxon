@@ -152,7 +152,7 @@ async function main() {
           targetLoad: set.weight,
           targetReps: set.reps,
           order: setIndex + 1,
-          notes: set.notes,
+          notes: 'notes' in set ? set.notes : null,
         },
       })
     }
@@ -214,7 +214,7 @@ async function main() {
           targetLoad: set.weight,
           targetReps: set.reps,
           order: setIndex + 1,
-          notes: set.notes,
+          notes: 'notes' in set ? set.notes : null,
         },
       })
     }

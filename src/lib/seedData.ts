@@ -38,61 +38,7 @@ export interface ExerciseDefinition {
   equipment?: Equipment;
 }
 
-// Legacy interfaces for backward compatibility
-export interface WorkoutSet {
-  reps: number;
-  weight: number; // in kg
-  notes?: string;
-}
 
-export interface Exercise {
-  name: string;
-  sets: WorkoutSet[];
-  notes?: string;
-  previousSession?: WorkoutSet[]; // Previous workout session data for comparison
-}
-
-export interface Workout {
-  id: string;
-  name: string;
-  exercises: number;
-  duration: number;
-  description: string;
-  exercises_list: Exercise[];
-}
-
-// Session interfaces to mimic database structure
-export interface SessionSet {
-  id: string;
-  type: 'WARMUP' | 'NORMAL';
-  load: number;
-  reps: number;
-  completed: boolean;
-  order: number;
-}
-
-export interface SessionExercise {
-  id: string;
-  exercise_id: string;
-  exercise_name: string;
-  order: number;
-  notes?: string;
-  sets: SessionSet[];
-}
-
-export interface Session {
-  id: string;
-  workout_id: string;
-  workout_name: string;
-  date: string;
-  total_volume: number;
-  total_sets: number;
-  status: 'ACTIVE' | 'FINISHED';
-  current_exercise_index: number;
-  exercises: SessionExercise[];
-  created_at: string;
-  updated_at: string;
-}
 
 // Vocabulary seed data matching new ERD structure
 const now = new Date().toISOString();
@@ -334,12 +280,12 @@ export const exercisesSeed: Record<string, ExerciseDefinition> = {
   }
 };
 
-export const workoutSeedData: Record<string, Workout> = {
+// Sample workout data for database seeding
+// This contains the structured exercise data with sets/reps that gets transformed
+// into proper Prisma models during database seeding
+export const workoutSeedData = {
   '1': {
-    id: '1',
     name: 'Силова 1',
-    exercises: 6,
-    duration: 60,
     description: 'Комплексна силова тренування з акцентом на ноги, груди та руки',
     exercises_list: [
       {
@@ -349,12 +295,6 @@ export const workoutSeedData: Record<string, Workout> = {
           { reps: 12, weight: 12, notes: 'по 6кг в кожній руці' },
           { reps: 12, weight: 12, notes: 'по 6кг в кожній руці' },
           { reps: 12, weight: 12, notes: 'по 6кг в кожній руці' }
-        ],
-        previousSession: [
-          { reps: 10, weight: 10 },
-          { reps: 10, weight: 10 },
-          { reps: 8, weight: 10 },
-          { reps: 8, weight: 10 }
         ],
         notes: 'Фокус на балансі та контролі руху'
       },
@@ -366,12 +306,6 @@ export const workoutSeedData: Record<string, Workout> = {
           { reps: 10, weight: 100 },
           { reps: 10, weight: 100 }
         ],
-        previousSession: [
-          { reps: 12, weight: 70 },
-          { reps: 10, weight: 70 },
-          { reps: 8, weight: 90 },
-          { reps: 8, weight: 90 }
-        ],
         notes: 'Поступове збільшення ваги'
       },
       {
@@ -380,11 +314,6 @@ export const workoutSeedData: Record<string, Workout> = {
           { reps: 10, weight: 40 },
           { reps: 10, weight: 45 },
           { reps: 10, weight: 45 }
-        ],
-        previousSession: [
-          { reps: 12, weight: 35 },
-          { reps: 10, weight: 40 },
-          { reps: 8, weight: 40 }
         ],
         notes: 'Контроль негативної фази'
       },
@@ -396,12 +325,6 @@ export const workoutSeedData: Record<string, Workout> = {
           { reps: 12, weight: 40 },
           { reps: 12, weight: 45 }
         ],
-        previousSession: [
-          { reps: 12, weight: 35 },
-          { reps: 12, weight: 35 },
-          { reps: 10, weight: 40 },
-          { reps: 8, weight: 40 }
-        ],
         notes: 'Зведення лопаток в кінцевій точці'
       },
       {
@@ -410,11 +333,6 @@ export const workoutSeedData: Record<string, Workout> = {
           { reps: 10, weight: 20 },
           { reps: 10, weight: 20 },
           { reps: 10, weight: 20 }
-        ],
-        previousSession: [
-          { reps: 12, weight: 17.5 },
-          { reps: 10, weight: 17.5 },
-          { reps: 8, weight: 20 }
         ],
         notes: 'Повна амплітуда руху'
       },
@@ -425,20 +343,12 @@ export const workoutSeedData: Record<string, Workout> = {
           { reps: 10, weight: 20 },
           { reps: 10, weight: 20 }
         ],
-        previousSession: [
-          { reps: 12, weight: 12.5 },
-          { reps: 10, weight: 15 },
-          { reps: 8, weight: 17.5 }
-        ],
         notes: 'Контрольований темп'
       }
     ]
   },
   '2': {
-    id: '2',
     name: 'Силова 2',
-    exercises: 6,
-    duration: 55,
     description: 'Силова тренування з акцентом на підтягування, віджимання та дельти',
     exercises_list: [
       {
@@ -450,13 +360,6 @@ export const workoutSeedData: Record<string, Workout> = {
           { reps: 12, weight: 28 },
           { reps: 12, weight: 28 }
         ],
-        previousSession: [
-          { reps: 12, weight: 20 },
-          { reps: 12, weight: 24 },
-          { reps: 10, weight: 24 },
-          { reps: 10, weight: 24 },
-          { reps: 8, weight: 24 }
-        ],
         notes: 'Широка постановка ніг'
       },
       {
@@ -465,11 +368,6 @@ export const workoutSeedData: Record<string, Workout> = {
           { reps: 8, weight: 0, notes: 'власна вага' },
           { reps: 6, weight: 0, notes: 'власна вага' },
           { reps: 4, weight: 0, notes: 'власна вага' }
-        ],
-        previousSession: [
-          { reps: 6, weight: 0 },
-          { reps: 5, weight: 0 },
-          { reps: 3, weight: 0 }
         ],
         notes: 'До відмови в кожному підході'
       },
@@ -480,12 +378,6 @@ export const workoutSeedData: Record<string, Workout> = {
           { reps: 12, weight: 0, notes: 'власна вага' },
           { reps: 12, weight: 0, notes: 'власна вага' },
           { reps: 12, weight: 0, notes: 'власна вага' }
-        ],
-        previousSession: [
-          { reps: 10, weight: 0 },
-          { reps: 10, weight: 0 },
-          { reps: 8, weight: 0 },
-          { reps: 8, weight: 0 }
         ],
         notes: 'Класичні віджимання'
       },
@@ -520,26 +412,7 @@ export const workoutSeedData: Record<string, Workout> = {
   }
 };
 
-// Legacy workout data for compatibility
-export const legacyWorkouts = [
-  {
-    id: '1',
-    name: 'Силова 1',
-    exercises: 6,
-    duration: 60
-  },
-  {
-    id: '2', 
-    name: 'Силова 2',
-    exercises: 6,
-    duration: 55
-  }
-];
 
-/**
- * Legacy session management functions removed - replaced by in-memory session system
- * All session management is now handled by useInMemorySession hook
- */
 
 // Helper function to get the current mock user
 export function getCurrentMockUser() {
@@ -579,7 +452,4 @@ export function searchExercises(query: string): ExerciseDefinition[] {
   );
 }
 
-// Backward compatibility: Convert legacy exercise name to new exercise definition
-export function getExerciseByName(name: string): ExerciseDefinition | null {
-  return Object.values(exercisesSeed).find(exercise => exercise.name === name) || null;
-}
+
