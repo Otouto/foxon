@@ -88,7 +88,7 @@ function SessionReflectionFormContent({
           disabled={disabled || reflection.isSubmitting || !reflection.isValid}
           className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl text-center block disabled:opacity-50 disabled:cursor-not-allowed hover:bg-lime-500 transition-colors"
         >
-          {reflection.isSubmitting ? 'Saving Reflection...' : 'Save & Complete'}
+          {reflection.isSubmitting ? 'Saving Reflection...' : 'Done'}
         </button>
       </div>
     </div>

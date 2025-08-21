@@ -9,6 +9,7 @@ import { useWorkoutPreload } from '@/hooks/useWorkoutPreload';
 import { useSessionCompletion, type CompletedSessionData } from '@/hooks/useSessionCompletion';
 import type { ReflectionFormData } from '@/hooks/useSessionReflection';
 import type { SessionSealData } from '@/services/SessionCompletionService';
+import type { DevotionPillars, DevotionDeviation } from '@/services/SessionService';
 import { 
   SessionReflectionForm, 
   BackgroundSaveIndicator, 
@@ -70,11 +71,23 @@ function SessionFinishContent() {
   
   // Session data for summary
   const [completedSession, setCompletedSession] = useState<CompletedSessionData | null>(null);
+  const [devotionScoreData, setDevotionScoreData] = useState<{
+    devotionScore: number;
+    devotionGrade: string;
+    devotionPillars: DevotionPillars;
+    devotionDeviations: DevotionDeviation[];
+  } | null>(null);
   
   // Memoize summary data calculation to prevent re-render loops
   const summaryData = useMemo(() => {
     if (!showSummary) return null;
     
+    // If we have devotion score data, use it
+    if (devotionScoreData) {
+      return devotionScoreData;
+    }
+    
+    // Otherwise, fall back to legacy format (will show "Calculating Score..." message)
     return completedSession || (session && summaryEndTime ? {
       workoutId: session.workoutId,
       workoutTitle: session.workoutTitle,
@@ -87,7 +100,7 @@ function SessionFinishContent() {
       ),
       exercises: session.exercises
     } : null);
-  }, [showSummary, completedSession, session, summaryEndTime]);
+  }, [showSummary, devotionScoreData, completedSession, session, summaryEndTime]);
   
   // Cleanup localStorage on component unmount to ensure fresh sessions
   useEffect(() => {
@@ -136,6 +149,36 @@ function SessionFinishContent() {
     }
   }, [session, backgroundSave.status, startBackgroundSave]);
 
+  // Fetch devotion score data after session is saved
+  useEffect(() => {
+    if (backgroundSave.status === 'completed' && backgroundSave.sessionId && !devotionScoreData) {
+      const fetchDevotionScore = async () => {
+        try {
+          // Add a small delay to allow the background devotion score calculation to complete
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          const response = await fetch(`/api/sessions/${backgroundSave.sessionId}`);
+          if (response.ok) {
+            const sessionData = await response.json();
+            if (sessionData.devotionScore !== null) {
+              setDevotionScoreData({
+                devotionScore: sessionData.devotionScore,
+                devotionGrade: sessionData.devotionGrade,
+                devotionPillars: sessionData.devotionPillars,
+                devotionDeviations: sessionData.devotionDeviations || []
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch devotion score:', error);
+          // Don't set error state - just let it show the fallback UI
+        }
+      };
+
+      fetchDevotionScore();
+    }
+  }, [backgroundSave.status, backgroundSave.sessionId, devotionScoreData]);
+
 
 
 
@@ -178,32 +221,7 @@ function SessionFinishContent() {
         </div>
       );
     }
-    return (
-      <div className="px-6 py-8 pb-32">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <button onClick={() => router.push('/')} className="p-2 -ml-2">
-            <ArrowLeft size={24} className="text-gray-600" />
-          </button>
-          <h1 className="text-2xl font-bold text-gray-900">Session Complete</h1>
-        </div>
-
-        {/* Session Summary */}
-        <div className="mb-6">
-          <Summary data={summaryData} />
-        </div>
-
-        {/* Navigation button */}
-        <div className="fixed bottom-24 left-6 right-6">
-          <button 
-            onClick={() => router.push('/')}
-            className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl text-center block"
-          >
-            Back to Home
-          </button>
-        </div>
-      </div>
-    );
+    return <Summary data={summaryData} />;
   }
 
   // Show loading state only if session is still initializing
