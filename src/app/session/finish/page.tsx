@@ -9,9 +9,12 @@ import { useWorkoutPreload } from '@/hooks/useWorkoutPreload';
 import { useSessionCompletion, type CompletedSessionData } from '@/hooks/useSessionCompletion';
 import type { ReflectionFormData } from '@/hooks/useSessionReflection';
 import type { SessionSealData } from '@/services/SessionCompletionService';
-import { SessionReflectionForm } from '@/components/session/SessionReflectionForm';
-import { BackgroundSaveIndicator } from '@/components/session/BackgroundSaveIndicator';
-import { SessionErrorBoundary } from '@/components/session/SessionErrorBoundary';
+import { 
+  SessionReflectionForm, 
+  BackgroundSaveIndicator, 
+  SessionErrorBoundary, 
+  Summary 
+} from '@/components/session';
 
 function SessionFinishContent() {
   const router = useRouter();
@@ -25,7 +28,6 @@ function SessionFinishContent() {
     session,
     isInitializing,
     error,
-    formatDuration,
   } = useInMemorySession(workoutId || '', preloadedData);
 
   // Session completion hook
@@ -197,30 +199,8 @@ function SessionFinishContent() {
         </div>
 
         {/* Session Summary */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">{summaryData.workoutTitle} Summary</h2>
-          
-          <div className="grid grid-cols-2 gap-6 mb-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">{formatDuration(summaryData.duration)}</p>
-              <p className="text-sm text-gray-500">Duration</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">{summaryData.totalVolume}kg</p>
-              <p className="text-sm text-gray-500">Total Volume</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-6">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">{summaryData.totalSets}</p>
-              <p className="text-sm text-gray-500">Total Sets</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-lime-600">{summaryData.exercises.length}</p>
-              <p className="text-sm text-gray-500">Exercises</p>
-            </div>
-          </div>
+        <div className="mb-6">
+          <Summary data={summaryData} />
         </div>
 
         {/* Navigation button */}

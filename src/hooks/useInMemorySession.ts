@@ -309,14 +309,7 @@ export function useInMemorySession(workoutId: string, preloadedData?: PreloadedW
     });
   }, [workoutId]);
 
-  /**
-   * Format duration as MM:SS
-   */
-  const formatDuration = useCallback((seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }, []);
+
 
   /**
    * Get current exercise
@@ -370,7 +363,6 @@ export function useInMemorySession(workoutId: string, preloadedData?: PreloadedW
     addSet,
     navigateToNextExercise,
     navigateToPreviousExercise,
-    formatDuration,
     canFinishWorkout,
     clearSession,
     initializeSession, // For retry on error

@@ -9,6 +9,7 @@ import { useWorkoutPreload } from '@/hooks/useWorkoutPreload';
 import { WorkoutHeader } from '@/components/workout/WorkoutHeader';
 import { ExerciseCard } from '@/components/workout/ExerciseCard';
 import { ActionButtons } from '@/components/workout/ActionButtons';
+import { formatDuration } from '@/lib/utils';
 
 function SessionLogContent() {
   const router = useRouter();
@@ -30,7 +31,6 @@ function SessionLogContent() {
     toggleSetCompletion,
     addSet,
     navigateToNextExercise,
-    formatDuration,
     canFinishWorkout,
     initializeSession,
   } = useInMemorySession(workoutId || '', isPreloaded ? preloadedData : null);
