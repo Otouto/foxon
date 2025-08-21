@@ -3,11 +3,11 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState, Suspense, useMemo } from 'react';
+import { useEffect, useState, Suspense, useMemo, useCallback } from 'react';
 import { useInMemorySession } from '@/hooks/useInMemorySession';
 import { useWorkoutPreload } from '@/hooks/useWorkoutPreload';
 import { useSessionCompletion, type CompletedSessionData } from '@/hooks/useSessionCompletion';
-import { EffortLevel } from '@prisma/client';
+import { useSessionReflection, type ReflectionFormData } from '@/hooks/useSessionReflection';
 
 function SessionFinishContent() {
   const router = useRouter();
@@ -27,11 +27,41 @@ function SessionFinishContent() {
   // Session completion hook
   const { backgroundSave, startBackgroundSave, sealSession } = useSessionCompletion();
   
-  // Reflection form state
-  const [effort, setEffort] = useState<EffortLevel>(EffortLevel.HARD);
-  const [vibeLine, setVibeLine] = useState('');
-  const [note, setNote] = useState('');
-  const [isSubmittingReflection, setIsSubmittingReflection] = useState(false);
+  // Handle reflection form submission
+  const handleReflectionSubmit = useCallback(async (formData: ReflectionFormData) => {
+    const sealData = {
+      effort: formData.effort.toString(),
+      vibeLine: formData.vibeLine,
+      note: formData.note
+    };
+
+    await sealSession(sealData);
+
+    // Set summary data first
+    setSummaryEndTime(new Date()); // Set stable end time
+    setShowSummary(true);
+    
+    // Clear session data immediately after setting summary state
+    if (workoutId) {
+      const storageKey = `workout_session_${workoutId}`;
+      const hadData = localStorage.getItem(storageKey) !== null;
+      localStorage.removeItem(storageKey);
+      console.log('🧹 Cleared localStorage for workout:', workoutId, 'Had data:', hadData);
+      
+      // Also clear any other session-related data that might exist
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('workout_session_') || key.includes(workoutId)) {
+          localStorage.removeItem(key);
+          console.log('🧹 Also cleared related key:', key);
+        }
+      });
+    }
+  }, [sealSession, workoutId]);
+
+  // Reflection form hook
+  const reflection = useSessionReflection({ 
+    onSubmit: handleReflectionSubmit 
+  });
   const [showSummary, setShowSummary] = useState(false);
   const [summaryEndTime, setSummaryEndTime] = useState<Date | null>(null);
   
@@ -115,51 +145,7 @@ function SessionFinishContent() {
 
 
 
-  const handleSaveAndComplete = async () => {
-    if (!vibeLine.trim()) {
-      alert('Please add a vibe line for your session');
-      return;
-    }
 
-    setIsSubmittingReflection(true);
-    
-    try {
-      // Save session seal/reflection using the hook
-      const sealData = {
-        effort: effort.toString(),
-        vibeLine: vibeLine.trim(),
-        note: note.trim() || undefined
-      };
-
-      await sealSession(sealData);
-
-      // Set summary data first
-      setSummaryEndTime(new Date()); // Set stable end time
-      setShowSummary(true);
-      
-      // Clear session data immediately after setting summary state
-      if (workoutId) {
-        const storageKey = `workout_session_${workoutId}`;
-        const hadData = localStorage.getItem(storageKey) !== null;
-        localStorage.removeItem(storageKey);
-        console.log('🧹 Cleared localStorage for workout:', workoutId, 'Had data:', hadData);
-        
-        // Also clear any other session-related data that might exist
-        Object.keys(localStorage).forEach(key => {
-          if (key.startsWith('workout_session_') || key.includes(workoutId)) {
-            localStorage.removeItem(key);
-            console.log('🧹 Also cleared related key:', key);
-          }
-        });
-      }
-      
-    } catch (error) {
-      console.error('Failed to save reflection:', error);
-      alert(error instanceof Error ? error.message : 'Failed to save reflection');
-    } finally {
-      setIsSubmittingReflection(false);
-    }
-  };
 
   // Handle missing workout ID
   if (!workoutId) {
@@ -305,18 +291,15 @@ function SessionFinishContent() {
                 type="range"
                 min="1"
                 max="4"
-                value={Object.values(EffortLevel).indexOf(effort) + 1}
-                onChange={(e) => {
-                  const effortLevels = [EffortLevel.EASY, EffortLevel.STEADY, EffortLevel.HARD, EffortLevel.ALL_IN];
-                  setEffort(effortLevels[parseInt(e.target.value) - 1]);
-                }}
+                value={reflection.getEffortValue()}
+                onChange={(e) => reflection.handleEffortChange(parseInt(e.target.value))}
                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
               />
             </div>
             <span className="text-xs text-gray-500">All-In</span>
           </div>
           <div className="text-center mt-2">
-            <span className="text-sm font-medium text-lime-600">{effort}</span>
+            <span className="text-sm font-medium text-lime-600">{reflection.effort}</span>
           </div>
         </div>
 
@@ -328,8 +311,8 @@ function SessionFinishContent() {
           <input
             type="text"
             placeholder="e.g., Crushed those bench sets!"
-            value={vibeLine}
-            onChange={(e) => setVibeLine(e.target.value)}
+            value={reflection.vibeLine}
+            onChange={(e) => reflection.setVibeLine(e.target.value)}
             className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-transparent"
             maxLength={200}
           />
@@ -343,8 +326,8 @@ function SessionFinishContent() {
           <textarea
             placeholder="Any additional thoughts about this session..."
             rows={3}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
+            value={reflection.note}
+            onChange={(e) => reflection.setNote(e.target.value)}
             className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-transparent resize-none"
             maxLength={1000}
           />
@@ -356,11 +339,11 @@ function SessionFinishContent() {
       {/* Save Button */}
       <div className="fixed bottom-24 left-6 right-6">
         <button 
-          onClick={handleSaveAndComplete}
-          disabled={isSubmittingReflection || !vibeLine.trim() || backgroundSave.status === 'error'}
+          onClick={reflection.handleSubmit}
+          disabled={reflection.isSubmitting || !reflection.isValid || backgroundSave.status === 'error'}
           className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl text-center block disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isSubmittingReflection ? 'Saving Reflection...' : 'Save & Complete'}
+          {reflection.isSubmitting ? 'Saving Reflection...' : 'Save & Complete'}
         </button>
       </div>
     </div>
