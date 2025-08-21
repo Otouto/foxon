@@ -3,46 +3,11 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState, Suspense, useRef, useMemo } from 'react';
+import { useEffect, useState, Suspense, useMemo } from 'react';
 import { useInMemorySession } from '@/hooks/useInMemorySession';
 import { useWorkoutPreload } from '@/hooks/useWorkoutPreload';
+import { useSessionCompletion, type CompletedSessionData } from '@/hooks/useSessionCompletion';
 import { EffortLevel } from '@prisma/client';
-
-interface SessionSealData {
-  effort: EffortLevel;
-  vibeLine: string;
-  note?: string;
-}
-
-interface CompletedSessionData {
-  workoutId: string;
-  workoutTitle: string;
-  startTime: Date;
-  endTime: Date;
-  duration: number;
-  totalSets: number;
-  totalVolume: number;
-  exercises: Array<{
-    exerciseId: string;
-    exerciseName: string;
-    order: number;
-    notes?: string;
-    sets: Array<{
-      type: string;
-      load: number;
-      reps: number;
-      completed: boolean;
-      order: number;
-      notes?: string;
-    }>;
-  }>;
-}
-
-interface BackgroundSaveState {
-  status: 'idle' | 'saving' | 'completed' | 'error';
-  sessionId?: string;
-  error?: string;
-}
 
 function SessionFinishContent() {
   const router = useRouter();
@@ -57,12 +22,10 @@ function SessionFinishContent() {
     isInitializing,
     error,
     formatDuration,
-    clearSession,
   } = useInMemorySession(workoutId || '', preloadedData);
 
-  // Background save state
-  const [backgroundSave, setBackgroundSave] = useState<BackgroundSaveState>({ status: 'idle' });
-  const backgroundSaveRef = useRef<Promise<string> | null>(null);
+  // Session completion hook
+  const { backgroundSave, startBackgroundSave, sealSession } = useSessionCompletion();
   
   // Reflection form state
   const [effort, setEffort] = useState<EffortLevel>(EffortLevel.HARD);
@@ -148,46 +111,9 @@ function SessionFinishContent() {
       // Start background save immediately
       startBackgroundSave(sessionData);
     }
-  }, [session, backgroundSave.status]);
+  }, [session, backgroundSave.status, startBackgroundSave]);
 
-  // Background save function
-  const startBackgroundSave = async (sessionData: CompletedSessionData) => {
-    setBackgroundSave({ status: 'saving' });
 
-    try {
-      const savePromise = fetch('/api/sessions/complete', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ sessionData }),
-      }).then(async (response) => {
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Failed to save session: ${response.status} ${errorText}`);
-        }
-        const result = await response.json();
-        return result.sessionId;
-      });
-
-      // Store the promise for later use
-      backgroundSaveRef.current = savePromise;
-
-      const sessionId = await savePromise;
-      
-      setBackgroundSave({ 
-        status: 'completed', 
-        sessionId 
-      });
-      
-    } catch (error) {
-      console.error('Background save failed:', error);
-      setBackgroundSave({ 
-        status: 'error', 
-        error: error instanceof Error ? error.message : 'Failed to save session' 
-      });
-    }
-  };
 
   const handleSaveAndComplete = async () => {
     if (!vibeLine.trim()) {
@@ -198,38 +124,14 @@ function SessionFinishContent() {
     setIsSubmittingReflection(true);
     
     try {
-      let sessionId: string;
-
-      // Wait for background save to complete if still in progress
-      if (backgroundSave.status === 'saving' && backgroundSaveRef.current) {
-        sessionId = await backgroundSaveRef.current;
-      } else if (backgroundSave.status === 'completed' && backgroundSave.sessionId) {
-        sessionId = backgroundSave.sessionId;
-      } else if (backgroundSave.status === 'error') {
-        throw new Error(backgroundSave.error || 'Session save failed');
-      } else {
-        throw new Error('Session not ready for reflection');
-      }
-
-      // Save session seal/reflection
-      const sealData: SessionSealData = {
-        effort,
+      // Save session seal/reflection using the hook
+      const sealData = {
+        effort: effort.toString(),
         vibeLine: vibeLine.trim(),
         note: note.trim() || undefined
       };
 
-      const sealResponse = await fetch(`/api/sessions/${sessionId}/seal`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(sealData),
-      });
-
-      if (!sealResponse.ok) {
-        const errorText = await sealResponse.text();
-        throw new Error(`Failed to save session reflection: ${sealResponse.status} ${errorText}`);
-      }
+      await sealSession(sealData);
 
       // Set summary data first
       setSummaryEndTime(new Date()); // Set stable end time
