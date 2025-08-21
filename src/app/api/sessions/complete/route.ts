@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, isAuthenticated } from '@/lib/auth';
 import { SessionStatus, SetType } from '@prisma/client';
+import { DevotionScoringService } from '@/services/DevotionScoringService';
 
 interface CompletedSessionData {
   workoutId: string;
@@ -93,6 +94,28 @@ export async function POST(request: NextRequest) {
       maxWait: 10000, // Maximum wait time: 10 seconds
       timeout: 30000, // Maximum duration: 30 seconds
     });
+
+    // Calculate and update devotion score (async, don't wait for it)
+    if (sessionData.workoutId) {
+      const actualExercises = sessionData.exercises.map(ex => ({
+        name: ex.exerciseName,
+        sets: ex.sets.map(set => ({
+          load: set.load,
+          reps: set.reps,
+          completed: set.completed,
+          order: set.order
+        }))
+      }));
+
+      // Update devotion score in background - don't block response
+      DevotionScoringService.updateSessionWithDevotionScore(
+        session.id,
+        sessionData.workoutId,
+        actualExercises
+      ).catch(error => {
+        console.error('Failed to calculate devotion score for session:', session.id, error);
+      });
+    }
 
     return NextResponse.json({ 
       success: true, 
