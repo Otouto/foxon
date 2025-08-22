@@ -177,19 +177,23 @@ function SessionLogContent() {
       <ActionButtons
         onCompleteSet={handleCompleteExercise}
         onAddSet={handleAddSet}
+        isLastExercise={session.currentExerciseIndex + 1 >= session.exercises.length}
       />
 
-      {/* Finish Button */}
-      <div className="fixed bottom-24 left-6 right-6">
-        <button 
-          onClick={handleFinishWorkout}
-          disabled={!canFinishWorkout()}
-          className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl text-center block cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          title={!canFinishWorkout() ? 'Complete at least one set to finish workout' : 'Finish workout'}
-        >
-          Finish Workout
-        </button>
-      </div>
+      {/* Finish Button - Only show on last exercise */}
+      {session.currentExerciseIndex + 1 >= session.exercises.length && (
+        <div className="fixed bottom-24 left-6 right-6">
+          <button 
+            onClick={handleFinishWorkout}
+            disabled={!canFinishWorkout()}
+            className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl text-center block cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            title={!canFinishWorkout() ? 'Complete at least one set to finish workout' : 'Finish workout'}
+            aria-label={!canFinishWorkout() ? 'Complete at least one set to finish workout' : 'Finish workout'}
+          >
+            Finish Workout
+          </button>
+        </div>
+      )}
     </div>
   );
 }

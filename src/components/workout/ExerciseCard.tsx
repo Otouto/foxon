@@ -1,6 +1,8 @@
 'use client';
 
 import { Check } from 'lucide-react';
+import { useState } from 'react';
+import { SetEditor } from './SetEditor';
 
 interface SetValue {
   weight: number;
@@ -22,6 +24,23 @@ interface ExerciseCardProps {
   updateSetValue: (setIndex: number, field: 'weight' | 'reps', value: number) => void;
 }
 
+// Haptic feedback utility
+const triggerHaptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {
+  if ('vibrate' in navigator) {
+    switch (type) {
+      case 'light':
+        navigator.vibrate(10);
+        break;
+      case 'medium':
+        navigator.vibrate(20);
+        break;
+      case 'heavy':
+        navigator.vibrate(50);
+        break;
+    }
+  }
+};
+
 export function ExerciseCard({
   currentExercise,
   isBodyweightExercise,
@@ -30,102 +49,165 @@ export function ExerciseCard({
   toggleSetCompletion,
   updateSetValue
 }: ExerciseCardProps) {
+  const [editingSet, setEditingSet] = useState<number | null>(null);
+  const [editingValues, setEditingValues] = useState<{ weight: number; reps: number } | null>(null);
+
+  const handleEditSet = (setIndex: number) => {
+    setEditingValues({
+      weight: setValues[setIndex]?.weight || 0,
+      reps: setValues[setIndex]?.reps || 0
+    });
+    setEditingSet(setIndex);
+  };
+
+  const handleSaveSet = (weight: number, reps: number) => {
+    if (editingSet !== null) {
+      updateSetValue(editingSet, 'weight', weight);
+      updateSetValue(editingSet, 'reps', reps);
+    }
+    setEditingSet(null);
+    setEditingValues(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingSet(null);
+    setEditingValues(null);
+  };
+
+  const handleToggleSetCompletion = (setIndex: number) => {
+    const newCompletionState = !completedSets[setIndex];
+    toggleSetCompletion(setIndex);
+    
+    // Trigger haptic feedback
+    if (newCompletionState) {
+      triggerHaptic('medium'); // Completed
+    } else {
+      triggerHaptic('light'); // Uncompleted
+    }
+  };
+
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">{currentExercise.name}</h2>
+    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-6">
+      <h2 className="text-lg font-semibold text-gray-900 mb-4 px-2">{currentExercise.name}</h2>
       
-      {/* Column Headers */}
-      <div className="flex items-center gap-3 pb-3 mb-3 border-b border-gray-100">
-        <div className="w-6"></div> {/* Space for check icon */}
-        <div className={`flex-1 grid gap-2 text-center ${
-          currentExercise.previousSession && currentExercise.previousSession.length > 0 
-            ? (isBodyweightExercise ? 'grid-cols-3' : 'grid-cols-4')
-            : (isBodyweightExercise ? 'grid-cols-2' : 'grid-cols-3')
-        }`}>
-          <p className="text-xs text-gray-500 font-medium">SET</p>
-          {currentExercise.previousSession && currentExercise.previousSession.length > 0 && (
-            <p className="text-xs text-gray-500 font-medium">PREVIOUS</p>
-          )}
-          {!isBodyweightExercise && <p className="text-xs text-gray-500 font-medium">KG</p>}
-          <p className="text-xs text-gray-500 font-medium">REPS</p>
+      {/* Progress Bar */}
+      <div className="mb-4 px-2">
+        <div className="w-full bg-gray-200 rounded-full h-1">
+          <div 
+            className="bg-lime-400 h-1 rounded-full transition-all duration-300"
+            style={{ 
+              width: `${(completedSets.filter(Boolean).length / completedSets.length) * 100}%` 
+            }}
+          />
         </div>
+        <p className="text-xs text-gray-500 mt-1 text-center">
+          {completedSets.filter(Boolean).length} of {completedSets.length} sets completed
+        </p>
       </div>
       
       {/* Sets */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         {setValues.map((set, index) => {
-          // Only use previous session data if it exists and has data for this set index
           const hasPreviousData = currentExercise.previousSession && 
                                   currentExercise.previousSession.length > 0 && 
                                   currentExercise.previousSession[index];
           const previousSet = hasPreviousData ? currentExercise.previousSession![index] : null;
+          const isCompleted = completedSets[index];
           
           return (
             <div 
               key={index}
-              className={`flex items-center gap-3 p-3 rounded-xl ${
-                completedSets[index] 
+              className={`flex items-center gap-3 p-4 rounded-xl transition-all duration-200 ${
+                isCompleted 
                   ? 'bg-lime-50 border border-lime-200' 
-                  : 'bg-gray-50'
+                  : 'bg-gray-50 hover:bg-gray-100'
               }`}
             >
+              {/* Check Button - Larger touch target */}
               <button 
-                onClick={() => toggleSetCompletion(index)}
-                className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer ${
-                  completedSets[index]
-                    ? 'bg-lime-400'
-                    : 'bg-gray-300'
+                onClick={() => handleToggleSetCompletion(index)}
+                className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer transition-all duration-200 ${
+                  isCompleted
+                    ? 'bg-lime-400 hover:bg-lime-500'
+                    : 'bg-gray-300 hover:bg-gray-400'
                 }`}
+                aria-label={`${isCompleted ? 'Uncomplete' : 'Complete'} set ${index + 1}`}
+                aria-pressed={isCompleted}
               >
-                <Check size={14} className={completedSets[index] ? "text-black" : "text-gray-500"} />
+                <Check size={18} className={isCompleted ? "text-black" : "text-gray-500"} />
               </button>
               
-              <div className={`flex-1 grid gap-2 items-center text-center ${
-                hasPreviousData 
-                  ? (isBodyweightExercise ? 'grid-cols-3' : 'grid-cols-4')
-                  : (isBodyweightExercise ? 'grid-cols-2' : 'grid-cols-3')
-              }`}>
-                <div>
-                  <p className="font-medium text-gray-900">{index + 1}</p>
-                </div>
-                {hasPreviousData && previousSet && (
-                  <div>
-                    <p className="text-sm text-gray-400">
-                      {isBodyweightExercise ? `${previousSet.reps}` : `${previousSet.weight}kg × ${previousSet.reps}`}
-                    </p>
-                  </div>
-                )}
-                {!isBodyweightExercise && (
-                  <div>
-                    {completedSets[index] ? (
-                      <p className="font-medium text-gray-900">{setValues[index]?.weight || set.weight}</p>
-                    ) : (
-                      <input 
-                        type="number" 
-                        value={setValues[index]?.weight || set.weight}
-                        onChange={(e) => updateSetValue(index, 'weight', parseInt(e.target.value) || 0)}
-                        className="w-16 text-center font-medium bg-transparent border-b border-gray-400 focus:outline-none focus:border-cyan-400 text-gray-900"
-                      />
-                    )}
-                  </div>
-                )}
-                <div>
-                  {completedSets[index] ? (
-                    <p className="font-medium text-gray-900">{setValues[index]?.reps || set.reps}</p>
-                  ) : (
-                    <input 
-                      type="number" 
-                      value={setValues[index]?.reps || set.reps}
-                      onChange={(e) => updateSetValue(index, 'reps', parseInt(e.target.value) || 0)}
-                      className="w-16 text-center font-medium bg-transparent border-b border-gray-400 focus:outline-none focus:border-cyan-400 text-gray-900"
-                    />
+              {/* Set Info - Single row layout */}
+              <div className="flex-1 flex items-center gap-4">
+                {/* Set Number + Previous Badge */}
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="font-semibold text-gray-900 text-lg tabular-nums" aria-label={`Set ${index + 1}`}>
+                    {index + 1}
+                  </span>
+                  {hasPreviousData && previousSet && (
+                    <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full" aria-label={`Previous: ${isBodyweightExercise ? `${previousSet.reps} reps` : `${previousSet.weight}kg × ${previousSet.reps} reps`}`}>
+                      {isBodyweightExercise 
+                        ? `${previousSet.reps}` 
+                        : `${previousSet.weight}kg × ${previousSet.reps}`
+                      }
+                    </span>
                   )}
                 </div>
+                
+                {/* KG Pill */}
+                {!isBodyweightExercise && (
+                  <button
+                    onClick={() => handleEditSet(index)}
+                    className={`px-4 py-2 rounded-full font-medium transition-all duration-200 ${
+                      isCompleted
+                        ? 'bg-lime-100 text-lime-800 cursor-pointer hover:bg-lime-200'
+                        : 'bg-white border border-gray-300 text-gray-900 cursor-pointer hover:bg-gray-50'
+                    }`}
+                    aria-label={`Edit weight for set ${index + 1}. Current weight: ${setValues[index]?.weight || set.weight}kg`}
+                  >
+                    <span className="tabular-nums">{setValues[index]?.weight || set.weight}</span>
+                    <span className="text-sm ml-1">kg</span>
+                  </button>
+                )}
+                
+                {/* REPS Pill */}
+                <button
+                  onClick={() => handleEditSet(index)}
+                  className={`px-4 py-2 rounded-full font-medium transition-all duration-200 ${
+                    isCompleted
+                      ? 'bg-lime-100 text-lime-800 cursor-pointer hover:bg-lime-200'
+                      : 'bg-white border border-gray-300 text-gray-900 cursor-pointer hover:bg-gray-50'
+                  }`}
+                  aria-label={`Edit reps for set ${index + 1}. Current reps: ${setValues[index]?.reps || set.reps}`}
+                >
+                  <span className="tabular-nums">{setValues[index]?.reps || set.reps}</span>
+                  <span className="text-sm ml-1">reps</span>
+                </button>
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Set Editor Bottom Sheet */}
+      {editingSet !== null && editingValues && (
+        <SetEditor
+          isOpen={editingSet !== null}
+          onClose={handleCancelEdit}
+          onSave={handleSaveSet}
+          initialWeight={editingValues.weight}
+          initialReps={editingValues.reps}
+          isBodyweightExercise={isBodyweightExercise}
+          previousValues={
+            currentExercise.previousSession?.[editingSet] 
+              ? {
+                  weight: currentExercise.previousSession[editingSet].weight,
+                  reps: currentExercise.previousSession[editingSet].reps
+                }
+              : null
+          }
+        />
+      )}
     </div>
   );
 }
