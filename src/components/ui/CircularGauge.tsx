@@ -1,7 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
-import { getRingColor } from '@/lib/devotionVerdicts'
+import { useEffect, useState } from 'react'
 
 interface CircularGaugeProps {
   score: number // 0-100
@@ -16,16 +15,39 @@ export function CircularGauge({
   strokeWidth = 12,
   className = "" 
 }: CircularGaugeProps) {
+  const [animatedScore, setAnimatedScore] = useState(0)
+  
+  // Animate the score from 0 to target
+  useEffect(() => {
+    const duration = 600 // 600ms as specified
+    const startTime = Date.now()
+    const startScore = 0
+    
+    const animate = () => {
+      const elapsed = Date.now() - startTime
+      const progress = Math.min(elapsed / duration, 1)
+      
+      // Ease-out animation
+      const easeProgress = 1 - Math.pow(1 - progress, 3)
+      const currentScore = startScore + (score - startScore) * easeProgress
+      
+      setAnimatedScore(currentScore)
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate)
+      }
+    }
+    
+    animate()
+  }, [score])
+
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   const center = size / 2
 
   // Calculate stroke dash offset for progress (starts at top, goes clockwise)
-  const progress = Math.max(0, Math.min(100, score)) / 100
+  const progress = Math.max(0, Math.min(100, animatedScore)) / 100
   const strokeDashoffset = circumference - (progress * circumference)
-
-  // Score-based colors
-  const ringColors = useMemo(() => getRingColor(score), [score])
 
   return (
     <div className={`relative flex flex-col items-center ${className}`}>
@@ -36,6 +58,14 @@ export function CircularGauge({
           height={size}
           className="transform -rotate-90" // Start from top
         >
+          {/* Define the gradient */}
+          <defs>
+            <linearGradient id="ring-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#C084FC" /> {/* lavender */}
+              <stop offset="100%" stopColor="#06B6D4" /> {/* cyan */}
+            </linearGradient>
+          </defs>
+          
           {/* Background circle */}
           <circle
             cx={center}
@@ -43,10 +73,11 @@ export function CircularGauge({
             r={radius}
             fill="none"
             strokeWidth={strokeWidth}
-            className={ringColors.background}
+            stroke="rgba(2,6,23,0.07)"
+            strokeLinecap="round"
           />
           
-          {/* Progress circle */}
+          {/* Progress circle with gradient */}
           <circle
             cx={center}
             cy={center}
@@ -56,7 +87,7 @@ export function CircularGauge({
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
-            className={`${ringColors.primary} transition-all duration-1000 ease-out`}
+            stroke="url(#ring-gradient)"
             style={{
               transformOrigin: `${center}px ${center}px`,
             }}
@@ -65,11 +96,8 @@ export function CircularGauge({
 
         {/* Score Text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className="text-4xl font-bold text-gray-900">
-            {Math.round(score)}
-          </div>
-          <div className="text-sm text-gray-500">
-            out of 100
+          <div className="text-5xl font-bold text-[#0F172A]">
+            {Math.round(animatedScore)}
           </div>
         </div>
       </div>
