@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { CircularGauge } from '@/components/ui/CircularGauge'
 import { DetailsSheet } from '@/components/ui/DetailsSheet'
 import { getDevotionVerdict } from '@/lib/devotionVerdicts'
@@ -58,16 +59,32 @@ function getWeakestPillar(pillars: DevotionPillars): { key: keyof DevotionPillar
   return weakest.value < 1 ? weakest : null
 }
 
-// Pillar display names
+// Pillar display names - renamed "Movements" to "Exercises" and fixed order
 const PILLAR_NAMES: Record<keyof DevotionPillars, string> = {
-  EC: 'Movements',
+  EC: 'Exercises',
   SC: 'Sets',
   RF: 'Reps',
   LF: 'Weight'
 }
 
+// Fixed order for pillar display: Exercises · Sets · Reps · Weight
+const PILLAR_ORDER: (keyof DevotionPillars)[] = ['EC', 'SC', 'RF', 'LF']
+
 export function Summary({ data, showTitle = true }: SummaryProps) {
   const router = useRouter()
+  const [ringSize, setRingSize] = useState(230) // Default size
+
+  // Handle responsive ring sizing
+  useEffect(() => {
+    const updateRingSize = () => {
+      setRingSize(window.innerWidth <= 390 ? 210 : 230)
+    }
+    
+    updateRingSize()
+    window.addEventListener('resize', updateRingSize)
+    
+    return () => window.removeEventListener('resize', updateRingSize)
+  }, [])
 
   // Check if we have devotion score data
   if (isDevotionSummaryData(data)) {
@@ -90,40 +107,61 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
               opacity: 1;
             }
           }
+          
+          @keyframes ringFill {
+            from {
+              stroke-dasharray: 0 100;
+            }
+            to {
+              stroke-dasharray: var(--score) 100;
+            }
+          }
+          
+          :global(.devotion-ring) {
+            --ring-start: #C084FC;
+            --ring-end: #06B6D4;
+            --ring-track: #E9EDF2;
+            --text-strong: #0F172A;
+            --text-muted: #6B7280;
+            --border: #E9EDF2;
+            --warn: #F59E0B;
+            --alert: #EF4444;
+          }
         `}</style>
         
         {/* Header */}
         {showTitle && (
-          <div className="px-6 pt-8 pb-4">
+          <div className="px-4 pt-8 pb-2">
             <h1 className="text-2xl font-bold text-[#0F172A] text-center">
               Session Complete
             </h1>
           </div>
         )}
 
-        {/* Hero Card - Centered */}
-        <div className="flex-1 flex items-center justify-center px-6 py-8">
-          <div className="bg-white rounded-2xl p-6 shadow-[0_6px_20px_rgba(2,6,23,0.06)] border border-[#E5E7EB] w-full max-w-sm">
+        {/* Hero Card - Centered with precise spacing */}
+        <div className="flex-1 flex items-center justify-center px-4 pt-2 pb-8">
+          <div className="bg-white rounded-2xl p-[22px] shadow-[0_6px_20px_rgba(2,6,23,0.06)] border border-[#E9EDF2] w-full max-w-[380px]">
             {/* Devotion Score Ring */}
-            <div className="flex justify-center mb-6">
+            <div className="flex justify-center mb-2">
               <CircularGauge 
                 score={data.devotionScore}
-                size={220}
+                size={ringSize}
                 strokeWidth={16}
+                className="devotion-ring"
               />
             </div>
 
             {/* Score Label */}
-            <div className="text-center mb-2">
-              <p className="text-xs text-[#64748B]">
+            <div className="text-center mb-1.5">
+              <p className="text-xs font-medium text-[#6B7280]">
                 Devotion score
               </p>
             </div>
 
             {/* Human Verdict */}
-            <div className="text-center mb-6">
+            <div className="text-center mb-4">
               <p 
-                className="text-base text-[#0F172A] font-semibold leading-relaxed"
+                className="text-base font-semibold text-[#0F172A] leading-[22px]"
                 style={{
                   animationDelay: '150ms',
                   animation: 'fadeIn 0.4s ease-out forwards',
@@ -134,9 +172,12 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
               </p>
             </div>
 
-            {/* Vertical Pillar List */}
-            <div className="space-y-3">
-              {(Object.entries(data.devotionPillars) as [keyof DevotionPillars, number][]).map(([key, value], index) => {
+            {/* Vertical Pillar List - Fixed order and precise spacing */}
+            <div className="space-y-2">
+              {PILLAR_ORDER.map((key, index) => {
+                const value = data.devotionPillars[key]
+                if (value === undefined) return null // Skip undefined weight for bodyweight sessions
+                
                 const isWeakest = weakestPillar?.key === key
                 const isWarn = isWeakest && value >= 0.6 && value < 0.75
                 const isAlert = isWeakest && value < 0.6
@@ -145,10 +186,9 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
                   <div 
                     key={key}
                     className={`
-                      flex items-center justify-between h-11 px-4 rounded-xl border border-[#E5E7EB] bg-white
-                      ${isWeakest ? 'border-l-4' : ''}
-                      ${isWarn ? 'border-l-[#F59E0B]' : ''}
-                      ${isAlert ? 'border-l-[#EF4444]' : ''}
+                      flex items-center justify-between h-14 px-[14px] rounded-[14px] border border-[#E9EDF2] bg-white
+                      ${isWeakest && isWarn ? 'border-l-[3px] border-l-[#F59E0B]' : ''}
+                      ${isWeakest && isAlert ? 'border-l-[3px] border-l-[#EF4444]' : ''}
                     `}
                     style={{
                       animationDelay: `${150 + (index * 20)}ms`,
@@ -157,21 +197,23 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
                       transform: 'translateY(20px)'
                     }}
                   >
+                    {/* Remove the absolutely positioned accent bar */}
+                    
                     <div className="flex items-center gap-3">
-                      {/* Icon placeholder - you can add actual icons later */}
-                      <div className="w-4 h-4 rounded-full bg-gray-200" />
-                      <span className={`text-sm font-medium ${
+                      {/* Icon placeholder - 12px neutral circle */}
+                      <div className="w-3 h-3 rounded-full bg-gray-200" />
+                      <span className={`text-[15px] font-medium ${
                         isWeakest && (isWarn || isAlert) 
-                          ? isWarn ? 'text-[#F59E0B]' : 'text-[#EF4444]'
-                          : 'text-[#0F172A]'
+                          ? isWarn ? 'text-[#F59E0B]/70' : 'text-[#EF4444]/70'
+                          : 'text-[#334155]'
                       }`}>
                         {PILLAR_NAMES[key]}
                       </span>
                     </div>
-                    <span className={`text-sm font-medium ${
+                    <span className={`text-[15px] font-semibold font-mono ${
                       isWeakest && (isWarn || isAlert)
-                        ? isWarn ? 'text-[#F59E0B]' : 'text-[#EF4444]'
-                        : 'text-[#64748B]'
+                        ? isWarn ? 'text-[#F59E0B]/70' : 'text-[#EF4444]/70'
+                        : 'text-[#334155]'
                     }`}>
                       {Math.round(value * 100)}%
                     </span>
@@ -182,8 +224,8 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
 
             {/* CTA Hint */}
             {ctaHint && (
-              <div className="text-center mt-4">
-                <p className="text-sm text-[#64748B] italic">
+              <div className="text-center mt-2.5">
+                <p className="text-sm text-[#6B7280] italic">
                   {ctaHint}
                 </p>
               </div>
@@ -191,13 +233,13 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
           </div>
         </div>
 
-        {/* Actions Footer */}
-        <div className="px-6 pb-8">
-          <div className="flex flex-col gap-3 max-w-sm mx-auto">
-            {/* Primary: Done */}
+        {/* Actions Footer - Sticky with safe area */}
+        <div className="px-4 pb-8 pb-safe">
+          <div className="flex flex-col gap-3 max-w-[380px] mx-auto">
+            {/* Primary: Done - 56px height, 14px radius */}
             <button
               onClick={() => router.push('/')}
-              className="w-full bg-lime-400 hover:bg-lime-500 text-black font-semibold py-4 rounded-2xl transition-colors"
+              className="w-full bg-lime-400 hover:bg-lime-500 text-black font-semibold h-14 rounded-[14px] transition-colors"
             >
               Done
             </button>
@@ -224,7 +266,7 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
     <div className="min-h-screen bg-[#F7FAFC] flex flex-col">
       {/* Header */}
       {showTitle && (
-        <div className="px-6 pt-8 pb-4">
+        <div className="px-4 pt-8 pb-2">
           <h1 className="text-2xl font-bold text-[#0F172A] text-center">
             Session Complete
           </h1>
@@ -232,19 +274,19 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
       )}
 
       {/* Loading State */}
-      <div className="flex-1 flex items-center justify-center px-6 py-8">
-        <div className="bg-white rounded-2xl p-6 shadow-[0_6px_20px_rgba(2,6,23,0.06)] border border-[#E5E7EB] w-full max-w-sm">
+      <div className="flex-1 flex items-center justify-center px-4 pt-2 pb-8">
+        <div className="bg-white rounded-2xl p-[22px] shadow-[0_6px_20px_rgba(2,6,23,0.06)] border border-[#E9EDF2] w-full max-w-[380px]">
           <div className="text-center py-8">
             <div className="text-6xl mb-4">⏳</div>
             <h3 className="text-lg font-semibold text-[#0F172A] mb-2">
               Calculating Score...
             </h3>
-            <p className="text-[#64748B] text-sm">
+            <p className="text-[#6B7280] text-sm">
               Your devotion score is being calculated. This should only take a moment.
             </p>
             
             {/* Legacy stats as fallback */}
-            <div className="grid grid-cols-2 gap-4 mt-6 text-sm text-[#64748B]">
+            <div className="grid grid-cols-2 gap-4 mt-6 text-sm text-[#6B7280]">
               <div>
                 <div className="font-medium">{legacyData.totalSets || 0}</div>
                 <div>Sets</div>

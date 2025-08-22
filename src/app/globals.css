@@ -125,6 +125,10 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 /* Ensure mobile viewport */
 @media screen and (max-width: 768px) {
   body {

@@ -19,12 +19,12 @@ const chipConfig: ChipData[] = [
   {
     key: 'EC',
     icon: CheckSquare,
-    label: 'Movements',
+    label: 'Exercises',
     getDisplayText: (score: number) => {
       const percentage = Math.round(score * 100)
-      if (percentage >= 100) return 'All movements'
-      if (percentage >= 80) return 'Most movements'
-      return 'Missed movements'
+      if (percentage >= 100) return 'All exercises'
+      if (percentage >= 80) return 'Most exercises'
+      return 'Missed exercises'
     }
   },
   {

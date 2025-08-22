@@ -14,8 +14,8 @@ interface DetailsSheetProps {
 const conceptExplanations = [
   {
     icon: CheckSquare,
-    title: 'Movements',
-    description: 'Coverage of planned movements - did you do all the exercises?'
+    title: 'Exercises',
+    description: 'Coverage of planned exercises - did you do all the exercises?'
   },
   {
     icon: Layers,
@@ -103,7 +103,7 @@ export function DetailsSheet({ pillars, deviations, score, className = "" }: Det
                         </p>
                       </div>
                       <div className="text-sm font-medium text-gray-700">
-                        {title === 'Movements' && `${Math.round((pillars.EC || 0) * 100)}%`}
+                        {title === 'Exercises' && `${Math.round((pillars.EC || 0) * 100)}%`}
                         {title === 'Sets' && `${Math.round((pillars.SC || 0) * 100)}%`}
                         {title === 'Reps' && `${Math.round((pillars.RF || 0) * 100)}%`}
                         {title === 'Weight' && pillars.LF && `${Math.round(pillars.LF * 100)}%`}

@@ -56,7 +56,7 @@ export function CircularGauge({
         <svg
           width={size}
           height={size}
-          className="transform -rotate-90" // Start from top
+          className="transform -rotate-90" // Start from top (-90°)
         >
           {/* Define the gradient */}
           <defs>
@@ -66,14 +66,14 @@ export function CircularGauge({
             </linearGradient>
           </defs>
           
-          {/* Background circle */}
+          {/* Background circle - track color #E9EDF2 */}
           <circle
             cx={center}
             cy={center}
             r={radius}
             fill="none"
             strokeWidth={strokeWidth}
-            stroke="rgba(2,6,23,0.07)"
+            stroke="#E9EDF2"
             strokeLinecap="round"
           />
           
@@ -94,9 +94,17 @@ export function CircularGauge({
           />
         </svg>
 
-        {/* Score Text */}
+        {/* Score Text - 52px font size, 700 weight, -0.5 letter spacing */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className="text-5xl font-bold text-[#0F172A]">
+          <div 
+            className="font-bold text-[#0F172A]"
+            style={{
+              fontSize: '52px',
+              fontWeight: 700,
+              letterSpacing: '-0.5px',
+              lineHeight: 1
+            }}
+          >
             {Math.round(animatedScore)}
           </div>
         </div>
