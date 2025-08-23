@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { WheelPicker, WheelPickerWrapper, type WheelPickerOption } from '@/components/wheel-picker';
+import { WheelPicker, WheelPickerWrapper } from '@/components/wheel-picker';
 import { PickerOption } from '../../../hooks/usePickerOptions';
 
 interface PickerSectionProps {

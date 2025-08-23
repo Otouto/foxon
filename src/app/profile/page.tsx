@@ -1,4 +1,5 @@
 import { User, LogOut } from 'lucide-react';
+import Image from 'next/image';
 import { ProfileService } from '@/services/ProfileService';
 import WeeklyGoalEditor from '@/components/profile/WeeklyGoalEditor';
 
@@ -35,9 +36,11 @@ export default async function ProfilePage() {
         <div className="flex items-center gap-4 mb-4">
           <div className="w-16 h-16 bg-lime-400 rounded-full flex items-center justify-center">
             {user.avatarUrl ? (
-              <img 
+              <Image 
                 src={user.avatarUrl} 
                 alt={user.displayName || 'User'} 
+                width={64}
+                height={64}
                 className="w-full h-full rounded-full object-cover"
               />
             ) : (

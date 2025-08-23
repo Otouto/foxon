@@ -29,7 +29,15 @@ export function useSessionPersistence(workoutId: string) {
    * Load session from localStorage
    */
   const loadSession = useCallback((): InMemorySession | null => {
-    return debouncedStorage.getItem(getStorageKey());
+    const item = debouncedStorage.getItem(getStorageKey());
+    if (item && typeof item === 'object' && item !== null) {
+      // Basic type guard to ensure it's an InMemorySession
+      const session = item as Record<string, unknown>;
+      if (session.workoutId && session.exercises && Array.isArray(session.exercises)) {
+        return item as InMemorySession;
+      }
+    }
+    return null;
   }, [getStorageKey]);
 
   /**
