@@ -1,0 +1,83 @@
+/* Summary component optimized CSS animations */
+
+.devotionRing {
+  --ring-start: #C084FC;
+  --ring-end: #06B6D4;
+  --ring-track: #E9EDF2;
+  --text-strong: #0F172A;
+  --text-muted: #6B7280;
+  --border: #E9EDF2;
+  --warn: #F59E0B;
+  --alert: #EF4444;
+}
+
+.slideUp {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: slideUpAnimation 0.4s ease-out forwards;
+}
+
+.fadeIn {
+  opacity: 0;
+  animation: fadeInAnimation 0.4s ease-out forwards;
+}
+
+@keyframes slideUpAnimation {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInAnimation {
+  to {
+    opacity: 1;
+  }
+}
+
+/* Responsive ring sizing using CSS container queries */
+.ringContainer {
+  container-type: inline-size;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+@container (max-width: 390px) {
+  .ringContainer {
+    --ring-size: 210px;
+  }
+}
+
+@container (min-width: 391px) {
+  .ringContainer {
+    --ring-size: 230px;
+  }
+}
+
+/* Animation delays for staggered appearance */
+.verdict {
+  animation-delay: 150ms;
+}
+
+.pillarItem:nth-child(1) { animation-delay: 150ms; }
+.pillarItem:nth-child(2) { animation-delay: 170ms; }
+.pillarItem:nth-child(3) { animation-delay: 190ms; }
+.pillarItem:nth-child(4) { animation-delay: 210ms; }
+
+/* Pillar warning states */
+.pillarWarn {
+  border-left: 3px solid var(--warn);
+}
+
+.pillarAlert {
+  border-left: 3px solid var(--alert);
+}
+
+.textWarn {
+  color: rgb(245 158 11 / 0.7);
+}
+
+.textAlert {
+  color: rgb(239 68 68 / 0.7);
+}

@@ -154,9 +154,6 @@ function SessionFinishContent() {
     if (backgroundSave.status === 'completed' && backgroundSave.sessionId && !devotionScoreData) {
       const fetchDevotionScore = async () => {
         try {
-          // Add a small delay to allow the background devotion score calculation to complete
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          
           const response = await fetch(`/api/sessions/${backgroundSave.sessionId}`);
           if (response.ok) {
             const sessionData = await response.json();
@@ -167,11 +164,15 @@ function SessionFinishContent() {
                 devotionPillars: sessionData.devotionPillars,
                 devotionDeviations: sessionData.devotionDeviations || []
               });
+            } else {
+              // If score is still null, retry after a short delay
+              setTimeout(fetchDevotionScore, 500);
             }
           }
         } catch (error) {
           console.error('Failed to fetch devotion score:', error);
-          // Don't set error state - just let it show the fallback UI
+          // Retry after a short delay on error
+          setTimeout(fetchDevotionScore, 1000);
         }
       };
 

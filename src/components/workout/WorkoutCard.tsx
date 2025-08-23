@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { Play } from 'lucide-react';
+import { useWorkoutPreload } from '@/hooks/useWorkoutPreload';
 import type { WorkoutListItem } from '@/lib/types/workout';
 
 interface WorkoutCardProps {
@@ -10,6 +11,32 @@ interface WorkoutCardProps {
 
 export function WorkoutCard({ workout }: WorkoutCardProps) {
   const router = useRouter();
+  const { getPreloadedWorkout } = useWorkoutPreload();
+
+  const handleStartSession = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // Check if we have preloaded data
+    const preloadedData = getPreloadedWorkout(workout.id);
+    
+    if (preloadedData) {
+      // Direct navigation with preloaded data - no redirects needed!
+      router.push(`/session/log?workoutId=${workout.id}&preloaded=true`);
+    } else {
+      // Fallback: preload the workout and then navigate
+      try {
+        const response = await fetch(`/api/workouts/${workout.id}/preload`);
+        if (response.ok) {
+          router.push(`/session/log?workoutId=${workout.id}&preloaded=true`);
+        } else {
+          router.push(`/session/log?workoutId=${workout.id}&preloaded=false`);
+        }
+      } catch (error) {
+        console.warn('Failed to preload workout data:', error);
+        router.push(`/session/log?workoutId=${workout.id}&preloaded=false`);
+      }
+    }
+  };
 
   return (
     <div 
@@ -30,10 +57,7 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
             )}
           </div>
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              router.push(`/session/start?workoutId=${workout.id}`);
-            }}
+            onClick={handleStartSession}
             className="bg-lime-400 text-black p-3 rounded-full hover:bg-lime-500 transition-colors"
           >
             <Play size={18} />

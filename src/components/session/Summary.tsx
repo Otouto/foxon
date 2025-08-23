@@ -1,11 +1,11 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
 import { CircularGauge } from '@/components/ui/CircularGauge'
 import { DetailsSheet } from '@/components/ui/DetailsSheet'
 import { getDevotionVerdict } from '@/lib/devotionVerdicts'
 import type { DevotionPillars, DevotionDeviation } from '@/services/SessionService'
+import styles from './Summary.module.css'
 
 // New devotion-based summary data interface
 interface DevotionSummaryData {
@@ -72,19 +72,6 @@ const PILLAR_ORDER: (keyof DevotionPillars)[] = ['EC', 'SC', 'RF', 'LF']
 
 export function Summary({ data, showTitle = true }: SummaryProps) {
   const router = useRouter()
-  const [ringSize, setRingSize] = useState(230) // Default size
-
-  // Handle responsive ring sizing
-  useEffect(() => {
-    const updateRingSize = () => {
-      setRingSize(window.innerWidth <= 390 ? 210 : 230)
-    }
-    
-    updateRingSize()
-    window.addEventListener('resize', updateRingSize)
-    
-    return () => window.removeEventListener('resize', updateRingSize)
-  }, [])
 
   // Check if we have devotion score data
   if (isDevotionSummaryData(data)) {
@@ -93,41 +80,6 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
     
     return (
       <div className="min-h-screen bg-[#F7FAFC] flex flex-col">
-        {/* CSS Animations */}
-        <style jsx>{`
-          @keyframes slideUp {
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-          
-          @keyframes fadeIn {
-            to {
-              opacity: 1;
-            }
-          }
-          
-          @keyframes ringFill {
-            from {
-              stroke-dasharray: 0 100;
-            }
-            to {
-              stroke-dasharray: var(--score) 100;
-            }
-          }
-          
-          :global(.devotion-ring) {
-            --ring-start: #C084FC;
-            --ring-end: #06B6D4;
-            --ring-track: #E9EDF2;
-            --text-strong: #0F172A;
-            --text-muted: #6B7280;
-            --border: #E9EDF2;
-            --warn: #F59E0B;
-            --alert: #EF4444;
-          }
-        `}</style>
         
         {/* Header */}
         {showTitle && (
@@ -142,12 +94,12 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
         <div className="flex-1 flex items-center justify-center px-4 pt-2 pb-8">
           <div className="bg-white rounded-2xl p-[22px] shadow-[0_6px_20px_rgba(2,6,23,0.06)] border border-[#E9EDF2] w-full max-w-[380px]">
             {/* Devotion Score Ring */}
-            <div className="flex justify-center mb-2">
+            <div className={styles.ringContainer}>
               <CircularGauge 
                 score={data.devotionScore}
-                size={ringSize}
+                size={230}
                 strokeWidth={16}
-                className="devotion-ring"
+                className={styles.devotionRing}
               />
             </div>
 
@@ -160,21 +112,14 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
 
             {/* Human Verdict */}
             <div className="text-center mb-4">
-              <p 
-                className="text-base font-semibold text-[#0F172A] leading-[22px]"
-                style={{
-                  animationDelay: '150ms',
-                  animation: 'fadeIn 0.4s ease-out forwards',
-                  opacity: 0
-                }}
-              >
+              <p className={`text-base font-semibold text-[#0F172A] leading-[22px] ${styles.fadeIn} ${styles.verdict}`}>
                 {verdict}
               </p>
             </div>
 
             {/* Vertical Pillar List - Fixed order and precise spacing */}
             <div className="space-y-2">
-              {PILLAR_ORDER.map((key, index) => {
+              {PILLAR_ORDER.map((key) => {
                 const value = data.devotionPillars[key]
                 if (value === undefined) return null // Skip undefined weight for bodyweight sessions
                 
@@ -187,15 +132,10 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
                     key={key}
                     className={`
                       flex items-center justify-between h-14 px-[14px] rounded-[14px] border border-[#E9EDF2] bg-white
-                      ${isWeakest && isWarn ? 'border-l-[3px] border-l-[#F59E0B]' : ''}
-                      ${isWeakest && isAlert ? 'border-l-[3px] border-l-[#EF4444]' : ''}
+                      ${styles.slideUp} ${styles.pillarItem}
+                      ${isWeakest && isWarn ? styles.pillarWarn : ''}
+                      ${isWeakest && isAlert ? styles.pillarAlert : ''}
                     `}
-                    style={{
-                      animationDelay: `${150 + (index * 20)}ms`,
-                      animation: 'slideUp 0.4s ease-out forwards',
-                      opacity: 0,
-                      transform: 'translateY(20px)'
-                    }}
                   >
                     {/* Remove the absolutely positioned accent bar */}
                     
@@ -204,7 +144,7 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
                       <div className="w-3 h-3 rounded-full bg-gray-200" />
                       <span className={`text-[15px] font-medium ${
                         isWeakest && (isWarn || isAlert) 
-                          ? isWarn ? 'text-[#F59E0B]/70' : 'text-[#EF4444]/70'
+                          ? isWarn ? styles.textWarn : styles.textAlert
                           : 'text-[#334155]'
                       }`}>
                         {PILLAR_NAMES[key]}
@@ -212,7 +152,7 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
                     </div>
                     <span className={`text-[15px] font-semibold font-mono ${
                       isWeakest && (isWarn || isAlert)
-                        ? isWarn ? 'text-[#F59E0B]/70' : 'text-[#EF4444]/70'
+                        ? isWarn ? styles.textWarn : styles.textAlert
                         : 'text-[#334155]'
                     }`}>
                       {Math.round(value * 100)}%

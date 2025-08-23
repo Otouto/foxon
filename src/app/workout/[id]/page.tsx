@@ -103,7 +103,7 @@ export default async function WorkoutDetailPage({ params }: { params: Promise<{ 
       {/* Start Button */}
       <div className="fixed bottom-24 left-6 right-6">
         <Link 
-          href={`/session/start?workoutId=${id}`}
+          href={`/session/log?workoutId=${id}&preloaded=false`}
           className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl flex items-center justify-center gap-3"
         >
           <Play size={20} />
