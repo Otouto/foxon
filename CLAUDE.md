@@ -21,8 +21,19 @@ npm run db:seed        # Seed database with initial data
 
 # Code quality
 npm run lint           # Run ESLint
-npm run build          # Build for production
+npm run build          # Build for production (includes PWA service worker generation)
 ```
+
+## PWA Features
+
+Foxon is configured as a Progressive Web App with:
+- **Add to Home Screen (A2HS)** support on iOS, Android, and desktop
+- **Offline functionality** with strategic caching
+- **App-like experience** with standalone display mode
+- **Service worker** for background sync and caching
+- **Web App Manifest** with complete metadata
+
+**Important**: Before production deployment, generate real PWA icons to replace placeholders in `/public/icons/`. See `PWA_SETUP.md` for complete instructions.
 
 ## Architecture Overview
 

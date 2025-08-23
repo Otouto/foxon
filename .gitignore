@@ -44,3 +44,7 @@ next-env.d.ts
 
 # temporary session storage
 /.sessions
+
+# PWA files
+/public/sw*
+/public/workbox-*
