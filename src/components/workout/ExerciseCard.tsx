@@ -3,6 +3,7 @@
 import { Check } from 'lucide-react';
 import { useState } from 'react';
 import { SetEditor } from './SetEditor';
+import { useHapticFeedback } from '../../hooks/useHapticFeedback';
 
 interface SetValue {
   weight: number;
@@ -24,23 +25,6 @@ interface ExerciseCardProps {
   updateSetValue: (setIndex: number, field: 'weight' | 'reps', value: number) => void;
 }
 
-// Haptic feedback utility
-const triggerHaptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {
-  if ('vibrate' in navigator) {
-    switch (type) {
-      case 'light':
-        navigator.vibrate(10);
-        break;
-      case 'medium':
-        navigator.vibrate(20);
-        break;
-      case 'heavy':
-        navigator.vibrate(50);
-        break;
-    }
-  }
-};
-
 export function ExerciseCard({
   currentExercise,
   isBodyweightExercise,
@@ -49,6 +33,7 @@ export function ExerciseCard({
   toggleSetCompletion,
   updateSetValue
 }: ExerciseCardProps) {
+  const { triggerHaptic } = useHapticFeedback();
   const [editingSet, setEditingSet] = useState<number | null>(null);
   const [editingValues, setEditingValues] = useState<{ weight: number; reps: number } | null>(null);
 
