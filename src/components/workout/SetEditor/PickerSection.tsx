@@ -1,4 +1,5 @@
-import { WheelPicker, WheelPickerWrapper } from '@ncdai/react-wheel-picker';
+import { useState } from 'react';
+import { WheelPicker, WheelPickerWrapper, type WheelPickerOption } from '@/components/wheel-picker';
 import { PickerOption } from '../../../hooks/usePickerOptions';
 
 interface PickerSectionProps {
@@ -24,6 +25,19 @@ export function PickerSection({
   onInteractionStart,
   onInteractionEnd,
 }: PickerSectionProps) {
+  const [weightValue, setWeightValue] = useState(weight.toString());
+  const [repsValue, setRepsValue] = useState(reps.toString());
+
+  const handleWeightChange = (newWeight: string) => {
+    setWeightValue(newWeight);
+    onWeightChange(newWeight);
+  };
+
+  const handleRepsChange = (newReps: string) => {
+    setRepsValue(newReps);
+    onRepsChange(newReps);
+  };
+
   const handlePointerEvent = (eventType: 'start' | 'end', event: React.PointerEvent) => {
     event.stopPropagation();
     if (eventType === 'start') {
@@ -59,7 +73,6 @@ export function PickerSection({
       <div 
         className="flex-1 flex items-center justify-center px-6 mb-4"
         onPointerDown={(e) => handlePointerEvent('start', e)}
-        onPointerMove={handleTouchEvent}
         onPointerUp={(e) => handlePointerEvent('end', e)}
         onPointerCancel={(e) => handlePointerEvent('end', e)}
         onTouchStart={handleTouchEvent}
@@ -73,16 +86,16 @@ export function PickerSection({
           <WheelPickerWrapper>
             {!isBodyweightExercise && (
               <WheelPicker
-                value={weight.toString()}
-                onValueChange={onWeightChange}
                 options={weightOptions}
+                value={weightValue}
+                onValueChange={handleWeightChange}
                 infinite
               />
             )}
             <WheelPicker
-              value={reps.toString()}
-              onValueChange={onRepsChange}
               options={repOptions}
+              value={repsValue}
+              onValueChange={handleRepsChange}
               infinite
             />
           </WheelPickerWrapper>
