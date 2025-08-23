@@ -44,6 +44,7 @@ export function SetEditor({
 }: SetEditorProps) {
   const [weight, setWeight] = useState(initialWeight);
   const [reps, setReps] = useState(initialReps);
+  const [isInteractingWithWheel, setIsInteractingWithWheel] = useState(false);
 
   // Reset values when opening
   useEffect(() => {
@@ -99,7 +100,7 @@ export function SetEditor({
   }));
 
   return (
-    <Drawer.Root open={isOpen} onOpenChange={onClose} shouldScaleBackground={false}>
+    <Drawer.Root open={isOpen} onOpenChange={onClose} shouldScaleBackground={false} dismissible={!isInteractingWithWheel}>
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 bg-black/40 z-50" />
         <Drawer.Content 
@@ -136,6 +137,21 @@ export function SetEditor({
           {/* Wheel Pickers */}
           <div 
             className="flex-1 flex items-center justify-center px-6 mb-4"
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              setIsInteractingWithWheel(true);
+            }}
+            onPointerMove={(e) => {
+              e.stopPropagation();
+            }}
+            onPointerUp={(e) => {
+              e.stopPropagation();
+              setIsInteractingWithWheel(false);
+            }}
+            onPointerCancel={(e) => {
+              e.stopPropagation();
+              setIsInteractingWithWheel(false);
+            }}
             onTouchStart={(e) => e.stopPropagation()}
             onTouchMove={(e) => e.stopPropagation()}
             onTouchEnd={(e) => e.stopPropagation()}
