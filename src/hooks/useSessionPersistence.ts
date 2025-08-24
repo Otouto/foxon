@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect } from 'react';
 import { debouncedStorage } from '@/lib/debouncedStorage';
+import { SessionStorageManager } from '@/lib/SessionStorageManager';
 import type { InMemorySession } from './useSessionData';
 
 /**
@@ -41,18 +42,18 @@ export function useSessionPersistence(workoutId: string) {
   }, [getStorageKey]);
 
   /**
-   * Clear session from localStorage
+   * Clear session from localStorage using centralized cleanup
    */
-  const clearSession = useCallback(() => {
-    debouncedStorage.removeItem(getStorageKey());
-  }, [getStorageKey]);
+  const clearSession = useCallback(async () => {
+    await SessionStorageManager.clearSession(workoutId);
+  }, [workoutId]);
 
   /**
    * Check if a session exists in storage
    */
   const hasStoredSession = useCallback((): boolean => {
-    return loadSession() !== null;
-  }, [loadSession]);
+    return SessionStorageManager.hasSession(workoutId);
+  }, [workoutId]);
 
   /**
    * Flush any pending writes immediately

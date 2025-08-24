@@ -10,6 +10,7 @@ import { useSessionCompletion, type CompletedSessionData } from '@/hooks/useSess
 import type { ReflectionFormData } from '@/hooks/useSessionReflection';
 import type { SessionSealData } from '@/services/SessionCompletionService';
 import type { DevotionPillars, DevotionDeviation } from '@/services/SessionService';
+import { SessionStorageManager } from '@/lib/SessionStorageManager';
 import { 
   SessionReflectionForm, 
   BackgroundSaveIndicator, 
@@ -48,20 +49,11 @@ function SessionFinishContent() {
     setSummaryEndTime(new Date()); // Set stable end time
     setShowSummary(true);
     
-    // Clear session data immediately after setting summary state
+    // Clear session data using centralized cleanup
     if (workoutId) {
-      const storageKey = `workout_session_${workoutId}`;
-      const hadData = localStorage.getItem(storageKey) !== null;
-      localStorage.removeItem(storageKey);
-      console.log('🧹 Cleared localStorage for workout:', workoutId, 'Had data:', hadData);
-      
-      // Also clear any other session-related data that might exist
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('workout_session_') || key.includes(workoutId)) {
-          localStorage.removeItem(key);
-          console.log('🧹 Also cleared related key:', key);
-        }
-      });
+      await SessionStorageManager.clearSession(workoutId);
+      // Also perform defensive cleanup for any related storage
+      SessionStorageManager.cleanupRelatedStorage(workoutId);
     }
   }, [sealSession, workoutId]);
 
@@ -102,13 +94,14 @@ function SessionFinishContent() {
     } : null);
   }, [showSummary, devotionScoreData, completedSession, session, summaryEndTime]);
   
-  // Cleanup localStorage on component unmount to ensure fresh sessions
+  // Cleanup session storage on component unmount to ensure fresh sessions
   useEffect(() => {
     return () => {
       // Only clear if we've successfully shown the summary (meaning session was completed)
       if (showSummary && workoutId) {
-        localStorage.removeItem(`workout_session_${workoutId}`);
-        console.log('🧹 Cleanup: Cleared localStorage on unmount for workout:', workoutId);
+        SessionStorageManager.clearSession(workoutId).catch(error => {
+          console.warn('Failed to cleanup session on unmount:', error);
+        });
       }
     };
   }, [showSummary, workoutId]);

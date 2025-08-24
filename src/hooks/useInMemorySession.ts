@@ -5,6 +5,7 @@ import { SetType } from '@prisma/client';
 import type { WorkoutDetails, WorkoutItem } from '@/lib/types/workout';
 import type { PreloadedWorkoutData } from '@/services/WorkoutPreloadService';
 import { debouncedStorage } from '@/lib/debouncedStorage';
+import { SessionStorageManager } from '@/lib/SessionStorageManager';
 
 // Re-export types for compatibility
 export interface InMemorySet {
@@ -279,14 +280,14 @@ export function useInMemorySession(workoutId: string, preloadedData?: PreloadedW
     );
   }, [session]);
 
-  const clearSession = useCallback(() => {
+  const clearSession = useCallback(async () => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    debouncedStorage.removeItem(getStorageKey());
+    await SessionStorageManager.clearSession(workoutId);
     setSession(null);
-  }, [getStorageKey]);
+  }, [workoutId]);
 
   // Initialize on mount and cleanup on unmount
   useEffect(() => {

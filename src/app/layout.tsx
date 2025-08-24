@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ConditionalBottomNav } from "@/components/navigation/ConditionalBottomNav";
+import { StorageHealthChecker } from "@/components/StorageHealthChecker";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -94,6 +95,7 @@ export default function RootLayout({
         <link rel="apple-touch-startup-image" href="/icons/apple-touch-startup-image-1536x2008.png" />
       </head>
       <body className={`${inter.variable} font-sans antialiased bg-gray-50 min-h-screen`}>
+        <StorageHealthChecker />
         <div className="flex flex-col min-h-screen">
           <main className="flex-1 pb-20">
             {children}

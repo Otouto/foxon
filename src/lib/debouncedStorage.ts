@@ -11,6 +11,11 @@ interface DebounceEntry {
 class DebouncedStorage {
   private pendingWrites = new Map<string, DebounceEntry>();
   private defaultDelay = 300; // 300ms debounce
+  private isCleanupSetup = false;
+
+  constructor() {
+    this.setupCleanupHandlers();
+  }
 
   /**
    * Set an item in localStorage with debouncing
@@ -113,6 +118,96 @@ class DebouncedStorage {
    */
   hasPendingWrites(key: string): boolean {
     return this.pendingWrites.has(key);
+  }
+
+  /**
+   * Cleanup all pending writes (prevents memory leaks)
+   * Should be called when the application is being unloaded
+   */
+  cleanup(): void {
+    console.log(`🧹 Cleaning up ${this.pendingWrites.size} pending writes`);
+    
+    this.pendingWrites.forEach((entry, key) => {
+      try {
+        clearTimeout(entry.timer);
+      } catch (error) {
+        console.warn('Failed to clear timer for key:', key, error);
+      }
+    });
+    
+    this.pendingWrites.clear();
+  }
+
+  /**
+   * Setup cleanup handlers for page unload events
+   * Prevents memory leaks and ensures data integrity
+   */
+  private setupCleanupHandlers(): void {
+    if (this.isCleanupSetup || typeof window === 'undefined') {
+      return;
+    }
+
+    this.isCleanupSetup = true;
+
+    // Handle page unload - flush pending writes before cleanup
+    const handleBeforeUnload = () => {
+      try {
+        // Flush all pending writes synchronously
+        this.flushAll();
+        console.log('🔄 Flushed all pending writes before unload');
+      } catch (error) {
+        console.warn('Failed to flush writes during beforeunload:', error);
+      }
+    };
+
+    // Handle page hide (mobile browsers, tab switching)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        try {
+          // Flush pending writes when page becomes hidden
+          this.flushAll();
+          console.log('🔄 Flushed pending writes on visibility hidden');
+        } catch (error) {
+          console.warn('Failed to flush writes during visibility change:', error);
+        }
+      }
+    };
+
+    // Handle complete cleanup on unload
+    const handleUnload = () => {
+      try {
+        this.cleanup();
+      } catch (error) {
+        console.warn('Failed to cleanup during unload:', error);
+      }
+    };
+
+    // Register event listeners
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('unload', handleUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Also handle focus/blur for additional reliability
+    window.addEventListener('blur', () => {
+      try {
+        this.flushAll();
+        console.log('🔄 Flushed pending writes on window blur');
+      } catch (error) {
+        console.warn('Failed to flush writes on blur:', error);
+      }
+    });
+
+    console.log('✅ DebouncedStorage cleanup handlers setup complete');
+  }
+
+  /**
+   * Get debug information about pending writes
+   */
+  getDebugInfo(): { pendingCount: number; keys: string[] } {
+    return {
+      pendingCount: this.pendingWrites.size,
+      keys: Array.from(this.pendingWrites.keys())
+    };
   }
 }
 
