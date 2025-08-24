@@ -13,7 +13,6 @@ interface SetValue {
 interface Exercise {
   name: string;
   sets: SetValue[];
-  previousSession?: SetValue[] | null;
 }
 
 interface ExerciseCardProps {
@@ -75,28 +74,10 @@ export function ExerciseCard({
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-6">
       <h2 className="text-lg font-semibold text-gray-900 mb-4 px-2">{currentExercise.name}</h2>
       
-      {/* Progress Bar */}
-      <div className="mb-4 px-2">
-        <div className="w-full bg-gray-200 rounded-full h-1">
-          <div 
-            className="bg-lime-400 h-1 rounded-full transition-all duration-300"
-            style={{ 
-              width: `${(completedSets.filter(Boolean).length / completedSets.length) * 100}%` 
-            }}
-          />
-        </div>
-        <p className="text-xs text-gray-500 mt-1 text-center">
-          {completedSets.filter(Boolean).length} of {completedSets.length} sets completed
-        </p>
-      </div>
       
       {/* Sets */}
       <div className="space-y-2">
         {setValues.map((set, index) => {
-          const hasPreviousData = currentExercise.previousSession && 
-                                  currentExercise.previousSession.length > 0 && 
-                                  currentExercise.previousSession[index];
-          const previousSet = hasPreviousData ? currentExercise.previousSession![index] : null;
           const isCompleted = completedSets[index];
           
           return (
@@ -122,52 +103,52 @@ export function ExerciseCard({
                 <Check size={18} className={isCompleted ? "text-black" : "text-gray-500"} />
               </button>
               
-              {/* Set Info - Single row layout */}
-              <div className="flex-1 flex items-center gap-4">
-                {/* Set Number + Previous Badge */}
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-semibold text-gray-900 text-lg tabular-nums" aria-label={`Set ${index + 1}`}>
+              {/* Set Info - Entire area tappable for editing */}
+              <div 
+                onClick={() => handleEditSet(index)}
+                className="flex-1 flex items-center gap-4 cursor-pointer"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleEditSet(index);
+                  }
+                }}
+                aria-label={`Edit set ${index + 1}. Current: ${isBodyweightExercise ? `${setValues[index]?.reps || set.reps} reps` : `${setValues[index]?.weight || set.weight}kg, ${setValues[index]?.reps || set.reps} reps`}`}
+              >
+                {/* Set Number */}
+                <div className="flex items-center min-w-0">
+                  <span className="font-semibold text-gray-900 text-lg tabular-nums" aria-hidden="true">
                     {index + 1}
                   </span>
-                  {hasPreviousData && previousSet && (
-                    <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full" aria-label={`Previous: ${isBodyweightExercise ? `${previousSet.reps} reps` : `${previousSet.weight}kg × ${previousSet.reps} reps`}`}>
-                      {isBodyweightExercise 
-                        ? `${previousSet.reps}` 
-                        : `${previousSet.weight}kg × ${previousSet.reps}`
-                      }
-                    </span>
-                  )}
                 </div>
                 
-                {/* KG Pill */}
+                {/* KG Pill - Visual only, no individual click handler */}
                 {!isBodyweightExercise && (
-                  <button
-                    onClick={() => handleEditSet(index)}
+                  <div
                     className={`px-4 py-2 rounded-full font-medium transition-all duration-200 ${
                       isCompleted
-                        ? 'bg-lime-100 text-lime-800 cursor-pointer hover:bg-lime-200'
-                        : 'bg-white border border-gray-300 text-gray-900 cursor-pointer hover:bg-gray-50'
+                        ? 'bg-lime-100 text-lime-800'
+                        : 'bg-white border border-gray-300 text-gray-900'
                     }`}
-                    aria-label={`Edit weight for set ${index + 1}. Current weight: ${setValues[index]?.weight || set.weight}kg`}
                   >
                     <span className="tabular-nums">{setValues[index]?.weight || set.weight}</span>
                     <span className="text-sm ml-1">kg</span>
-                  </button>
+                  </div>
                 )}
                 
-                {/* REPS Pill */}
-                <button
-                  onClick={() => handleEditSet(index)}
+                {/* REPS Pill - Visual only, no individual click handler */}
+                <div
                   className={`px-4 py-2 rounded-full font-medium transition-all duration-200 ${
                     isCompleted
-                      ? 'bg-lime-100 text-lime-800 cursor-pointer hover:bg-lime-200'
-                      : 'bg-white border border-gray-300 text-gray-900 cursor-pointer hover:bg-gray-50'
+                      ? 'bg-lime-100 text-lime-800'
+                      : 'bg-white border border-gray-300 text-gray-900'
                   }`}
-                  aria-label={`Edit reps for set ${index + 1}. Current reps: ${setValues[index]?.reps || set.reps}`}
                 >
                   <span className="tabular-nums">{setValues[index]?.reps || set.reps}</span>
                   <span className="text-sm ml-1">reps</span>
-                </button>
+                </div>
               </div>
             </div>
           );
@@ -183,14 +164,7 @@ export function ExerciseCard({
           initialWeight={editingValues.weight}
           initialReps={editingValues.reps}
           isBodyweightExercise={isBodyweightExercise}
-          previousValues={
-            currentExercise.previousSession?.[editingSet] 
-              ? {
-                  weight: currentExercise.previousSession[editingSet].weight,
-                  reps: currentExercise.previousSession[editingSet].reps
-                }
-              : null
-          }
+          previousValues={null}
         />
       )}
     </div>
