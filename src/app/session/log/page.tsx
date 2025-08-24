@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useInMemorySession } from '@/hooks/useInMemorySession';
 import { useWorkoutPreload } from '@/hooks/useWorkoutPreload';
@@ -33,8 +33,12 @@ function SessionLogContent() {
     navigateToNextExercise,
     navigateToPreviousExercise,
     canFinishWorkout,
+    clearSession,
     initializeSession,
   } = useInMemorySession(workoutId || '', isPreloaded ? preloadedData : null);
+
+  // Confirmation dialog state
+  const [showAbandonDialog, setShowAbandonDialog] = useState(false);
 
   // Handle missing workout ID
   if (!workoutId) {
@@ -128,13 +132,25 @@ function SessionLogContent() {
     router.push(`/session/finish?workoutId=${workoutId}`);
   };
 
+  // Handle session abandonment
+  const handleAbandonSession = async () => {
+    try {
+      await clearSession();
+      router.push(`/workout/${workoutId}`);
+    } catch (error) {
+      console.error('Failed to abandon session:', error);
+      // Still navigate away even if clearing fails
+      router.push(`/workout/${workoutId}`);
+    }
+  };
+
   // Handle smart back navigation
   const handleBackClick = () => {
     if (!session) return;
     
     if (session.currentExerciseIndex === 0) {
-      // First exercise - navigate back to workout detail page
-      router.push(`/workout/${workoutId}`);
+      // First exercise - show abandon confirmation dialog
+      setShowAbandonDialog(true);
     } else {
       // Not first exercise - navigate to previous exercise
       navigateToPreviousExercise();
@@ -209,6 +225,34 @@ function SessionLogContent() {
           >
             Finish Workout
           </button>
+        </div>
+      )}
+
+      {/* Abandon Session Confirmation Dialog */}
+      {showAbandonDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Abandon Session?
+            </h3>
+            <p className="text-gray-600 text-sm mb-6">
+              You&apos;re on the first exercise. Going back will abandon your current session and clear all progress.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowAbandonDialog(false)}
+                className="flex-1 py-3 px-4 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Continue
+              </button>
+              <button
+                onClick={handleAbandonSession}
+                className="flex-1 py-3 px-4 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition-colors"
+              >
+                Abandon
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
