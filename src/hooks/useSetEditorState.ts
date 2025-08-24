@@ -1,17 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useHapticFeedback } from './useHapticFeedback';
 
-interface SetEditorValues {
-  weight: number;
-  reps: number;
-}
-
 interface UseSetEditorStateProps {
   isOpen: boolean;
   initialWeight: number;
   initialReps: number;
   onSave: (weight: number, reps: number) => void;
-  previousValues?: SetEditorValues | null;
 }
 
 interface UseSetEditorStateReturn {
@@ -22,7 +16,6 @@ interface UseSetEditorStateReturn {
   handleWeightChange: (newWeight: string) => void;
   handleRepsChange: (newReps: string) => void;
   handleSave: () => void;
-  handleResetToPrevious: () => void;
 }
 
 export function useSetEditorState({
@@ -30,7 +23,6 @@ export function useSetEditorState({
   initialWeight,
   initialReps,
   onSave,
-  previousValues,
 }: UseSetEditorStateProps): UseSetEditorStateReturn {
   const [weight, setWeight] = useState(initialWeight);
   const [reps, setReps] = useState(initialReps);
@@ -67,13 +59,6 @@ export function useSetEditorState({
     onSave(weight, reps);
   }, [weight, reps, onSave, triggerHaptic]);
 
-  const handleResetToPrevious = useCallback(() => {
-    if (previousValues) {
-      triggerHaptic('light');
-      setWeight(previousValues.weight);
-      setReps(previousValues.reps);
-    }
-  }, [previousValues, triggerHaptic]);
 
   return {
     weight,
@@ -83,6 +68,5 @@ export function useSetEditorState({
     handleWeightChange,
     handleRepsChange,
     handleSave,
-    handleResetToPrevious,
   };
 }

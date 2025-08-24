@@ -164,7 +164,7 @@ export function ExerciseCard({
           initialWeight={editingValues.weight}
           initialReps={editingValues.reps}
           isBodyweightExercise={isBodyweightExercise}
-          previousValues={null}
+          setNumber={editingSet + 1}
         />
       )}
     </div>

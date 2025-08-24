@@ -15,7 +15,7 @@ interface SetEditorProps {
   initialWeight: number;
   initialReps: number;
   isBodyweightExercise: boolean;
-  previousValues?: { weight: number; reps: number } | null;
+  setNumber: number;
 }
 
 export function SetEditor({
@@ -25,7 +25,7 @@ export function SetEditor({
   initialWeight,
   initialReps,
   isBodyweightExercise,
-  previousValues
+  setNumber
 }: SetEditorProps) {
   const { weightOptions, repOptions } = usePickerOptions();
   
@@ -37,13 +37,11 @@ export function SetEditor({
     handleWeightChange,
     handleRepsChange,
     handleSave,
-    handleResetToPrevious,
   } = useSetEditorState({
     isOpen,
     initialWeight,
     initialReps,
     onSave,
-    previousValues,
   });
 
   return (
@@ -59,7 +57,7 @@ export function SetEditor({
           className="bg-white flex flex-col rounded-t-[10px] h-[60vh] mt-16 fixed bottom-0 left-0 right-0 z-50"
           onInteractOutside={(e) => e.preventDefault()}
         >
-          <DrawerHeader onClose={onClose} />
+          <DrawerHeader onClose={onClose} setNumber={setNumber} />
           
           <PickerSection
             isBodyweightExercise={isBodyweightExercise}
@@ -74,8 +72,6 @@ export function SetEditor({
           />
           
           <ActionButtons
-            previousValues={previousValues}
-            onResetToPrevious={handleResetToPrevious}
             onSave={handleSave}
           />
 

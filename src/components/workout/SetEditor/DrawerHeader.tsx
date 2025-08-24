@@ -3,9 +3,10 @@ import { Drawer } from 'vaul';
 
 interface DrawerHeaderProps {
   onClose: () => void;
+  setNumber: number;
 }
 
-export function DrawerHeader({ onClose }: DrawerHeaderProps) {
+export function DrawerHeader({ onClose, setNumber }: DrawerHeaderProps) {
   return (
     <>
       {/* Handle */}
@@ -13,7 +14,7 @@ export function DrawerHeader({ onClose }: DrawerHeaderProps) {
       
       {/* Header */}
       <div className="flex items-center justify-between px-6 mb-4">
-        <Drawer.Title className="text-lg font-semibold text-gray-900">Edit Set</Drawer.Title>
+        <Drawer.Title className="text-lg font-semibold text-gray-900">Edit Set {setNumber}</Drawer.Title>
         <button
           onClick={onClose}
           className="p-2 rounded-full hover:bg-gray-100 transition-colors"
