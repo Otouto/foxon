@@ -24,10 +24,10 @@ export function BackgroundSaveIndicator({
 
   if (saveState.status === 'saving') {
     return (
-      <div className={`bg-blue-50 border border-blue-200 rounded-2xl p-4 ${className}`}>
-        <div className="flex items-center gap-3">
-          <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-blue-700 text-sm">Saving your session in the background...</p>
+      <div className={`bg-gray-50 border border-gray-100 rounded-2xl p-3 ${className}`}>
+        <div className="flex items-center justify-center gap-2">
+          <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-600 text-xs">Saving session...</p>
         </div>
       </div>
     );

@@ -47,7 +47,7 @@ export function useSessionReflection({ onSubmit }: UseSessionReflectionProps) {
       const formData: ReflectionFormData = {
         effort,
         vibeLine: vibeLine.trim(),
-        note: note.trim() || undefined
+        note: undefined // Notes field is hidden from UI
       };
 
       await onSubmit(formData);

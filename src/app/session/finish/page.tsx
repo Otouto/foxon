@@ -276,15 +276,17 @@ function SessionFinishContent() {
         <h1 className="text-2xl font-bold text-gray-900">Session Complete</h1>
       </div>
 
-      {/* Background save status indicator */}
-      <BackgroundSaveIndicator saveState={backgroundSave} className="mb-6" />
-
       {/* Session Reflection Form */}
       <SessionReflectionForm 
         onSubmit={handleReflectionSubmit}
         disabled={backgroundSave.status === 'error'}
         className="mb-32"
       />
+
+      {/* Background save status indicator - Fixed at bottom */}
+      <div className="fixed bottom-32 left-6 right-6">
+        <BackgroundSaveIndicator saveState={backgroundSave} />
+      </div>
 
       {/* Fixed button is now handled inside the form component */}
     </div>

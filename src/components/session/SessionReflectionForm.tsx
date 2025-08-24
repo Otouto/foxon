@@ -65,21 +65,6 @@ function SessionReflectionFormContent({
         />
       </div>
 
-      {/* Optional Note */}
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Additional notes (optional)
-        </label>
-        <textarea
-          placeholder="Any additional thoughts about this session..."
-          rows={3}
-          value={reflection.note}
-          onChange={(e) => reflection.setNote(e.target.value)}
-          disabled={disabled || reflection.isSubmitting}
-          className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-transparent resize-none disabled:bg-gray-50 disabled:cursor-not-allowed"
-          maxLength={1000}
-        />
-      </div>
 
       {/* Submit Button - Fixed at bottom */}
       <div className="fixed bottom-24 left-6 right-6">
