@@ -31,6 +31,7 @@ function SessionLogContent() {
     toggleSetCompletion,
     addSet,
     navigateToNextExercise,
+    navigateToPreviousExercise,
     canFinishWorkout,
     initializeSession,
   } = useInMemorySession(workoutId || '', isPreloaded ? preloadedData : null);
@@ -127,6 +128,19 @@ function SessionLogContent() {
     router.push(`/session/finish?workoutId=${workoutId}`);
   };
 
+  // Handle smart back navigation
+  const handleBackClick = () => {
+    if (!session) return;
+    
+    if (session.currentExerciseIndex === 0) {
+      // First exercise - navigate back to workout detail page
+      router.push(`/workout/${workoutId}`);
+    } else {
+      // Not first exercise - navigate to previous exercise
+      navigateToPreviousExercise();
+    }
+  };
+
   // Check if this is a bodyweight exercise
   const isBodyweightExercise = currentExercise.sets.every(set => set.targetLoad === 0);
   
@@ -164,6 +178,7 @@ function SessionLogContent() {
           workoutId={workoutId}
           elapsedTime={session.duration}
           formatTime={formatDuration}
+          onBackClick={handleBackClick}
         />
 
         <ExerciseCard

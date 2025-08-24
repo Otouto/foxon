@@ -12,6 +12,7 @@ interface WorkoutHeaderProps {
   workoutId: string;
   elapsedTime: number;
   formatTime: (seconds: number) => string;
+  onBackClick?: () => void;
 }
 
 export function WorkoutHeader({ 
@@ -19,7 +20,8 @@ export function WorkoutHeader({
   currentExerciseIndex, 
   workoutId, 
   elapsedTime, 
-  formatTime 
+  formatTime,
+  onBackClick 
 }: WorkoutHeaderProps) {
   const progress = ((currentExerciseIndex + 1) / workout.exercises) * 100;
 
@@ -27,9 +29,15 @@ export function WorkoutHeader({
     <div className="session-header">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <Link href={`/workout/${workoutId}`} className="p-2 -ml-2 touch-target">
-            <ArrowLeft size={24} className="text-gray-700" />
-          </Link>
+          {onBackClick ? (
+            <button onClick={onBackClick} className="p-2 -ml-2 touch-target">
+              <ArrowLeft size={24} className="text-gray-700" />
+            </button>
+          ) : (
+            <Link href={`/workout/${workoutId}`} className="p-2 -ml-2 touch-target">
+              <ArrowLeft size={24} className="text-gray-700" />
+            </Link>
+          )}
           <div>
             <h1 className="text-lg font-semibold text-gray-900 leading-tight">{workout.name}</h1>
             <p className="text-sm text-gray-600 mt-0.5">
