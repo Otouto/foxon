@@ -49,13 +49,9 @@ function SessionFinishContent() {
     setSummaryEndTime(new Date()); // Set stable end time
     setShowSummary(true);
     
-    // Clear session data using centralized cleanup
-    if (workoutId) {
-      await SessionStorageManager.clearSession(workoutId);
-      // Also perform defensive cleanup for any related storage
-      SessionStorageManager.cleanupRelatedStorage(workoutId);
-    }
-  }, [sealSession, workoutId]);
+    // Note: Session cleanup will be handled by the useEffect cleanup on unmount
+    // This prevents potential race conditions from multiple cleanup calls
+  }, [sealSession]);
 
 
   const [showSummary, setShowSummary] = useState(false);
@@ -94,12 +90,16 @@ function SessionFinishContent() {
     } : null);
   }, [showSummary, devotionScoreData, completedSession, session, summaryEndTime]);
   
-  // Cleanup session storage on component unmount to ensure fresh sessions
+  // Cleanup session storage when session is completed or component unmounts
   useEffect(() => {
     return () => {
-      // Only clear if we've successfully shown the summary (meaning session was completed)
+      // Clear session data when component unmounts after showing summary
+      // This ensures fresh sessions and prevents abandoned session storage
       if (showSummary && workoutId) {
-        SessionStorageManager.clearSession(workoutId).catch(error => {
+        SessionStorageManager.clearSession(workoutId).then(() => {
+          // Also perform defensive cleanup for any related storage
+          SessionStorageManager.cleanupRelatedStorage(workoutId);
+        }).catch(error => {
           console.warn('Failed to cleanup session on unmount:', error);
         });
       }
@@ -145,9 +145,16 @@ function SessionFinishContent() {
   // Fetch devotion score data after session is saved
   useEffect(() => {
     if (backgroundSave.status === 'completed' && backgroundSave.sessionId && !devotionScoreData) {
+      const abortController = new AbortController();
+      let retryCount = 0;
+      const maxRetries = 8; // Max 8 retries (about 30 seconds total)
+      
       const fetchDevotionScore = async () => {
         try {
-          const response = await fetch(`/api/sessions/${backgroundSave.sessionId}`);
+          const response = await fetch(`/api/sessions/${backgroundSave.sessionId}`, {
+            signal: abortController.signal
+          });
+          
           if (response.ok) {
             const sessionData = await response.json();
             if (sessionData.devotionScore !== null) {
@@ -157,19 +164,48 @@ function SessionFinishContent() {
                 devotionPillars: sessionData.devotionPillars,
                 devotionDeviations: sessionData.devotionDeviations || []
               });
-            } else {
-              // If score is still null, retry after a short delay
-              setTimeout(fetchDevotionScore, 500);
+              return;
             }
           }
+          
+          // Retry with exponential backoff if score is still null
+          retryCount++;
+          if (retryCount < maxRetries) {
+            const delay = Math.min(1000 * Math.pow(2, retryCount - 1), 5000); // Cap at 5s
+            setTimeout(() => {
+              if (!abortController.signal.aborted) {
+                fetchDevotionScore();
+              }
+            }, delay);
+          } else {
+            console.warn('Max retries reached for devotion score fetch');
+          }
         } catch (error) {
+          if (error instanceof Error && error.name === 'AbortError') {
+            return; // Request was aborted, don't retry
+          }
+          
           console.error('Failed to fetch devotion score:', error);
-          // Retry after a short delay on error
-          setTimeout(fetchDevotionScore, 1000);
+          
+          // Retry with exponential backoff on error
+          retryCount++;
+          if (retryCount < maxRetries) {
+            const delay = Math.min(1000 * Math.pow(2, retryCount - 1), 5000);
+            setTimeout(() => {
+              if (!abortController.signal.aborted) {
+                fetchDevotionScore();
+              }
+            }, delay);
+          }
         }
       };
 
       fetchDevotionScore();
+      
+      // Cleanup function to abort ongoing requests
+      return () => {
+        abortController.abort();
+      };
     }
   }, [backgroundSave.status, backgroundSave.sessionId, devotionScoreData]);
 
