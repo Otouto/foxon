@@ -207,15 +207,13 @@ function SessionLogContent() {
         />
 
         <ActionButtons
-          onCompleteSet={handleCompleteExercise}
           onAddSet={handleAddSet}
-          isLastExercise={session.currentExerciseIndex + 1 >= session.exercises.length}
         />
       </div>
 
-      {/* Finish Button - Only show on last exercise */}
-      {session.currentExerciseIndex + 1 >= session.exercises.length && (
-        <div className="session-finish-button">
+      {/* Bottom CTA - Always show either Next Exercise or Finish Workout */}
+      <div className="session-finish-button">
+        {session.currentExerciseIndex + 1 >= session.exercises.length ? (
           <button 
             onClick={handleFinishWorkout}
             disabled={!canFinishWorkout()}
@@ -225,8 +223,16 @@ function SessionLogContent() {
           >
             Finish Workout
           </button>
-        </div>
-      )}
+        ) : (
+          <button 
+            onClick={handleCompleteExercise}
+            className="w-full bg-cyan-400 text-black font-semibold py-4 rounded-2xl text-center block cursor-pointer touch-target"
+            aria-label="Complete current exercise and move to next"
+          >
+            Next Exercise
+          </button>
+        )}
+      </div>
 
       {/* Abandon Session Confirmation Dialog */}
       {showAbandonDialog && (
