@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { EffortLevel } from '@prisma/client';
+import { rpeToEffortLevel } from '@/components/ui/PillarRPEPicker';
 
 interface UseSessionReflectionProps {
   onSubmit: (data: ReflectionFormData) => Promise<void>;
@@ -7,12 +8,14 @@ interface UseSessionReflectionProps {
 
 export interface ReflectionFormData {
   effort: EffortLevel;
+  rpeValue: number; // 1-10 scale for UI
   vibeLine: string;
   note?: string;
 }
 
 export function useSessionReflection({ onSubmit }: UseSessionReflectionProps) {
-  const [effort, setEffort] = useState<EffortLevel>(EffortLevel.HARD);
+  const [effort, setEffort] = useState<EffortLevel>(EffortLevel.HARD_7);
+  const [rpeValue, setRpeValue] = useState<number>(7); // Default to 7 (Hard)
   const [vibeLine, setVibeLine] = useState('');
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -20,19 +23,28 @@ export function useSessionReflection({ onSubmit }: UseSessionReflectionProps) {
   // Form validation
   const isValid = vibeLine.trim().length > 0;
 
-  // Handle effort level change with proper type safety
-  const handleEffortChange = useCallback((value: number) => {
-    const effortLevels = [EffortLevel.EASY, EffortLevel.STEADY, EffortLevel.HARD, EffortLevel.ALL_IN];
-    const selectedEffort = effortLevels[value - 1];
-    if (selectedEffort) {
-      setEffort(selectedEffort);
-    }
+  // Handle RPE value change (1-10 scale)
+  const handleRpeChange = useCallback((newRpeValue: number) => {
+    setRpeValue(newRpeValue);
+    setEffort(rpeToEffortLevel(newRpeValue));
   }, []);
 
-  // Get numeric value for effort slider
+  // Legacy method for backwards compatibility with old slider (if still needed)
+  const handleEffortChange = useCallback((value: number) => {
+    // Map old 1-4 scale to new RPE values for backwards compatibility
+    const legacyMapping = [3, 5, 7, 9]; // Easy=3, Moderate=5, Hard=7, All_Out=9
+    const rpeVal = legacyMapping[value - 1] || 7;
+    handleRpeChange(rpeVal);
+  }, [handleRpeChange]);
+
+  // Get numeric value for old slider (legacy support)
   const getEffortValue = useCallback(() => {
-    return Object.values(EffortLevel).indexOf(effort) + 1;
-  }, [effort]);
+    // Convert current RPE back to old 1-4 scale
+    if (rpeValue <= 3) return 1; // Easy
+    if (rpeValue <= 6) return 2; // Moderate  
+    if (rpeValue <= 8) return 3; // Hard
+    return 4; // All Out
+  }, [rpeValue]);
 
   // Handle form submission
   const handleSubmit = useCallback(async () => {
@@ -46,6 +58,7 @@ export function useSessionReflection({ onSubmit }: UseSessionReflectionProps) {
     try {
       const formData: ReflectionFormData = {
         effort,
+        rpeValue,
         vibeLine: vibeLine.trim(),
         note: undefined // Notes field is hidden from UI
       };
@@ -58,11 +71,12 @@ export function useSessionReflection({ onSubmit }: UseSessionReflectionProps) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [effort, vibeLine, note, isValid, onSubmit]);
+  }, [effort, rpeValue, vibeLine, isValid, onSubmit]);
 
   // Reset form to initial state
   const resetForm = useCallback(() => {
-    setEffort(EffortLevel.HARD);
+    setEffort(EffortLevel.HARD_7);
+    setRpeValue(7);
     setVibeLine('');
     setNote('');
     setIsSubmitting(false);
@@ -71,6 +85,7 @@ export function useSessionReflection({ onSubmit }: UseSessionReflectionProps) {
   return {
     // Form state
     effort,
+    rpeValue,
     vibeLine,
     note,
     isSubmitting,
@@ -78,10 +93,12 @@ export function useSessionReflection({ onSubmit }: UseSessionReflectionProps) {
     
     // Form actions
     setEffort,
+    setRpeValue,
     setVibeLine,
     setNote,
-    handleEffortChange,
-    getEffortValue,
+    handleRpeChange,
+    handleEffortChange, // Legacy support
+    getEffortValue,     // Legacy support
     handleSubmit,
     resetForm,
   };

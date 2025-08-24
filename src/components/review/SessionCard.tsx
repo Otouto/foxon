@@ -143,7 +143,7 @@ export function SessionCard({ session, onDelete }: SessionCardProps) {
                   ) : (
                     <>
                       <Trash2 size={18} />
-                      <span>Delete Session</span>
+                      <span>Delete</span>
                     </>
                   )}
                 </button>

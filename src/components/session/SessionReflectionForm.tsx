@@ -2,6 +2,7 @@
 
 import { useSessionReflection, type ReflectionFormData } from '@/hooks/useSessionReflection';
 import { SessionErrorBoundary } from './SessionErrorBoundary';
+import PillarRPEPicker from '@/components/ui/PillarRPEPicker';
 
 interface SessionReflectionFormProps {
   onSubmit: (data: ReflectionFormData) => Promise<void>;
@@ -24,29 +25,17 @@ function SessionReflectionFormContent({
     <div className={`bg-white rounded-2xl p-6 shadow-sm border border-gray-100 ${className}`}>
       <h3 className="text-lg font-semibold text-gray-900 mb-4">How was your session?</h3>
       
-      {/* Effort Rating */}
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-3">
-          Effort Level
+      {/* Effort Rating - Following spacing rhythm: title → 24pt → description → 32pt → pillars → 16pt → chip → 24pt → next field */}
+      <div style={{ marginBottom: '24pt' }}>
+        <label className="block text-sm font-medium text-gray-700" style={{ marginBottom: '24pt' }}>
+          Rate Your Effort
         </label>
-        <div className="flex justify-between items-center">
-          <span className="text-xs text-gray-500">Easy</span>
-          <div className="flex-1 mx-4">
-            <input
-              type="range"
-              min="1"
-              max="4"
-              value={reflection.getEffortValue()}
-              onChange={(e) => reflection.handleEffortChange(parseInt(e.target.value))}
-              disabled={disabled || reflection.isSubmitting}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </div>
-          <span className="text-xs text-gray-500">All-In</span>
-        </div>
-        <div className="text-center mt-2">
-          <span className="text-sm font-medium text-lime-600">{reflection.effort}</span>
-        </div>
+        <PillarRPEPicker
+          value={reflection.rpeValue}
+          onChange={reflection.handleRpeChange}
+          disabled={disabled || reflection.isSubmitting}
+          className="w-full"
+        />
       </div>
 
       {/* One-line Vibe */}

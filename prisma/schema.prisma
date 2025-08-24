@@ -33,10 +33,16 @@ enum SessionStatus {
 }
 
 enum EffortLevel {
-  EASY
-  STEADY
-  HARD
-  ALL_IN
+  EASY_1
+  EASY_2
+  EASY_3
+  MODERATE_4
+  MODERATE_5
+  MODERATE_6
+  HARD_7
+  HARD_8
+  ALL_OUT_9
+  ALL_OUT_10
 }
 
 // Core User Management
