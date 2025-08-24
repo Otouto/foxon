@@ -21,20 +21,35 @@ export function WorkoutHeader({
   elapsedTime, 
   formatTime 
 }: WorkoutHeaderProps) {
+  const progress = ((currentExerciseIndex + 1) / workout.exercises) * 100;
+
   return (
-    <div className="flex items-center justify-between mb-8">
-      <div className="flex items-center gap-4">
-        <Link href={`/workout/${workoutId}`} className="p-2 -ml-2 cursor-pointer">
-          <ArrowLeft size={24} className="text-gray-600" />
-        </Link>
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">{workout.name}</h1>
-          <p className="text-sm text-gray-500">
-            Exercise {currentExerciseIndex + 1} of {workout.exercises}
-          </p>
+    <div className="session-header">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <Link href={`/workout/${workoutId}`} className="p-2 -ml-2 touch-target">
+            <ArrowLeft size={24} className="text-gray-700" />
+          </Link>
+          <div>
+            <h1 className="text-lg font-semibold text-gray-900 leading-tight">{workout.name}</h1>
+            <p className="text-sm text-gray-600 mt-0.5">
+              Exercise {currentExerciseIndex + 1} of {workout.exercises}
+            </p>
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-lg font-semibold text-gray-900 tabular-nums">{formatTime(elapsedTime)}</div>
+          <div className="text-xs text-gray-500 mt-0.5">Elapsed</div>
         </div>
       </div>
-      <div className="text-sm text-gray-500">{formatTime(elapsedTime)}</div>
+      
+      {/* Progress bar */}
+      <div className="w-full bg-gray-200 rounded-full h-1.5 mb-6">
+        <div 
+          className="bg-lime-400 h-1.5 rounded-full transition-all duration-300 ease-out" 
+          style={{ width: `${progress}%` }}
+        />
+      </div>
     </div>
   );
 }

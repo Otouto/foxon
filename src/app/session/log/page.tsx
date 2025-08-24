@@ -75,7 +75,7 @@ function SessionLogContent() {
   // Show loading state during initialization
   if (isInitializing || !session) {
     return (
-      <div className="px-6 py-8 flex items-center justify-center min-h-screen">
+      <div className="session-container items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-lime-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading session...</p>
@@ -156,37 +156,39 @@ function SessionLogContent() {
   }));
 
   return (
-    <div className="px-6 py-8 pb-32">
-      <WorkoutHeader 
-        workout={workoutForHeader}
-        currentExerciseIndex={session.currentExerciseIndex}
-        workoutId={workoutId}
-        elapsedTime={session.duration}
-        formatTime={formatDuration}
-      />
+    <div className="session-container">
+      <div className="session-content">
+        <WorkoutHeader 
+          workout={workoutForHeader}
+          currentExerciseIndex={session.currentExerciseIndex}
+          workoutId={workoutId}
+          elapsedTime={session.duration}
+          formatTime={formatDuration}
+        />
 
-      <ExerciseCard
-        currentExercise={exerciseForCard}
-        isBodyweightExercise={isBodyweightExercise}
-        completedSets={completedSets}
-        setValues={setValues}
-        toggleSetCompletion={handleToggleSetCompletion}
-        updateSetValue={handleUpdateSetValue}
-      />
+        <ExerciseCard
+          currentExercise={exerciseForCard}
+          isBodyweightExercise={isBodyweightExercise}
+          completedSets={completedSets}
+          setValues={setValues}
+          toggleSetCompletion={handleToggleSetCompletion}
+          updateSetValue={handleUpdateSetValue}
+        />
 
-      <ActionButtons
-        onCompleteSet={handleCompleteExercise}
-        onAddSet={handleAddSet}
-        isLastExercise={session.currentExerciseIndex + 1 >= session.exercises.length}
-      />
+        <ActionButtons
+          onCompleteSet={handleCompleteExercise}
+          onAddSet={handleAddSet}
+          isLastExercise={session.currentExerciseIndex + 1 >= session.exercises.length}
+        />
+      </div>
 
       {/* Finish Button - Only show on last exercise */}
       {session.currentExerciseIndex + 1 >= session.exercises.length && (
-        <div className="fixed bottom-24 left-6 right-6">
+        <div className="session-finish-button">
           <button 
             onClick={handleFinishWorkout}
             disabled={!canFinishWorkout()}
-            className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl text-center block cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl text-center block cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed touch-target"
             title={!canFinishWorkout() ? 'Complete at least one set to finish workout' : 'Finish workout'}
             aria-label={!canFinishWorkout() ? 'Complete at least one set to finish workout' : 'Finish workout'}
           >
@@ -200,7 +202,7 @@ function SessionLogContent() {
 
 function LoadingFallback() {
   return (
-    <div className="px-6 py-8 flex items-center justify-center min-h-screen">
+    <div className="session-container items-center justify-center">
       <div className="text-center">
         <div className="w-8 h-8 border-4 border-lime-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
         <p className="text-gray-600">Loading...</p>

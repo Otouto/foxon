@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import BottomNav from "@/components/navigation/BottomNav";
+import { ConditionalBottomNav } from "@/components/navigation/ConditionalBottomNav";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -98,7 +98,7 @@ export default function RootLayout({
           <main className="flex-1 pb-20">
             {children}
           </main>
-          <BottomNav />
+          <ConditionalBottomNav />
         </div>
       </body>
     </html>

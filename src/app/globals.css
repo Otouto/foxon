@@ -155,6 +155,95 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Session-specific styles for full-screen experience */
+.session-layout-wrapper {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  -webkit-overflow-scrolling: touch;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  background-color: #f9fafb;
+}
+
+.session-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+}
+
+.session-content {
+  flex: 1;
+  padding: 1rem 1.5rem 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.session-header {
+  padding-top: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.session-finish-button {
+  padding: 1rem 1.5rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0));
+  background: linear-gradient(to top, #f9fafb 0%, #f9fafb 90%, rgba(249, 250, 251, 0) 100%);
+}
+
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Enhanced mobile optimizations for session */
+@media screen and (max-width: 768px) {
+  .session-layout-wrapper {
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  .session-container {
+    position: relative;
+    isolation: isolate;
+  }
+  
+  .session-content {
+    overscroll-behavior: contain;
+  }
+}
+
+/* PWA standalone mode optimizations */
+@media (display-mode: standalone) {
+  .session-layout-wrapper {
+    background-color: #000;
+  }
+  
+  .session-container {
+    border-radius: 0;
+    background-color: #f9fafb;
+    margin-top: env(safe-area-inset-top);
+  }
+}
+
+/* iOS-specific session optimizations */
+@supports (-webkit-appearance: none) {
+  .session-layout-wrapper {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+}
+
 /* Hover effects for touch devices */
 @media (hover: hover) {
   .hover\:bg-gray-100:hover {
