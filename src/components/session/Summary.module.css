@@ -45,13 +45,13 @@
 
 @container (max-width: 390px) {
   .ringContainer {
-    --ring-size: 210px;
+    --ring-size: 160px;
   }
 }
 
 @container (min-width: 391px) {
   .ringContainer {
-    --ring-size: 230px;
+    --ring-size: 180px;
   }
 }
 
@@ -67,17 +67,22 @@
 
 /* Pillar warning states */
 .pillarWarn {
-  border-left: 3px solid var(--warn);
+  border-left: 4px solid var(--warn);
+  background-color: rgb(245 158 11 / 0.03);
+  border-top-left-radius: 14px;
+  border-bottom-left-radius: 14px;
 }
 
 .pillarAlert {
-  border-left: 3px solid var(--alert);
+  border-left: 4px solid var(--alert);
+  border-top-left-radius: 14px;
+  border-bottom-left-radius: 14px;
 }
 
 .textWarn {
-  color: rgb(245 158 11 / 0.7);
+  color: rgb(245 158 11 / 0.8);
 }
 
 .textAlert {
-  color: rgb(239 68 68 / 0.7);
+  color: rgb(239 68 68 / 0.8);
 }

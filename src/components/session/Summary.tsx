@@ -56,7 +56,7 @@ function getWeakestPillar(pillars: DevotionPillars): { key: keyof DevotionPillar
     value < min.value ? { key, value } : min
   , initial)
   
-  return weakest.value < 1 ? weakest : null
+  return weakest.value < 0.8 ? weakest : null
 }
 
 // Pillar display names - renamed "Movements" to "Exercises" and fixed order
@@ -91,14 +91,14 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
         )}
 
         {/* Hero Card - Centered with precise spacing */}
-        <div className="flex-1 flex items-center justify-center px-4 pt-2 pb-8">
-          <div className="bg-white rounded-2xl p-[22px] shadow-[0_6px_20px_rgba(2,6,23,0.06)] border border-[#E9EDF2] w-full max-w-[380px]">
+        <div className="flex-1 flex items-center justify-center px-4 pt-2 pb-6">
+          <div className="bg-white rounded-2xl p-[18px] shadow-[0_6px_20px_rgba(2,6,23,0.06)] border border-[#E9EDF2] w-full max-w-[380px]">
             {/* Devotion Score Ring */}
             <div className={styles.ringContainer}>
               <CircularGauge 
                 score={data.devotionScore}
-                size={230}
-                strokeWidth={16}
+                size={180}
+                strokeWidth={14}
                 className={styles.devotionRing}
               />
             </div>
@@ -118,23 +118,24 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
             </div>
 
             {/* Vertical Pillar List - Fixed order and precise spacing */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {PILLAR_ORDER.map((key) => {
                 const value = data.devotionPillars[key]
                 if (value === undefined) return null // Skip undefined weight for bodyweight sessions
                 
-                const isWeakest = weakestPillar?.key === key
-                const isWarn = isWeakest && value >= 0.6 && value < 0.75
-                const isAlert = isWeakest && value < 0.6
+                // Highlight any pillar that's performing poorly, not just the weakest
+                const isWarn = value >= 0.6 && value < 0.75
+                const isAlert = value < 0.6
+                const isWeakest = weakestPillar?.key === key // Keep for potential future use
                 
                 return (
                   <div 
                     key={key}
                     className={`
-                      flex items-center justify-between h-14 px-[14px] rounded-[14px] border border-[#E9EDF2] bg-white
+                      flex items-center justify-between h-12 px-[14px] rounded-[14px] border border-[#E9EDF2] bg-white
                       ${styles.slideUp} ${styles.pillarItem}
-                      ${isWeakest && isWarn ? styles.pillarWarn : ''}
-                      ${isWeakest && isAlert ? styles.pillarAlert : ''}
+                      ${isWarn ? styles.pillarWarn : ''}
+                      ${isAlert ? styles.pillarAlert : ''}
                     `}
                   >
                     {/* Remove the absolutely positioned accent bar */}
@@ -143,7 +144,7 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
                       {/* Icon placeholder - 12px neutral circle */}
                       <div className="w-3 h-3 rounded-full bg-gray-200" />
                       <span className={`text-[15px] font-medium ${
-                        isWeakest && (isWarn || isAlert) 
+                        (isWarn || isAlert) 
                           ? isWarn ? styles.textWarn : styles.textAlert
                           : 'text-[#334155]'
                       }`}>
@@ -151,7 +152,7 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
                       </span>
                     </div>
                     <span className={`text-[15px] font-semibold font-mono ${
-                      isWeakest && (isWarn || isAlert)
+                      (isWarn || isAlert)
                         ? isWarn ? styles.textWarn : styles.textAlert
                         : 'text-[#334155]'
                     }`}>
@@ -174,18 +175,18 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
         </div>
 
         {/* Actions Footer - Sticky with safe area */}
-        <div className="px-4 pb-8 pb-safe">
-          <div className="flex flex-col gap-3 max-w-[380px] mx-auto">
-            {/* Primary: Done - 56px height, 14px radius */}
+        <div className="px-4 pb-6 pb-safe">
+          <div className="flex flex-col gap-4 max-w-[380px] mx-auto">
+            {/* Primary: Done - Larger touch target */}
             <button
               onClick={() => router.push('/')}
-              className="w-full bg-lime-400 hover:bg-lime-500 text-black font-semibold h-14 rounded-[14px] transition-colors"
+              className="w-full bg-lime-400 hover:bg-lime-500 text-black font-semibold h-[52px] rounded-[16px] transition-colors text-lg font-bold shadow-sm"
             >
               Done
             </button>
 
-            {/* Ghost: Details */}
-            <div className="flex justify-center">
+            {/* Ghost: Details - Sticky to bottom */}
+            <div className="flex justify-center pb-2">
               <DetailsSheet 
                 pillars={data.devotionPillars}
                 deviations={data.devotionDeviations}
