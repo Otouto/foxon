@@ -71,22 +71,22 @@ export function ExerciseCard({
   };
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-6">
+    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-4">
       <h2 className="text-lg font-semibold text-gray-900 mb-4 px-2">{currentExercise.name}</h2>
       
       
       {/* Sets */}
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {setValues.map((set, index) => {
           const isCompleted = completedSets[index];
           
           return (
             <div 
               key={index}
-              className={`flex items-center gap-3 p-4 rounded-xl transition-all duration-200 ${
+              className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-200 ${
                 isCompleted 
                   ? 'bg-lime-50 border border-lime-200' 
-                  : 'bg-gray-50 hover:bg-gray-100'
+                  : 'bg-gray-50 hover:bg-gray-100 border border-transparent'
               }`}
             >
               {/* Check Button - Larger touch target */}
@@ -129,7 +129,7 @@ export function ExerciseCard({
                   <div
                     className={`px-4 py-2 rounded-full font-medium transition-all duration-200 ${
                       isCompleted
-                        ? 'bg-lime-100 text-lime-800'
+                        ? 'bg-lime-100 text-lime-800 border border-transparent'
                         : 'bg-white border border-gray-300 text-gray-900'
                     }`}
                   >
@@ -142,7 +142,7 @@ export function ExerciseCard({
                 <div
                   className={`px-4 py-2 rounded-full font-medium transition-all duration-200 ${
                     isCompleted
-                      ? 'bg-lime-100 text-lime-800'
+                      ? 'bg-lime-100 text-lime-800 border border-transparent'
                       : 'bg-white border border-gray-300 text-gray-900'
                   }`}
                 >

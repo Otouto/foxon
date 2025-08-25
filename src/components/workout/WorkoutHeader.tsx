@@ -27,7 +27,7 @@ export function WorkoutHeader({
 
   return (
     <div className="session-header">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           {onBackClick ? (
             <button onClick={onBackClick} className="p-2 -ml-2 touch-target">
@@ -52,7 +52,7 @@ export function WorkoutHeader({
       </div>
       
       {/* Progress bar */}
-      <div className="w-full bg-gray-200 rounded-full h-1.5 mb-6">
+      <div className="w-full bg-gray-200 rounded-full h-1.5 mb-4">
         <div 
           className="bg-lime-400 h-1.5 rounded-full transition-all duration-300 ease-out" 
           style={{ width: `${progress}%` }}
