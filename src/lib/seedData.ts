@@ -443,6 +443,54 @@ export const exercisesSeed: Record<string, ExerciseDefinition> = {
     updated_at: now,
     muscle_group: muscleGroupsSeed['shoulders'],
     equipment: equipmentSeed['dumbbell']
+  },
+  'kettlebell-upright-row': {
+    id: 'kettlebell-upright-row',
+    name: 'Гиря протяжка',
+    description: 'Тяга гирі до підборіддя для плечей та трапецій',
+    muscle_group_id: 'shoulders',
+    equipment_id: 'kettlebell',
+    instructions: 'Тяга гирі вертикально до рівня підборіддя, лікті вище кистей.',
+    created_at: now,
+    updated_at: now,
+    muscle_group: muscleGroupsSeed['shoulders'],
+    equipment: equipmentSeed['kettlebell']
+  },
+  'rear-delt-machine': {
+    id: 'rear-delt-machine',
+    name: 'Розводка в тренажері на задню дельту',
+    description: 'Ізольована робота на задню дельтовидну в тренажері',
+    muscle_group_id: 'shoulders',
+    equipment_id: 'machine',
+    instructions: 'Розводка рук назад в тренажері, фокус на задню дельту.',
+    created_at: now,
+    updated_at: now,
+    muscle_group: muscleGroupsSeed['shoulders'],
+    equipment: equipmentSeed['machine']
+  },
+  'tricep-rope-extension': {
+    id: 'tricep-rope-extension',
+    name: 'Розгинання на трицепс з канатом',
+    description: 'Розгинання рук з канатом в блочному тренажері',
+    muscle_group_id: 'triceps',
+    equipment_id: 'rope',
+    instructions: 'Розгинання рук вниз з канатом, повна амплітуда.',
+    created_at: now,
+    updated_at: now,
+    muscle_group: muscleGroupsSeed['triceps'],
+    equipment: equipmentSeed['rope']
+  },
+  'back-machine-row': {
+    id: 'back-machine-row',
+    name: 'Тяга до спини в тренажері',
+    description: 'Тяга сидячи в тренажері для широчайших',
+    muscle_group_id: 'lats',
+    equipment_id: 'machine',
+    instructions: 'Тяга до поясу в тренажері, зведення лопаток.',
+    created_at: now,
+    updated_at: now,
+    muscle_group: muscleGroupsSeed['lats'],
+    equipment: equipmentSeed['machine']
   }
 };
 
@@ -631,6 +679,849 @@ export function searchExercises(query: string): ExerciseDefinition[] {
     exercise.name.toLowerCase().includes(lowercaseQuery) ||
     (exercise.description && exercise.description.toLowerCase().includes(lowercaseQuery))
   );
+}
+
+// Real training sessions from logs (July-August 2025)
+export const sessionSeedData = {
+  // Session 1: July 1, 2025 - Силова 1
+  'session-2025-07-01': {
+    date: new Date('2025-07-01T09:25:00'),
+    duration: 53 * 60, // 53 minutes in seconds
+    workoutPlan: '1', // Reference to workout plan 1
+    status: 'FINISHED',
+    devotionScore: 85, // Will be calculated
+    devotionGrade: 'On plan',
+    devotionPillars: { EC: 0.86, SC: 0.86, RF: 0.89 },
+    devotionDeviations: [
+      { type: 'missed_sets', exerciseName: 'Вертикальна тяга', description: 'Missed 2 sets on Вертикальна тяга', impact: 0.33 },
+      { type: 'rep_variance', exerciseName: 'Присідання на 1 нозі', description: '-2 reps on Присідання на 1 нозі', impact: 0.17 }
+    ],
+    exercises: [
+      {
+        name: 'Присідання на 1 нозі',
+        exerciseId: 'single-leg-squats',
+        sets: [
+          { reps: 10, weight: 12, completed: true, order: 1, notes: 'по 6кг в кожній руці' },
+          { reps: 10, weight: 12, completed: true, order: 2, notes: 'по 6кг в кожній руці' },
+          { reps: 10, weight: 12, completed: true, order: 3, notes: 'по 6кг в кожній руці' }
+        ]
+      },
+      {
+        name: 'Вертикальна тяга',
+        exerciseId: 'vertical-pull',
+        sets: [
+          { reps: 10, weight: 30, completed: true, order: 1 },
+          { reps: 10, weight: 35, completed: true, order: 2 }
+        ]
+      },
+      {
+        name: 'Жим платформи',
+        exerciseId: 'leg-press',
+        sets: [
+          { reps: 10, weight: 50, completed: true, order: 1 },
+          { reps: 10, weight: 90, completed: true, order: 2 },
+          { reps: 10, weight: 90, completed: true, order: 3 },
+          { reps: 10, weight: 90, completed: true, order: 4 }
+        ]
+      },
+      {
+        name: 'Жим на грудь',
+        exerciseId: 'chest-press',
+        sets: [
+          { reps: 10, weight: 40, completed: true, order: 1 },
+          { reps: 10, weight: 40, completed: true, order: 2 },
+          { reps: 10, weight: 40, completed: true, order: 3 }
+        ]
+      },
+      {
+        name: 'Горизонтальна тяга',
+        exerciseId: 'horizontal-row',
+        sets: [
+          { reps: 12, weight: 30, completed: true, order: 1 },
+          { reps: 12, weight: 35, completed: true, order: 2 },
+          { reps: 12, weight: 35, completed: true, order: 3 },
+          { reps: 12, weight: 35, completed: true, order: 4 }
+        ]
+      },
+      {
+        name: 'Розгинання на трицепс',
+        exerciseId: 'tricep-extension',
+        sets: [
+          { reps: 12, weight: 20, completed: true, order: 1 },
+          { reps: 12, weight: 20, completed: true, order: 2 },
+          { reps: 12, weight: 20, completed: true, order: 3 }
+        ]
+      },
+      {
+        name: 'Гиря протяжка',
+        exerciseId: 'kettlebell-upright-row',
+        sets: [
+          { reps: 12, weight: 16, completed: true, order: 1 },
+          { reps: 12, weight: 16, completed: true, order: 2 },
+          { reps: 12, weight: 16, completed: true, order: 3 }
+        ],
+        outOfPlan: true // This exercise was not in the original workout plan
+      }
+    ],
+    reflection: '' // Empty as requested
+  },
+
+  // Session 2: July 4, 2025 - Силова 2
+  'session-2025-07-04': {
+    date: new Date('2025-07-04T09:44:00'),
+    duration: 48 * 60 + 38, // 48:38 in seconds
+    workoutPlan: '2',
+    status: 'FINISHED',
+    devotionScore: 78, // Lower due to missing exercises
+    devotionGrade: 'Loose',
+    devotionPillars: { EC: 0.67, SC: 0.83, RF: 0.92 },
+    devotionDeviations: [
+      { type: 'missed_exercise', exerciseName: 'Тяга в нахилі по 1 руці', description: 'Missed entire exercise', impact: 0.33 },
+      { type: 'missed_exercise', exerciseName: 'Жим на плечі з гантелями', description: 'Missed entire exercise', impact: 0.33 }
+    ],
+    exercises: [
+      {
+        name: 'Присідання сумо з гирею',
+        exerciseId: 'sumo-squat-kettlebell',
+        sets: [
+          { reps: 12, weight: 24, completed: true, order: 1 },
+          { reps: 12, weight: 24, completed: true, order: 2 },
+          { reps: 12, weight: 24, completed: true, order: 3 },
+          { reps: 12, weight: 24, completed: true, order: 4 },
+          { reps: 12, weight: 24, completed: true, order: 5 }
+        ]
+      },
+      {
+        name: 'Вертикальна тяга',
+        exerciseId: 'vertical-pull',
+        sets: [
+          { reps: 10, weight: 30, completed: true, order: 1 },
+          { reps: 10, weight: 35, completed: true, order: 2 },
+          { reps: 10, weight: 40, completed: true, order: 3 },
+          { reps: 10, weight: 40, completed: true, order: 4 }
+        ],
+        outOfPlan: true
+      },
+      {
+        name: 'Віджимання класика',
+        exerciseId: 'push-ups',
+        sets: [
+          { reps: 12, weight: 0, completed: true, order: 1, notes: 'власна вага' },
+          { reps: 12, weight: 0, completed: true, order: 2, notes: 'власна вага' },
+          { reps: 12, weight: 0, completed: true, order: 3, notes: 'власна вага' },
+          { reps: 12, weight: 0, completed: true, order: 4, notes: 'власна вага' }
+        ]
+      },
+      {
+        name: 'Розводка гантелей бабочка',
+        exerciseId: 'dumbbell-flyes',
+        sets: [
+          { reps: 12, weight: 12, completed: true, order: 1 },
+          { reps: 12, weight: 12, completed: true, order: 2 }
+        ]
+      },
+      {
+        name: 'Розводка в тренажері на задню дельту',
+        exerciseId: 'rear-delt-machine',
+        sets: [
+          { reps: 10, weight: 15, completed: true, order: 1 },
+          { reps: 10, weight: 15, completed: true, order: 2 },
+          { reps: 10, weight: 15, completed: true, order: 3 }
+        ],
+        outOfPlan: true
+      }
+    ],
+    reflection: ''
+  },
+
+  // Session 3: July 9, 2025 - Силова 1
+  'session-2025-07-09': {
+    date: new Date('2025-07-09T09:05:00'),
+    duration: 51 * 60 + 11,
+    workoutPlan: '1',
+    status: 'FINISHED',
+    devotionScore: 72, // Incomplete session due to back issue
+    devotionGrade: 'Loose',
+    devotionPillars: { EC: 0.71, SC: 0.71, RF: 0.92 },
+    devotionDeviations: [
+      { type: 'missed_exercise', exerciseName: 'Вертикальна тяга', description: 'Missed entire exercise', impact: 0.29 },
+      { type: 'incomplete_sets', exerciseName: 'Згинання штанги на біцепс', description: 'Incomplete due to back pain', impact: 0.33 }
+    ],
+    exercises: [
+      {
+        name: 'Присідання на 1 нозі',
+        exerciseId: 'single-leg-squats',
+        sets: [
+          { reps: 10, weight: 12, completed: true, order: 1 },
+          { reps: 10, weight: 12, completed: true, order: 2 },
+          { reps: 10, weight: 12, completed: true, order: 3 }
+        ]
+      },
+      {
+        name: 'Жим платформи',
+        exerciseId: 'leg-press',
+        sets: [
+          { reps: 10, weight: 50, completed: true, order: 1 },
+          { reps: 10, weight: 90, completed: true, order: 2 },
+          { reps: 10, weight: 90, completed: true, order: 3 },
+          { reps: 10, weight: 90, completed: true, order: 4 }
+        ]
+      },
+      {
+        name: 'Жим на грудь',
+        exerciseId: 'chest-press',
+        sets: [
+          { reps: 10, weight: 40, completed: true, order: 1 },
+          { reps: 10, weight: 40, completed: true, order: 2 },
+          { reps: 10, weight: 45, completed: true, order: 3 }
+        ]
+      },
+      {
+        name: 'Горизонтальна тяга',
+        exerciseId: 'horizontal-row',
+        sets: [
+          { reps: 12, weight: 30, completed: true, order: 1 },
+          { reps: 12, weight: 35, completed: true, order: 2 },
+          { reps: 12, weight: 35, completed: true, order: 3 },
+          { reps: 12, weight: 40, completed: true, order: 4 }
+        ]
+      },
+      {
+        name: 'Розгинання на трицепс',
+        exerciseId: 'tricep-extension',
+        sets: [
+          { reps: 12, weight: 20, completed: true, order: 1 },
+          { reps: 12, weight: 25, completed: true, order: 2 },
+          { reps: 12, weight: 30, completed: true, order: 3 }
+        ]
+      },
+      {
+        name: 'Гиря протяжка',
+        exerciseId: 'kettlebell-upright-row',
+        sets: [
+          { reps: 12, weight: 16, completed: true, order: 1 },
+          { reps: 12, weight: 16, completed: true, order: 2 },
+          { reps: 12, weight: 16, completed: true, order: 3 }
+        ],
+        outOfPlan: true
+      },
+      {
+        name: 'Згинання штанги на біцепс',
+        exerciseId: 'barbell-bicep-curl',
+        sets: [
+          { reps: 10, weight: 15, completed: true, order: 1 },
+          { reps: 10, weight: 20, completed: true, order: 2, notes: 'не доробив бо спину схопило' }
+        ],
+        notes: 'Incomplete due to back pain'
+      }
+    ],
+    reflection: ''
+  },
+
+  // Session 4: July 16, 2025 - Силова 1
+  'session-2025-07-16': {
+    date: new Date('2025-07-16T09:01:00'),
+    duration: 52 * 60 + 10,
+    workoutPlan: '1',
+    status: 'FINISHED',
+    devotionScore: 88, // Good execution
+    devotionGrade: 'On plan',
+    devotionPillars: { EC: 0.86, SC: 0.93, RF: 0.95 },
+    devotionDeviations: [
+      { type: 'missed_exercise', exerciseName: 'Вертикальна тяга', description: 'Missed entire exercise', impact: 0.14 }
+    ],
+    exercises: [
+      {
+        name: 'Присідання на 1 нозі',
+        exerciseId: 'single-leg-squats',
+        sets: [
+          { reps: 10, weight: 12, completed: true, order: 1 },
+          { reps: 10, weight: 12, completed: true, order: 2 },
+          { reps: 10, weight: 12, completed: true, order: 3 },
+          { reps: 10, weight: 12, completed: true, order: 4 }
+        ]
+      },
+      {
+        name: 'Жим платформи',
+        exerciseId: 'leg-press',
+        sets: [
+          { reps: 10, weight: 50, completed: true, order: 1 },
+          { reps: 10, weight: 95, completed: true, order: 2 },
+          { reps: 10, weight: 95, completed: true, order: 3 },
+          { reps: 10, weight: 95, completed: true, order: 4 }
+        ]
+      },
+      {
+        name: 'Жим на грудь',
+        exerciseId: 'chest-press',
+        sets: [
+          { reps: 10, weight: 40, completed: true, order: 1 },
+          { reps: 10, weight: 45, completed: true, order: 2 },
+          { reps: 10, weight: 45, completed: true, order: 3 }
+        ]
+      },
+      {
+        name: 'Горизонтальна тяга',
+        exerciseId: 'horizontal-row',
+        sets: [
+          { reps: 12, weight: 35, completed: true, order: 1 },
+          { reps: 12, weight: 40, completed: true, order: 2 },
+          { reps: 12, weight: 40, completed: true, order: 3 },
+          { reps: 12, weight: 40, completed: true, order: 4 }
+        ]
+      },
+      {
+        name: 'Розгинання на трицепс',
+        exerciseId: 'tricep-extension',
+        sets: [
+          { reps: 12, weight: 25, completed: true, order: 1 },
+          { reps: 12, weight: 30, completed: true, order: 2 },
+          { reps: 12, weight: 30, completed: true, order: 3 }
+        ]
+      },
+      {
+        name: 'Згинання штанги на біцепс',
+        exerciseId: 'barbell-bicep-curl',
+        sets: [
+          { reps: 10, weight: 15, completed: true, order: 1 },
+          { reps: 10, weight: 20, completed: true, order: 2 },
+          { reps: 10, weight: 20, completed: true, order: 3 }
+        ]
+      }
+    ],
+    reflection: ''
+  },
+
+  // Session 5: July 19, 2025 - Силова 2
+  'session-2025-07-19': {
+    date: new Date('2025-07-19T14:10:00'),
+    duration: 58 * 60 + 54,
+    workoutPlan: '2',
+    status: 'FINISHED',
+    devotionScore: 82, // Good but missed some exercises
+    devotionGrade: 'On plan',
+    devotionPillars: { EC: 0.75, SC: 0.85, RF: 0.91 },
+    devotionDeviations: [
+      { type: 'rep_variance', exerciseName: 'Підтягування', description: 'Rep variance on Підтягування', impact: 0.25 },
+      { type: 'rep_variance', exerciseName: 'Віджимання класика', description: 'Rep variance on Віджимання класика', impact: 0.17 }
+    ],
+    exercises: [
+      {
+        name: 'Присідання сумо з гирею',
+        exerciseId: 'sumo-squat-kettlebell',
+        sets: [
+          { reps: 12, weight: 24, completed: true, order: 1 },
+          { reps: 12, weight: 24, completed: true, order: 2 },
+          { reps: 12, weight: 24, completed: true, order: 3 },
+          { reps: 12, weight: 24, completed: true, order: 4 },
+          { reps: 12, weight: 24, completed: true, order: 5 }
+        ]
+      },
+      {
+        name: 'Підтягування',
+        exerciseId: 'pull-ups',
+        sets: [
+          { reps: 8, weight: 0, completed: true, order: 1, notes: 'власна вага' },
+          { reps: 6, weight: 0, completed: true, order: 2, notes: 'власна вага' },
+          { reps: 4, weight: 0, completed: true, order: 3, notes: 'власна вага' }
+        ]
+      },
+      {
+        name: 'Віджимання класика',
+        exerciseId: 'push-ups',
+        sets: [
+          { reps: 12, weight: 0, completed: true, order: 1, notes: 'власна вага' },
+          { reps: 12, weight: 0, completed: true, order: 2, notes: 'власна вага' },
+          { reps: 10, weight: 0, completed: true, order: 3, notes: 'власна вага' },
+          { reps: 10, weight: 0, completed: true, order: 4, notes: 'власна вага' }
+        ]
+      },
+      {
+        name: 'Тяга в нахилі по 1 руці',
+        exerciseId: 'one-arm-bent-row',
+        sets: [
+          { reps: 10, weight: 12, completed: true, order: 1 },
+          { reps: 10, weight: 12, completed: true, order: 2 }
+        ]
+      },
+      {
+        name: 'Розводка гантелей бабочка',
+        exerciseId: 'dumbbell-flyes',
+        sets: [
+          { reps: 12, weight: 12, completed: true, order: 1 },
+          { reps: 12, weight: 12, completed: true, order: 2 }
+        ]
+      }
+    ],
+    reflection: ''
+  },
+
+  // Session 6: July 23, 2025 - Силова 1
+  'session-2025-07-23': {
+    date: new Date('2025-07-23T09:26:00'),
+    duration: 50 * 60 + 2,
+    workoutPlan: '1',
+    status: 'FINISHED',
+    devotionScore: 79, // Reduced sets
+    devotionGrade: 'Loose',
+    devotionPillars: { EC: 0.86, SC: 0.75, RF: 0.95 },
+    devotionDeviations: [
+      { type: 'missed_sets', exerciseName: 'Жим платформи', description: 'Missed 2 sets', impact: 0.40 },
+      { type: 'missed_sets', exerciseName: 'Горизонтальна тяга', description: 'Missed 1 set', impact: 0.25 }
+    ],
+    exercises: [
+      {
+        name: 'Присідання на 1 нозі',
+        exerciseId: 'single-leg-squats',
+        sets: [
+          { reps: 10, weight: 12, completed: true, order: 1 },
+          { reps: 10, weight: 12, completed: true, order: 2 },
+          { reps: 10, weight: 12, completed: true, order: 3 }
+        ]
+      },
+      {
+        name: 'Вертикальна тяга',
+        exerciseId: 'vertical-pull',
+        sets: [
+          { reps: 12, weight: 35, completed: true, order: 1 },
+          { reps: 12, weight: 40, completed: true, order: 2 }
+        ]
+      },
+      {
+        name: 'Жим платформи',
+        exerciseId: 'leg-press',
+        sets: [
+          { reps: 10, weight: 50, completed: true, order: 1 },
+          { reps: 10, weight: 95, completed: true, order: 2 },
+          { reps: 10, weight: 95, completed: true, order: 3 }
+        ]
+      },
+      {
+        name: 'Жим на грудь',
+        exerciseId: 'chest-press',
+        sets: [
+          { reps: 10, weight: 40, completed: true, order: 1 },
+          { reps: 10, weight: 45, completed: true, order: 2 },
+          { reps: 10, weight: 45, completed: true, order: 3 }
+        ]
+      },
+      {
+        name: 'Горизонтальна тяга',
+        exerciseId: 'horizontal-row',
+        sets: [
+          { reps: 12, weight: 35, completed: true, order: 1 },
+          { reps: 12, weight: 40, completed: true, order: 2 },
+          { reps: 12, weight: 40, completed: true, order: 3 }
+        ]
+      },
+      {
+        name: 'Розгинання на трицепс',
+        exerciseId: 'tricep-extension',
+        sets: [
+          { reps: 12, weight: 30, completed: true, order: 1 },
+          { reps: 12, weight: 30, completed: true, order: 2 },
+          { reps: 12, weight: 35, completed: true, order: 3 }
+        ]
+      }
+    ],
+    reflection: ''
+  },
+
+  // Session 7: August 1, 2025 - Силова 1
+  'session-2025-08-01': {
+    date: new Date('2025-08-01T09:18:00'),
+    duration: 51 * 60 + 3,
+    workoutPlan: '1',
+    status: 'FINISHED',
+    devotionScore: 86, // Good session
+    devotionGrade: 'On plan',
+    devotionPillars: { EC: 0.86, SC: 0.89, RF: 0.87 },
+    devotionDeviations: [
+      { type: 'rep_variance', exerciseName: 'Жим на грудь', description: 'Rep variance on last set', impact: 0.30 }
+    ],
+    exercises: [
+      {
+        name: 'Присідання на 1 нозі',
+        exerciseId: 'single-leg-squats',
+        sets: [
+          { reps: 10, weight: 12, completed: true, order: 1 },
+          { reps: 10, weight: 12, completed: true, order: 2 },
+          { reps: 10, weight: 12, completed: true, order: 3 },
+          { reps: 10, weight: 12, completed: true, order: 4 }
+        ]
+      },
+      {
+        name: 'Жим платформи',
+        exerciseId: 'leg-press',
+        sets: [
+          { reps: 10, weight: 50, completed: true, order: 1 },
+          { reps: 10, weight: 95, completed: true, order: 2 },
+          { reps: 10, weight: 95, completed: true, order: 3 },
+          { reps: 10, weight: 95, completed: true, order: 4 }
+        ]
+      },
+      {
+        name: 'Жим на грудь',
+        exerciseId: 'chest-press',
+        sets: [
+          { reps: 10, weight: 40, completed: true, order: 1 },
+          { reps: 10, weight: 45, completed: true, order: 2 },
+          { reps: 7, weight: 50, completed: true, order: 3 }
+        ]
+      },
+      {
+        name: 'Горизонтальна тяга',
+        exerciseId: 'horizontal-row',
+        sets: [
+          { reps: 12, weight: 35, completed: true, order: 1 },
+          { reps: 12, weight: 40, completed: true, order: 2 },
+          { reps: 12, weight: 40, completed: true, order: 3 },
+          { reps: 12, weight: 40, completed: true, order: 4 }
+        ]
+      },
+      {
+        name: 'Розгинання на трицепс',
+        exerciseId: 'tricep-extension',
+        sets: [
+          { reps: 12, weight: 30, completed: true, order: 1 },
+          { reps: 12, weight: 35, completed: true, order: 2 },
+          { reps: 12, weight: 35, completed: true, order: 3 }
+        ]
+      },
+      {
+        name: 'Згинання штанги на біцепс',
+        exerciseId: 'barbell-bicep-curl',
+        sets: [
+          { reps: 12, weight: 15, completed: true, order: 1 },
+          { reps: 12, weight: 20, completed: true, order: 2 },
+          { reps: 12, weight: 20, completed: true, order: 3 }
+        ]
+      }
+    ],
+    reflection: ''
+  },
+
+  // Session 8: August 6, 2025 - Силова 2
+  'session-2025-08-06': {
+    date: new Date('2025-08-06T08:09:00'),
+    duration: 58 * 60 + 30,
+    workoutPlan: '2',
+    status: 'FINISHED',
+    devotionScore: 85, // Good execution with progression
+    devotionGrade: 'On plan',
+    devotionPillars: { EC: 0.83, SC: 0.89, RF: 0.91 },
+    devotionDeviations: [
+      { type: 'rep_variance', exerciseName: 'Жим на плечі з гантелями', description: 'Rep variance', impact: 0.15 }
+    ],
+    exercises: [
+      {
+        name: 'Присідання сумо з гирею',
+        exerciseId: 'sumo-squat-kettlebell',
+        sets: [
+          { reps: 12, weight: 24, completed: true, order: 1 },
+          { reps: 12, weight: 28, completed: true, order: 2 },
+          { reps: 12, weight: 28, completed: true, order: 3 },
+          { reps: 12, weight: 28, completed: true, order: 4 },
+          { reps: 12, weight: 28, completed: true, order: 5 }
+        ]
+      },
+      {
+        name: 'Підтягування',
+        exerciseId: 'pull-ups',
+        sets: [
+          { reps: 8, weight: 0, completed: true, order: 1, notes: 'власна вага' },
+          { reps: 5, weight: 0, completed: true, order: 2, notes: 'власна вага' },
+          { reps: 4, weight: 0, completed: true, order: 3, notes: 'власна вага' }
+        ]
+      },
+      {
+        name: 'Віджимання класика',
+        exerciseId: 'push-ups',
+        sets: [
+          { reps: 12, weight: 0, completed: true, order: 1, notes: 'власна вага' },
+          { reps: 12, weight: 0, completed: true, order: 2, notes: 'власна вага' },
+          { reps: 12, weight: 0, completed: true, order: 3, notes: 'власна вага' },
+          { reps: 12, weight: 0, completed: true, order: 4, notes: 'власна вага' }
+        ]
+      },
+      {
+        name: 'Тяга в нахилі по 1 руці',
+        exerciseId: 'one-arm-bent-row',
+        sets: [
+          { reps: 10, weight: 12, completed: true, order: 1 },
+          { reps: 10, weight: 12, completed: true, order: 2 },
+          { reps: 10, weight: 14, completed: true, order: 3 }
+        ]
+      },
+      {
+        name: 'Розводка гантелей бабочка',
+        exerciseId: 'dumbbell-flyes',
+        sets: [
+          { reps: 10, weight: 12, completed: true, order: 1 },
+          { reps: 10, weight: 12, completed: true, order: 2 },
+          { reps: 10, weight: 12, completed: true, order: 3 }
+        ]
+      },
+      {
+        name: 'Жим на плечі з гантелями',
+        exerciseId: 'dumbbell-shoulder-press',
+        sets: [
+          { reps: 10, weight: 9, completed: true, order: 1 },
+          { reps: 10, weight: 9, completed: true, order: 2 },
+          { reps: 10, weight: 9, completed: true, order: 3 },
+          { reps: 10, weight: 9, completed: true, order: 4 }
+        ]
+      }
+    ],
+    reflection: ''
+  },
+
+  // Session 9: August 13, 2025 - Силова 2
+  'session-2025-08-13': {
+    date: new Date('2025-08-13T09:23:00'),
+    duration: 54 * 60 + 41,
+    workoutPlan: '2',
+    status: 'FINISHED',
+    devotionScore: 82, // Good consistency
+    devotionGrade: 'On plan',
+    devotionPillars: { EC: 0.83, SC: 0.87, RF: 0.89 },
+    devotionDeviations: [
+      { type: 'exercise_substitution', exerciseName: 'Тяга до спини в тренажері', description: 'Substituted exercise', impact: 0.0 }
+    ],
+    exercises: [
+      {
+        name: 'Присідання сумо з гирею',
+        exerciseId: 'sumo-squat-kettlebell',
+        sets: [
+          { reps: 12, weight: 24, completed: true, order: 1 },
+          { reps: 12, weight: 28, completed: true, order: 2 },
+          { reps: 12, weight: 28, completed: true, order: 3 },
+          { reps: 12, weight: 28, completed: true, order: 4 },
+          { reps: 12, weight: 28, completed: true, order: 5 }
+        ]
+      },
+      {
+        name: 'Підтягування',
+        exerciseId: 'pull-ups',
+        sets: [
+          { reps: 8, weight: 0, completed: true, order: 1, notes: 'власна вага' },
+          { reps: 5, weight: 0, completed: true, order: 2, notes: 'власна вага' },
+          { reps: 4, weight: 0, completed: true, order: 3, notes: 'власна вага' }
+        ]
+      },
+      {
+        name: 'Віджимання класика',
+        exerciseId: 'push-ups',
+        sets: [
+          { reps: 12, weight: 0, completed: true, order: 1, notes: 'власна вага' },
+          { reps: 12, weight: 0, completed: true, order: 2, notes: 'власна вага' },
+          { reps: 12, weight: 0, completed: true, order: 3, notes: 'власна вага' },
+          { reps: 12, weight: 0, completed: true, order: 4, notes: 'власна вага' }
+        ]
+      },
+      {
+        name: 'Тяга до спини в тренажері',
+        exerciseId: 'back-machine-row',
+        sets: [
+          { reps: 10, weight: 20, completed: true, order: 1 },
+          { reps: 10, weight: 30, completed: true, order: 2 },
+          { reps: 10, weight: 30, completed: true, order: 3 }
+        ]
+      },
+      {
+        name: 'Розводка гантелей бабочка',
+        exerciseId: 'dumbbell-flyes',
+        sets: [
+          { reps: 10, weight: 12, completed: true, order: 1 },
+          { reps: 10, weight: 12, completed: true, order: 2 },
+          { reps: 10, weight: 12, completed: true, order: 3 }
+        ]
+      },
+      {
+        name: 'Задня дельта',
+        exerciseId: 'rear-delt-flyes',
+        sets: [
+          { reps: 10, weight: 15, completed: true, order: 1 },
+          { reps: 10, weight: 20, completed: true, order: 2 },
+          { reps: 10, weight: 20, completed: true, order: 3 }
+        ]
+      }
+    ],
+    reflection: ''
+  },
+
+  // Session 10: August 15, 2025 - Силова 1
+  'session-2025-08-15': {
+    date: new Date('2025-08-15T09:18:00'),
+    duration: 60 * 60 + 46,
+    workoutPlan: '1',
+    status: 'FINISHED',
+    devotionScore: 90, // Excellent performance
+    devotionGrade: 'Dialed in',
+    devotionPillars: { EC: 0.86, SC: 0.95, RF: 0.94 },
+    devotionDeviations: [
+      { type: 'exercise_substitution', exerciseName: 'Розгинання на трицепс з канатом', description: 'Equipment substitution', impact: 0.0 }
+    ],
+    exercises: [
+      {
+        name: 'Присідання на 1 нозі',
+        exerciseId: 'single-leg-squats',
+        sets: [
+          { reps: 12, weight: 12, completed: true, order: 1 },
+          { reps: 12, weight: 12, completed: true, order: 2 },
+          { reps: 12, weight: 12, completed: true, order: 3 },
+          { reps: 12, weight: 12, completed: true, order: 4 }
+        ]
+      },
+      {
+        name: 'Жим платформи',
+        exerciseId: 'leg-press',
+        sets: [
+          { reps: 10, weight: 75, completed: true, order: 1 },
+          { reps: 10, weight: 100, completed: true, order: 2 },
+          { reps: 10, weight: 100, completed: true, order: 3 },
+          { reps: 10, weight: 100, completed: true, order: 4 }
+        ]
+      },
+      {
+        name: 'Жим на грудь',
+        exerciseId: 'chest-press',
+        sets: [
+          { reps: 10, weight: 40, completed: true, order: 1 },
+          { reps: 10, weight: 45, completed: true, order: 2 },
+          { reps: 8, weight: 50, completed: true, order: 3 }
+        ]
+      },
+      {
+        name: 'Горизонтальна тяга',
+        exerciseId: 'horizontal-row',
+        sets: [
+          { reps: 12, weight: 40, completed: true, order: 1 },
+          { reps: 12, weight: 40, completed: true, order: 2 },
+          { reps: 12, weight: 40, completed: true, order: 3 },
+          { reps: 12, weight: 45, completed: true, order: 4 }
+        ]
+      },
+      {
+        name: 'Розгинання на трицепс з канатом',
+        exerciseId: 'tricep-rope-extension',
+        sets: [
+          { reps: 10, weight: 20, completed: true, order: 1 },
+          { reps: 10, weight: 20, completed: true, order: 2 },
+          { reps: 10, weight: 20, completed: true, order: 3 }
+        ]
+      },
+      {
+        name: 'Згинання штанги на біцепс',
+        exerciseId: 'barbell-bicep-curl',
+        sets: [
+          { reps: 10, weight: 15, completed: true, order: 1 },
+          { reps: 10, weight: 20, completed: true, order: 2 },
+          { reps: 10, weight: 20, completed: true, order: 3 }
+        ]
+      }
+    ],
+    reflection: ''
+  },
+
+  // Session 11: August 20, 2025 - Силова 1 (Final session, incomplete)
+  'session-2025-08-20': {
+    date: new Date('2025-08-20T09:11:00'),
+    duration: 62 * 60 + 22,
+    workoutPlan: '1',
+    status: 'FINISHED',
+    devotionScore: 84, // On plan
+    devotionGrade: 'On plan',
+    devotionPillars: { EC: 1.0, SC: 0.88, RF: 0.66 },
+    devotionDeviations: [
+      { type: 'rep_variance', exerciseName: 'Жим на грудь', description: '-4 reps on Жим на грудь', impact: 0.33 },
+      { type: 'rep_variance', exerciseName: 'Горизонтальна тяга', description: '-4 reps on Горизонтальна тяга', impact: 0.33 },
+      { type: 'missed_sets', exerciseName: 'Жим на грудь', description: 'Missed 1 set on Жим на грудь', impact: 0.25 }
+    ],
+    exercises: [
+      {
+        name: 'Присідання на 1 нозі',
+        exerciseId: 'single-leg-squats',
+        sets: [
+          { reps: 12, weight: 12, completed: true, order: 1 },
+          { reps: 12, weight: 12, completed: true, order: 2 },
+          { reps: 12, weight: 12, completed: true, order: 3 },
+          { reps: 12, weight: 12, completed: true, order: 4 }
+        ]
+      },
+      {
+        name: 'Вертикальна тяга',
+        exerciseId: 'vertical-pull',
+        sets: [
+          { reps: 12, weight: 40, completed: true, order: 1 },
+          { reps: 12, weight: 40, completed: true, order: 2 }
+        ]
+      },
+      {
+        name: 'Жим платформи',
+        exerciseId: 'leg-press',
+        sets: [
+          { reps: 10, weight: 75, completed: true, order: 1 },
+          { reps: 10, weight: 100, completed: true, order: 2 },
+          { reps: 10, weight: 100, completed: true, order: 3 },
+          { reps: 10, weight: 100, completed: true, order: 4 }
+        ]
+      },
+      {
+        name: 'Жим на грудь',
+        exerciseId: 'chest-press',
+        sets: [
+          { reps: 10, weight: 40, completed: true, order: 1 },
+          { reps: 8, weight: 50, completed: true, order: 2 },
+          { reps: 8, weight: 50, completed: true, order: 3 }
+        ]
+      },
+      {
+        name: 'Горизонтальна тяга',
+        exerciseId: 'horizontal-row',
+        sets: [
+          { reps: 12, weight: 35, completed: true, order: 1 },
+          { reps: 12, weight: 40, completed: true, order: 2 },
+          { reps: 10, weight: 45, completed: true, order: 3 },
+          { reps: 8, weight: 45, completed: true, order: 4 }
+        ]
+      },
+      {
+        name: 'Розгинання на трицепс',
+        exerciseId: 'tricep-extension',
+        sets: [
+          { reps: 10, weight: 30, completed: true, order: 1 },
+          { reps: 10, weight: 35, completed: true, order: 2 },
+          { reps: 10, weight: 35, completed: true, order: 3 }
+        ]
+      },
+      {
+        name: 'Згинання штанги на біцепс',
+        exerciseId: 'barbell-bicep-curl',
+        sets: [
+          { reps: 12, weight: 15, completed: true, order: 1 },
+          { reps: 12, weight: 20, completed: true, order: 2 },
+          { reps: 12, weight: 20, completed: true, order: 3 }
+        ]
+      }
+    ],
+    reflection: ''
+  }
+};
+
+// Helper functions for session seed data
+export function getSessionSeedData() {
+  return sessionSeedData;
+}
+
+export function getSessionById(sessionId: string) {
+  return sessionSeedData[sessionId] || null;
+}
+
+export function getSessionsByWorkoutPlan(workoutPlan: string) {
+  return Object.entries(sessionSeedData)
+    .filter(([_, session]) => session.workoutPlan === workoutPlan)
+    .map(([id, session]) => ({ id, ...session }));
 }
 
 

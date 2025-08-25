@@ -4,6 +4,7 @@ import {
   equipmentSeed, 
   exercisesSeed,
   workoutSeedData,
+  sessionSeedData,
   MOCK_USER
 } from '../src/lib/seedData'
 
@@ -258,6 +259,100 @@ async function main() {
     }
   }
 
+  // Clear existing session data for fresh seeding
+  console.log('Clearing existing session data...')
+  await prisma.sessionSet.deleteMany({})
+  await prisma.sessionExercise.deleteMany({})
+  await prisma.sessionSeal.deleteMany({})
+  await prisma.session.deleteMany({})
+
+  // Create sessions from training logs
+  console.log('Creating sessions from training logs...')
+  let sessionCount = 0
+  
+  for (const [sessionKey, sessionData] of Object.entries(sessionSeedData)) {
+    console.log(`Creating session: ${sessionKey}...`)
+    
+    // Determine workout ID based on plan
+    const workoutId = sessionData.workoutPlan === '1' ? workout1.id : workout2.id
+    
+    // Create the session
+    const session = await prisma.session.upsert({
+      where: { id: sessionKey },
+      update: {},
+      create: {
+        id: sessionKey,
+        userId: mockUser.id,
+        workoutId: workoutId,
+        date: sessionData.date,
+        status: sessionData.status as any,
+        devotionScore: sessionData.devotionScore,
+        devotionGrade: sessionData.devotionGrade,
+        devotionPillars: sessionData.devotionPillars,
+        devotionDeviations: sessionData.devotionDeviations,
+      },
+    })
+
+    // Create session exercises
+    for (let exerciseIndex = 0; exerciseIndex < sessionData.exercises.length; exerciseIndex++) {
+      const exerciseData = sessionData.exercises[exerciseIndex]
+      
+      const sessionExercise = await prisma.sessionExercise.upsert({
+        where: {
+          sessionId_order: {
+            sessionId: session.id,
+            order: exerciseIndex + 1
+          }
+        },
+        update: {},
+        create: {
+          sessionId: session.id,
+          exerciseId: exerciseData.exerciseId,
+          order: exerciseIndex + 1,
+          notes: exerciseData.notes || null,
+        },
+      })
+
+      // Create session sets
+      for (let setIndex = 0; setIndex < exerciseData.sets.length; setIndex++) {
+        const setData = exerciseData.sets[setIndex]
+        
+        await prisma.sessionSet.upsert({
+          where: {
+            sessionExerciseId_order: {
+              sessionExerciseId: sessionExercise.id,
+              order: setData.order
+            }
+          },
+          update: {},
+          create: {
+            sessionExerciseId: sessionExercise.id,
+            type: 'NORMAL',
+            load: setData.weight,
+            reps: setData.reps,
+            completed: setData.completed,
+            order: setData.order,
+            notes: setData.notes || null,
+          },
+        })
+      }
+    }
+
+    // Create session seal with empty reflection
+    await prisma.sessionSeal.upsert({
+      where: { sessionId: session.id },
+      update: {},
+      create: {
+        sessionId: session.id,
+        effort: 'MODERATE_5', // Default effort level
+        vibeLine: sessionData.reflection || '', // Empty reflection as requested
+        note: null,
+      },
+    })
+
+    sessionCount++
+  }
+
   console.log('✅ Seed data created successfully!')
   console.log(`📊 Created:`)
   console.log(`  - ${muscleGroups.length} muscle groups`)
@@ -265,8 +360,9 @@ async function main() {
   console.log(`  - ${exercises.length} exercises`)
   console.log(`  - 1 mock user: ${mockUser.displayName} (${mockUser.clerkUserId})`)
   console.log(`  - 2 workout templates with planned sets`)
+  console.log(`  - ${sessionCount} training sessions from logs (July-August 2025)`)
   console.log(``)
-  console.log(`🧪 Ready for session testing!`)
+  console.log(`🧪 Ready for session testing with real training history!`)
 }
 
 main()
