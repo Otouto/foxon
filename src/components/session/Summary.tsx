@@ -42,24 +42,8 @@ function isDevotionSummaryData(data: SummaryData): data is DevotionSummaryData {
   return 'devotionScore' in data && 'devotionGrade' in data && 'devotionPillars' in data
 }
 
-// Helper function to get the weakest pillar for accent styling
-function getWeakestPillar(pillars: DevotionPillars): { key: keyof DevotionPillars; value: number } | null {
-  const pillarEntries = Object.entries(pillars) as [keyof DevotionPillars, number][]
-  if (pillarEntries.length === 0) return null
-  
-  // Filter out undefined LF values for bodyweight sessions
-  const validPillars = pillarEntries.filter(([, value]) => value !== undefined)
-  if (validPillars.length === 0) return null
-  
-  const initial = { key: validPillars[0][0], value: validPillars[0][1] }
-  const weakest = validPillars.reduce((min, [key, value]) => 
-    value < min.value ? { key, value } : min
-  , initial)
-  
-  return weakest.value < 0.8 ? weakest : null
-}
 
-// Pillar display names - renamed "Movements" to "Exercises" and fixed order
+// Pillar display names - focusing on devotion to process, not weight
 const PILLAR_NAMES: Record<keyof DevotionPillars, string> = {
   EC: 'Exercises',
   SC: 'Sets',
@@ -67,8 +51,8 @@ const PILLAR_NAMES: Record<keyof DevotionPillars, string> = {
   LF: 'Weight'
 }
 
-// Fixed order for pillar display: Exercises · Sets · Reps · Weight
-const PILLAR_ORDER: (keyof DevotionPillars)[] = ['EC', 'SC', 'RF', 'LF']
+// Fixed order for pillar display: Exercises · Sets · Reps (Weight excluded from devotion focus)
+const PILLAR_ORDER: (keyof DevotionPillars)[] = ['EC', 'SC', 'RF']
 
 export function Summary({ data, showTitle = true }: SummaryProps) {
   const router = useRouter()
@@ -76,7 +60,6 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
   // Check if we have devotion score data
   if (isDevotionSummaryData(data)) {
     const { verdict, ctaHint } = getDevotionVerdict(data.devotionScore)
-    const weakestPillar = getWeakestPillar(data.devotionPillars)
     
     return (
       <div className="min-h-screen bg-[#F7FAFC] flex flex-col">
@@ -121,12 +104,11 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
             <div className="space-y-1.5">
               {PILLAR_ORDER.map((key) => {
                 const value = data.devotionPillars[key]
-                if (value === undefined) return null // Skip undefined weight for bodyweight sessions
+                if (value === undefined) return null
                 
                 // Highlight any pillar that's performing poorly, not just the weakest
                 const isWarn = value >= 0.6 && value < 0.75
                 const isAlert = value < 0.6
-                const isWeakest = weakestPillar?.key === key // Keep for potential future use
                 
                 return (
                   <div 

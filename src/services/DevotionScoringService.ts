@@ -105,14 +105,10 @@ export class DevotionScoringService {
     const SC = exerciseScores.reduce((sum, ex) => sum + ex.sc * ex.weight, 0) / totalWeight;
     const RF = exerciseScores.reduce((sum, ex) => sum + ex.rf * ex.weight, 0) / totalWeight;
     
-    // Load Fidelity - only include exercises that have loaded sets
-    const loadedExercises = exerciseScores.filter(ex => ex.lf !== null);
-    const LF = loadedExercises.length > 0 
-      ? loadedExercises.reduce((sum, ex) => sum + ex.lf! * ex.weight, 0) / loadedExercises.reduce((sum, ex) => sum + ex.weight, 0)
-      : null;
+    // Load Fidelity is still calculated but not used in devotion score (focusing on process, not weight)
 
-    // Final score calculation
-    const scoreParts = [EC, SC, RF, ...(LF !== null ? [LF] : [])];
+    // Final score calculation - focusing on devotion to process (EC, SC, RF only)
+    const scoreParts = [EC, SC, RF];
     const SAC = gmean(scoreParts);
     const CDS = Math.round(100 * SAC);
 
@@ -132,10 +128,9 @@ export class DevotionScoringService {
       pillars: {
         EC: Math.round(EC * 100) / 100,
         SC: Math.round(SC * 100) / 100,
-        RF: Math.round(RF * 100) / 100,
-        ...(LF !== null && { LF: Math.round(LF * 100) / 100 })
+        RF: Math.round(RF * 100) / 100
       },
-      deviations: topDeviations
+      deviations: topDeviations.filter(d => d.type !== 'load_variance')
     };
   }
 
@@ -338,7 +333,7 @@ export class DevotionScoringService {
     const perfectResult = this.computeDevotionScoreFromData(perfectPlanned, perfectActual);
     console.log('✅ Perfect Execution Test:');
     console.log(`   Score: ${perfectResult.CDS}/100 (${perfectResult.grade})`);
-    console.log(`   Pillars: EC=${perfectResult.pillars.EC}, SC=${perfectResult.pillars.SC}, RF=${perfectResult.pillars.RF}, LF=${perfectResult.pillars.LF}`);
+    console.log(`   Pillars: EC=${perfectResult.pillars.EC}, SC=${perfectResult.pillars.SC}, RF=${perfectResult.pillars.RF}`);
     console.log(`   Deviations: ${perfectResult.deviations.length}\n`);
 
     // Test 2: Missed sets and load variance
@@ -363,7 +358,7 @@ export class DevotionScoringService {
     const imperfectResult = this.computeDevotionScoreFromData(perfectPlanned, imperfectActual);
     console.log('⚠️  Imperfect Execution Test:');
     console.log(`   Score: ${imperfectResult.CDS}/100 (${imperfectResult.grade})`);
-    console.log(`   Pillars: EC=${imperfectResult.pillars.EC}, SC=${imperfectResult.pillars.SC}, RF=${imperfectResult.pillars.RF}, LF=${imperfectResult.pillars.LF}`);
+    console.log(`   Pillars: EC=${imperfectResult.pillars.EC}, SC=${imperfectResult.pillars.SC}, RF=${imperfectResult.pillars.RF}`);
     console.log(`   Deviations: ${imperfectResult.deviations.length}`);
     imperfectResult.deviations.forEach(dev => console.log(`     - ${dev.description}`));
     console.log('');
@@ -392,8 +387,7 @@ export class DevotionScoringService {
     const bodyweightResult = this.computeDevotionScoreFromData(bodyweightPlanned, bodyweightActual);
     console.log('💪 Bodyweight Exercise Test:');
     console.log(`   Score: ${bodyweightResult.CDS}/100 (${bodyweightResult.grade})`);
-    console.log(`   Pillars: EC=${bodyweightResult.pillars.EC}, SC=${bodyweightResult.pillars.SC}, RF=${bodyweightResult.pillars.RF}, LF=${bodyweightResult.pillars.LF || 'N/A'}`);
-    console.log(`   LF Hidden: ${bodyweightResult.pillars.LF === undefined ? 'Yes' : 'No'}\n`);
+    console.log(`   Pillars: EC=${bodyweightResult.pillars.EC}, SC=${bodyweightResult.pillars.SC}, RF=${bodyweightResult.pillars.RF}`);
 
     console.log('🎯 All tests completed!');
   }

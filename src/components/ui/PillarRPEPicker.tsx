@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { EffortLevel } from '@prisma/client';
-import { Info } from 'lucide-react';
 
 interface PillarRPEPickerProps {
   value: number; // 1-10 scale

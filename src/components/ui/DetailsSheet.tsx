@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, CheckSquare, Layers, Target, Dumbbell } from 'lucide-react'
+import { X, CheckSquare, Layers, Target } from 'lucide-react'
 import type { DevotionPillars, DevotionDeviation } from '@/services/SessionService'
 
 interface DetailsSheetProps {
@@ -26,21 +26,13 @@ const conceptExplanations = [
     icon: Target,
     title: 'Reps',
     description: 'Closeness to target reps - did you hit your rep targets?'
-  },
-  {
-    icon: Dumbbell,
-    title: 'Weight',
-    description: 'Closeness to target load - did you use the planned weights?'
   }
 ]
 
 export function DetailsSheet({ pillars, deviations, score, className = "" }: DetailsSheetProps) {
   const [isOpen, setIsOpen] = useState(false)
 
-  const isBodyweightSession = pillars.LF === undefined
-  const visibleConcepts = isBodyweightSession 
-    ? conceptExplanations.slice(0, 3) 
-    : conceptExplanations
+  const visibleConcepts = conceptExplanations
 
   return (
     <>
@@ -106,8 +98,6 @@ export function DetailsSheet({ pillars, deviations, score, className = "" }: Det
                         {title === 'Exercises' && `${Math.round((pillars.EC || 0) * 100)}%`}
                         {title === 'Sets' && `${Math.round((pillars.SC || 0) * 100)}%`}
                         {title === 'Reps' && `${Math.round((pillars.RF || 0) * 100)}%`}
-                        {title === 'Weight' && pillars.LF && `${Math.round(pillars.LF * 100)}%`}
-                        {title === 'Weight' && !pillars.LF && 'N/A'}
                       </div>
                     </div>
                   ))}

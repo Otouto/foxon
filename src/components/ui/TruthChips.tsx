@@ -1,6 +1,6 @@
 'use client'
 
-import { CheckSquare, Layers, Target, Dumbbell } from 'lucide-react'
+import { CheckSquare, Layers, Target } from 'lucide-react'
 import type { DevotionPillars } from '@/services/SessionService'
 
 interface TruthChipsProps {
@@ -48,32 +48,14 @@ const chipConfig: ChipData[] = [
       if (percentage >= 75) return 'Reps drifted a bit'
       return 'Reps off target'
     }
-  },
-  {
-    key: 'LF',
-    icon: Dumbbell,
-    label: 'Weight',
-    getDisplayText: (score: number) => {
-      const percentage = Math.round(score * 100)
-      if (percentage >= 90) return 'Weight on target'
-      if (percentage >= 75) return 'Slightly light/heavy'
-      return 'Weight off target'
-    }
   }
 ]
 
 export function TruthChips({ pillars, className = "" }: TruthChipsProps) {
-  // Check if this is a bodyweight session (no LF data)
-  const isBodyweightSession = pillars.LF === undefined
-
   return (
     <div className={`flex justify-center gap-3 ${className}`}>
       {chipConfig.map(({ key, icon: Icon, getDisplayText }) => {
         const score = pillars[key]
-        const isHidden = key === 'LF' && isBodyweightSession
-        
-        // Skip rendering the Weight chip for bodyweight sessions
-        if (isHidden) return null
         
         if (!score) return null
         
