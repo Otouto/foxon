@@ -13,7 +13,7 @@ export function SessionCardContent({ session, className = '' }: SessionCardConte
   const durationText = session.duration ? `${session.duration} min` : '';
 
   return (
-    <div className={`bg-white rounded-2xl p-6 shadow-sm border border-gray-100 ${className}`}>
+    <div className={`bg-white rounded-2xl p-6 shadow-sm border border-gray-100 transition-all duration-200 ease-in-out ${className}`}>
       {/* Header: Date with weekday + gym emoji */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-medium text-gray-900">
