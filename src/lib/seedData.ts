@@ -681,8 +681,39 @@ export function searchExercises(query: string): ExerciseDefinition[] {
   );
 }
 
+// Session data interface for seed data
+interface SessionSeedDataItem {
+  date: Date;
+  duration: number;
+  workoutPlan: string;
+  status: string;
+  devotionScore: number;
+  devotionGrade: string;
+  devotionPillars: { EC: number; SC: number; RF: number };
+  devotionDeviations: Array<{
+    type: string;
+    exerciseName: string;
+    description: string;
+    impact: number;
+  }>;
+  exercises: Array<{
+    name: string;
+    exerciseId: string;
+    sets: Array<{
+      reps: number;
+      weight: number;
+      completed: boolean;
+      order: number;
+      notes?: string;
+    }>;
+    outOfPlan?: boolean;
+    notes?: string;
+  }>;
+  reflection: string;
+}
+
 // Real training sessions from logs (July-August 2025)
-export const sessionSeedData = {
+export const sessionSeedData: Record<string, SessionSeedDataItem> = {
   // Session 1: July 1, 2025 - Силова 1
   'session-2025-07-01': {
     date: new Date('2025-07-01T09:25:00'),
@@ -912,7 +943,7 @@ export const sessionSeedData = {
           { reps: 10, weight: 15, completed: true, order: 1 },
           { reps: 10, weight: 20, completed: true, order: 2, notes: 'не доробив бо спину схопило' }
         ],
-        notes: 'Incomplete due to back pain'
+
       }
     ],
     reflection: ''
@@ -1520,7 +1551,7 @@ export function getSessionById(sessionId: string) {
 
 export function getSessionsByWorkoutPlan(workoutPlan: string) {
   return Object.entries(sessionSeedData)
-    .filter(([_, session]) => session.workoutPlan === workoutPlan)
+    .filter(([, session]) => session.workoutPlan === workoutPlan)
     .map(([id, session]) => ({ id, ...session }));
 }
 
