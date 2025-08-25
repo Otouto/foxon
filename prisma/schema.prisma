@@ -168,6 +168,7 @@ model Session {
   workoutId        String?       @map("workout_id")
   date             DateTime      @default(now())
   status           SessionStatus @default(ACTIVE)
+  duration         Int?          // Duration in seconds
   devotionScore    Int?          @map("devotion_score") // 0-100 Commitment & Devotion Score
   devotionGrade    String?       @map("devotion_grade") // "Dialed in", "On plan", "Loose", "Off plan"
   devotionPillars  Json?         @map("devotion_pillars") // {EC: 0.95, SC: 0.88, RF: 0.92, LF: 0.85}

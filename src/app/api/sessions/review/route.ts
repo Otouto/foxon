@@ -51,11 +51,6 @@ export async function GET(request: NextRequest) {
       });
 
       const sessionReviewData: SessionReviewData[] = sessions.map(session => {
-        // Calculate duration in minutes from createdAt to updatedAt
-        const durationInMinutes = session.updatedAt && session.createdAt 
-          ? Math.round((session.updatedAt.getTime() - session.createdAt.getTime()) / (1000 * 60))
-          : undefined;
-
         return {
           id: session.id,
           date: session.date,
@@ -66,7 +61,7 @@ export async function GET(request: NextRequest) {
           effort: session.sessionSeal?.effort,
           vibeLine: session.sessionSeal?.vibeLine,
           note: session.sessionSeal?.note || undefined,
-          duration: durationInMinutes
+          duration: session.duration || undefined
         };
       });
 

@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
           workoutId: sessionData.workoutId,
           status: SessionStatus.FINISHED,
           date: new Date(sessionData.startTime),
+          duration: sessionData.duration,
           createdAt: new Date(sessionData.startTime),
           updatedAt: new Date(sessionData.endTime),
         }

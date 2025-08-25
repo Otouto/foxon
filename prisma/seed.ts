@@ -286,6 +286,7 @@ async function main() {
         workoutId: workoutId,
         date: sessionData.date,
         status: sessionData.status as any,
+        duration: sessionData.duration,
         devotionScore: sessionData.devotionScore,
         devotionGrade: sessionData.devotionGrade,
         devotionPillars: sessionData.devotionPillars,
@@ -309,7 +310,7 @@ async function main() {
           sessionId: session.id,
           exerciseId: exerciseData.exerciseId,
           order: exerciseIndex + 1,
-          notes: exerciseData.notes || null,
+          notes: (exerciseData as any).notes || null,
         },
       })
 
@@ -332,7 +333,7 @@ async function main() {
             reps: setData.reps,
             completed: setData.completed,
             order: setData.order,
-            notes: setData.notes || null,
+            notes: (setData as any).notes || null,
           },
         })
       }
@@ -344,7 +345,7 @@ async function main() {
       update: {},
       create: {
         sessionId: session.id,
-        effort: 'MODERATE_5', // Default effort level
+        effort: 'MODERATE_5' as any, // Default effort level
         vibeLine: sessionData.reflection || '', // Empty reflection as requested
         note: null,
       },

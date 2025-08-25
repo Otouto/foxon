@@ -1,5 +1,6 @@
 import { SessionReviewData } from '@/hooks/useReviewData';
 import { formatDateWithWeekday, getPracticeTimeInfo, getDevotionScoreLabel } from '@/lib/utils/dateUtils';
+import { formatDuration } from '@/lib/utils';
 import { CircularGauge } from '@/components/ui/CircularGauge';
 
 interface SessionCardContentProps {
@@ -10,7 +11,14 @@ interface SessionCardContentProps {
 export function SessionCardContent({ session, className = '' }: SessionCardContentProps) {
   const practiceTimeInfo = getPracticeTimeInfo(session.date);
   const devotionLabel = session.devotionScore ? getDevotionScoreLabel(session.devotionScore) : 'Practice';
-  const durationText = session.duration ? `${session.duration} min` : '';
+  
+  // Format duration to rounded minutes with "min" suffix
+  const formatDurationToMinutes = (seconds: number): string => {
+    const minutes = Math.round(seconds / 60);
+    return `${minutes} min`;
+  };
+  
+  const durationText = session.duration ? formatDurationToMinutes(session.duration) : '';
 
   return (
     <div className={`bg-white rounded-2xl p-6 shadow-sm border border-gray-100 transition-all duration-200 ease-in-out ${className}`}>
