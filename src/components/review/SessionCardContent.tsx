@@ -1,6 +1,6 @@
 import { SessionReviewData } from '@/hooks/useReviewData';
-import { formatDate, formatDateShort } from '@/lib/utils/dateUtils';
-import { EffortIndicator } from './EffortIndicator';
+import { formatDateWithWeekday, getPracticeTimeInfo, getDevotionScoreLabel } from '@/lib/utils/dateUtils';
+import { CircularGauge } from '@/components/ui/CircularGauge';
 
 interface SessionCardContentProps {
   session: SessionReviewData;
@@ -8,28 +8,67 @@ interface SessionCardContentProps {
 }
 
 export function SessionCardContent({ session, className = '' }: SessionCardContentProps) {
+  const practiceTimeInfo = getPracticeTimeInfo(session.date);
+  const devotionLabel = session.devotionScore ? getDevotionScoreLabel(session.devotionScore) : 'Practice';
+  const durationText = session.duration ? `${session.duration} min` : '';
+
   return (
     <div className={`bg-white rounded-2xl p-6 shadow-sm border border-gray-100 ${className}`}>
+      {/* Header: Date with weekday + gym emoji */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-gray-900">{formatDate(session.date)}</h3>
-        <span className="text-sm text-gray-500">{formatDateShort(session.date)}</span>
+        <h3 className="font-medium text-gray-900">
+          {formatDateWithWeekday(session.date)}
+        </h3>
+        <span className="text-lg">
+          🏋️‍♂️
+        </span>
       </div>
-      
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-gray-600">{session.workoutTitle || 'Custom Workout'}</span>
-          {session.effort && <EffortIndicator effort={session.effort} />}
-        </div>
-        
-        <div className="flex items-center justify-between text-sm text-gray-500">
-          <span>{session.devotionScore ? `${session.devotionScore}/100` : 'No score'}</span>
-          <span>{session.devotionGrade || 'Not graded'}</span>
-        </div>
-        
-        {session.vibeLine && (
-          <p className="text-sm text-gray-500">&ldquo;{session.vibeLine}&rdquo;</p>
+
+      {/* Workout title */}
+      <div className="mb-4">
+        <h4 className="text-lg font-semibold text-gray-900">
+          {session.workoutTitle || 'Custom Workout'}
+        </h4>
+      </div>
+
+      {/* Devotion score circle and label */}
+      <div className="flex flex-col items-center mb-4">
+        {session.devotionScore ? (
+          <>
+            <div className="mb-2">
+              <CircularGauge 
+                score={session.devotionScore}
+                size={80}
+                strokeWidth={8}
+                fontSize={24}
+              />
+            </div>
+            <span className="text-sm font-medium text-gray-700">
+              {devotionLabel}
+            </span>
+          </>
+        ) : (
+          <div className="flex items-center justify-center w-20 h-20 rounded-full border-4 border-gray-200 mb-2">
+            <span className="text-lg font-bold text-gray-400">-</span>
+          </div>
         )}
       </div>
+
+      {/* Duration and practice time */}
+      <div className="flex items-center justify-center mb-4 text-sm text-gray-600">
+        <span className="font-medium">{durationText}</span>
+        {durationText && <span className="mx-2">•</span>}
+        <span>{practiceTimeInfo.label}</span>
+      </div>
+
+      {/* Reflection text */}
+      {session.vibeLine && (
+        <div className="text-center">
+          <p className="text-sm text-gray-600 italic">
+            &ldquo;{session.vibeLine}&rdquo;
+          </p>
+        </div>
+      )}
     </div>
   );
 }

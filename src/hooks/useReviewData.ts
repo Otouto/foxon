@@ -12,6 +12,7 @@ export interface SessionReviewData {
   effort?: string;
   vibeLine?: string;
   note?: string;
+  duration?: number;
 }
 
 export interface ExerciseStatsData {

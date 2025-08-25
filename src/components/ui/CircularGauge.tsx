@@ -6,6 +6,7 @@ interface CircularGaugeProps {
   score: number // 0-100
   size?: number
   strokeWidth?: number
+  fontSize?: number
   className?: string
 }
 
@@ -13,6 +14,7 @@ export function CircularGauge({
   score, 
   size = 200, 
   strokeWidth = 12,
+  fontSize,
   className = "" 
 }: CircularGaugeProps) {
   const [animatedScore, setAnimatedScore] = useState(0)
@@ -94,12 +96,12 @@ export function CircularGauge({
           />
         </svg>
 
-        {/* Score Text - 52px font size, 700 weight, -0.5 letter spacing */}
+        {/* Score Text - responsive font size, 700 weight, -0.5 letter spacing */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <div 
             className="font-bold text-[#0F172A]"
             style={{
-              fontSize: '52px',
+              fontSize: fontSize ? `${fontSize}px` : '52px',
               fontWeight: 700,
               letterSpacing: '-0.5px',
               lineHeight: 1

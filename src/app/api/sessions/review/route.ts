@@ -12,6 +12,7 @@ export interface SessionReviewData {
   effort?: string;
   vibeLine?: string;
   note?: string;
+  duration?: number;
 }
 
 export interface ExerciseStatsData {
@@ -49,17 +50,25 @@ export async function GET(request: NextRequest) {
         take: limit
       });
 
-      const sessionReviewData: SessionReviewData[] = sessions.map(session => ({
-        id: session.id,
-        date: session.date,
-        workoutTitle: session.workout?.title || null,
-        status: session.status,
-        devotionScore: session.devotionScore,
-        devotionGrade: session.devotionGrade,
-        effort: session.sessionSeal?.effort,
-        vibeLine: session.sessionSeal?.vibeLine,
-        note: session.sessionSeal?.note || undefined
-      }));
+      const sessionReviewData: SessionReviewData[] = sessions.map(session => {
+        // Calculate duration in minutes from createdAt to updatedAt
+        const durationInMinutes = session.updatedAt && session.createdAt 
+          ? Math.round((session.updatedAt.getTime() - session.createdAt.getTime()) / (1000 * 60))
+          : undefined;
+
+        return {
+          id: session.id,
+          date: session.date,
+          workoutTitle: session.workout?.title || null,
+          status: session.status,
+          devotionScore: session.devotionScore,
+          devotionGrade: session.devotionGrade,
+          effort: session.sessionSeal?.effort,
+          vibeLine: session.sessionSeal?.vibeLine,
+          note: session.sessionSeal?.note || undefined,
+          duration: durationInMinutes
+        };
+      });
 
       return NextResponse.json({ sessions: sessionReviewData });
     } 
