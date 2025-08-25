@@ -267,3 +267,26 @@
     background-color: rgb(132 204 22);
   }
 }
+
+/* Custom swipe-to-delete styles for Foxon */
+.swipe-delete-circle {
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  backdrop-filter: blur(8px);
+}
+
+/* Mobile touch optimizations for swipe */
+@media (max-width: 768px) {
+  .swipe-delete-circle {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* PWA touch optimizations */
+@media (display-mode: standalone) {
+  .swipe-delete-circle {
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}

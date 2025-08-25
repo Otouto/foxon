@@ -52,7 +52,7 @@ export default function ReviewPage() {
         <>
           {/* Sessions Tab */}
           {activeTab === 'sessions' && (
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-visible">
               {sessions.length === 0 ? (
                 <EmptyState type="sessions" />
               ) : (
