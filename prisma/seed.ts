@@ -7,7 +7,16 @@ import {
   MOCK_USER
 } from '../src/lib/seedData'
 
-const prisma = new PrismaClient()
+// Use direct connection for seeding to avoid pooled connection issues
+const prisma = new PrismaClient(
+  process.env.DIRECT_URL_ONLY === 'true' ? {
+    datasources: {
+      db: {
+        url: process.env.DIRECT_URL
+      }
+    }
+  } : undefined
+)
 
 async function main() {
   console.log('🌱 Seeding database...')

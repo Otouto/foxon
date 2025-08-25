@@ -12,6 +12,7 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed-direct": "DIRECT_URL_ONLY=true tsx prisma/seed.ts",
     "db:seed-sessions": "tsx scripts/seed-sample-sessions.ts"
   },
   "dependencies": {

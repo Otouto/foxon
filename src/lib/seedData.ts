@@ -44,10 +44,115 @@ export interface ExerciseDefinition {
 const now = new Date().toISOString();
 
 export const muscleGroupsSeed: Record<string, MuscleGroup> = {
-  'legs': {
-    id: 'legs',
-    name: 'Ноги',
-    description: 'Квадрицепси, біцепси стегна, сідниці, литки',
+  'all-muscles': {
+    id: 'all-muscles',
+    name: 'Всі м\'язи',
+    description: 'Комплексні вправи для всіх груп м\'язів',
+    created_at: now,
+    updated_at: now
+  },
+  'abdominals': {
+    id: 'abdominals',
+    name: 'Черевний прес',
+    description: 'Прямі та косі м\'язи живота',
+    created_at: now,
+    updated_at: now
+  },
+  'shoulders': {
+    id: 'shoulders',
+    name: 'Плечі',
+    description: 'Дельтовидні м\'язи (передня, середня, задня дельта)',
+    created_at: now,
+    updated_at: now
+  },
+  'biceps': {
+    id: 'biceps',
+    name: 'Біцепси',
+    description: 'Двохголові м\'язи плеча',
+    created_at: now,
+    updated_at: now
+  },
+  'triceps': {
+    id: 'triceps',
+    name: 'Трицепси',
+    description: 'Триголові м\'язи плеча',
+    created_at: now,
+    updated_at: now
+  },
+  'forearms': {
+    id: 'forearms',
+    name: 'Передпліччя',
+    description: 'М\'язи передпліччя для хватки та сили',
+    created_at: now,
+    updated_at: now
+  },
+  'quadriceps': {
+    id: 'quadriceps',
+    name: 'Квадрицепси',
+    description: 'Чотириголові м\'язи стегна',
+    created_at: now,
+    updated_at: now
+  },
+  'hamstrings': {
+    id: 'hamstrings',
+    name: 'Біцепси стегна',
+    description: 'Задня поверхня стегна',
+    created_at: now,
+    updated_at: now
+  },
+  'calves': {
+    id: 'calves',
+    name: 'Литки',
+    description: 'Ікроножні м\'язи та камбалоподібні м\'язи',
+    created_at: now,
+    updated_at: now
+  },
+  'glutes': {
+    id: 'glutes',
+    name: 'Сідниці',
+    description: 'Великі, середні та малі сідничні м\'язи',
+    created_at: now,
+    updated_at: now
+  },
+  'abductors': {
+    id: 'abductors',
+    name: 'Відводячі м\'язи',
+    description: 'М\'язи, що відводять ногу в сторону',
+    created_at: now,
+    updated_at: now
+  },
+  'adductors': {
+    id: 'adductors',
+    name: 'Приводячі м\'язи',
+    description: 'М\'язи, що приводять ногу до центру',
+    created_at: now,
+    updated_at: now
+  },
+  'lats': {
+    id: 'lats',
+    name: 'Широчайші м\'язи спини',
+    description: 'Великі м\'язи спини для тягових рухів',
+    created_at: now,
+    updated_at: now
+  },
+  'traps': {
+    id: 'traps',
+    name: 'Трапеції',
+    description: 'Трапецієподібні м\'язи верхньої частини спини',
+    created_at: now,
+    updated_at: now
+  },
+  'lower-back': {
+    id: 'lower-back',
+    name: 'Поперекові м\'язи',
+    description: 'М\'язи нижньої частини спини',
+    created_at: now,
+    updated_at: now
+  },
+  'upper-back': {
+    id: 'upper-back',
+    name: 'Верхня частина спини',
+    description: 'Ромбовидні та інші м\'язи верхньої частини спини',
     created_at: now,
     updated_at: now
   },
@@ -58,37 +163,79 @@ export const muscleGroupsSeed: Record<string, MuscleGroup> = {
     created_at: now,
     updated_at: now
   },
-  'back': {
-    id: 'back',
-    name: 'Спина',
-    description: 'Широчайші, ромбовидні, трапеції',
+  'cardio': {
+    id: 'cardio',
+    name: 'Кардіо',
+    description: 'Кардіоваскулярні вправи для витривалості',
     created_at: now,
     updated_at: now
   },
-  'shoulders': {
-    id: 'shoulders',
-    name: 'Плечі',
-    description: 'Дельтовидні м\'язи',
+  'neck': {
+    id: 'neck',
+    name: 'Шия',
+    description: 'М\'язи шиї для стабілізації та сили',
     created_at: now,
     updated_at: now
   },
-  'arms': {
-    id: 'arms',
-    name: 'Руки',
-    description: 'Біцепси, трицепси, передпліччя',
-    created_at: now,
-    updated_at: now
-  },
-  'core': {
-    id: 'core',
-    name: 'Прес',
-    description: 'Основні м\'язи кору',
+  'full-body': {
+    id: 'full-body',
+    name: 'Всі тіло',
+    description: 'Комплексні вправи для всього тіла',
     created_at: now,
     updated_at: now
   }
 };
 
 export const equipmentSeed: Record<string, Equipment> = {
+  'barbell': {
+    id: 'barbell',
+    name: 'Штанга',
+    description: 'Олімпійська або звичайна штанга для базових вправ',
+    created_at: now,
+    updated_at: now
+  },
+  'dumbbell': {
+    id: 'dumbbell',
+    name: 'Гантелі',
+    description: 'Розбірні або незмінні гантелі для різноманітних вправ',
+    created_at: now,
+    updated_at: now
+  },
+  'kettlebell': {
+    id: 'kettlebell',
+    name: 'Гиря',
+    description: 'Гиря для функціональних та силових вправ',
+    created_at: now,
+    updated_at: now
+  },
+  'machine': {
+    id: 'machine',
+    name: 'Тренажер',
+    description: 'Спеціалізовані силові тренажери',
+    created_at: now,
+    updated_at: now
+  },
+  'plate': {
+    id: 'plate',
+    name: 'Блини',
+    description: 'Блини для штанги та гантелей',
+    created_at: now,
+    updated_at: now
+  },
+  'resistance-band': {
+    id: 'resistance-band',
+    name: 'Резинова стрічка',
+    description: 'Резинові стрічки для опору та розтяжки',
+    created_at: now,
+    updated_at: now
+  },
+  'suspension': {
+    id: 'suspension',
+    name: 'Підвісна система',
+    description: 'TRX або подібні підвісні системи для вправ',
+    created_at: now,
+    updated_at: now
+  },
   'bodyweight': {
     id: 'bodyweight',
     name: 'Власна вага',
@@ -96,45 +243,17 @@ export const equipmentSeed: Record<string, Equipment> = {
     created_at: now,
     updated_at: now
   },
-  'dumbbells': {
-    id: 'dumbbells',
-    name: 'Гантелі',
-    description: 'Розбірні або незмінні гантелі',
-    created_at: now,
-    updated_at: now
-  },
-  'barbell': {
-    id: 'barbell',
-    name: 'Штанга',
-    description: 'Олімпійська або звичайна штанга',
-    created_at: now,
-    updated_at: now
-  },
-  'machine': {
-    id: 'machine',
-    name: 'Тренажер',
-    description: 'Силові тренажери',
-    created_at: now,
-    updated_at: now
-  },
-  'kettlebell': {
-    id: 'kettlebell',
-    name: 'Гиря',
-    description: 'Kettlebell вправи',
-    created_at: now,
-    updated_at: now
-  },
   'cable': {
     id: 'cable',
     name: 'Канат',
-    description: 'Канати для тяги',
+    description: 'Канати для тяги та інших вправ',
     created_at: now,
     updated_at: now
   },
   'rope': {
     id: 'rope',
     name: 'Мотузка',
-    description: 'Мотузки для тренажерів',
+    description: 'Мотузки для тренажерів та функціональних вправ',
     created_at: now,
     updated_at: now
   }
@@ -145,24 +264,24 @@ export const exercisesSeed: Record<string, ExerciseDefinition> = {
     id: 'single-leg-squats',
     name: 'Присідання на 1 нозі',
     description: 'Односторонні присідання для розвитку балансу та сили',
-    muscle_group_id: 'legs',
-    equipment_id: 'dumbbells',
+    muscle_group_id: 'quadriceps',
+    equipment_id: 'dumbbell',
     instructions: 'Тримайте гантелі в руках, виконуйте присідання на одній нозі. Фокус на балансі та контролі руху.',
     created_at: now,
     updated_at: now,
-    muscle_group: muscleGroupsSeed['legs'],
-    equipment: equipmentSeed['dumbbells']
+    muscle_group: muscleGroupsSeed['quadriceps'],
+    equipment: equipmentSeed['dumbbell']
   },
   'leg-press': {
     id: 'leg-press',
     name: 'Жим платформи',
     description: 'Жим ногами в тренажері',
-    muscle_group_id: 'legs',
+    muscle_group_id: 'quadriceps',
     equipment_id: 'machine',
     instructions: 'Поступове збільшення ваги, контроль негативної фази.',
     created_at: now,
     updated_at: now,
-    muscle_group: muscleGroupsSeed['legs'],
+    muscle_group: muscleGroupsSeed['quadriceps'],
     equipment: equipmentSeed['machine']
   },
   'chest-press': {
@@ -181,12 +300,12 @@ export const exercisesSeed: Record<string, ExerciseDefinition> = {
     id: 'horizontal-row',
     name: 'Горизонтальна тяга',
     description: 'Тяга в горизонтальному положенні',
-    muscle_group_id: 'back',
+    muscle_group_id: 'lats',
     equipment_id: 'machine',
     instructions: 'Зведення лопаток в кінцевій точці.',
     created_at: now,
     updated_at: now,
-    muscle_group: muscleGroupsSeed['back'],
+    muscle_group: muscleGroupsSeed['lats'],
     equipment: equipmentSeed['machine']
   },
 
@@ -195,24 +314,24 @@ export const exercisesSeed: Record<string, ExerciseDefinition> = {
     id: 'sumo-squat-kettlebell',
     name: 'Присідання сумо з гирею',
     description: 'Присідання з широкою постановкою ніг',
-    muscle_group_id: 'legs',
+    muscle_group_id: 'quadriceps',
     equipment_id: 'kettlebell',
     instructions: 'Широка постановка ніг, гиря між ніг.',
     created_at: now,
     updated_at: now,
-    muscle_group: muscleGroupsSeed['legs'],
+    muscle_group: muscleGroupsSeed['quadriceps'],
     equipment: equipmentSeed['kettlebell']
   },
   'pull-ups': {
     id: 'pull-ups',
     name: 'Підтягування',
     description: 'Підтягування на перекладині',
-    muscle_group_id: 'back',
+    muscle_group_id: 'lats',
     equipment_id: 'bodyweight',
     instructions: 'До відмови в кожному підході.',
     created_at: now,
     updated_at: now,
-    muscle_group: muscleGroupsSeed['back'],
+    muscle_group: muscleGroupsSeed['lats'],
     equipment: equipmentSeed['bodyweight']
   },
   'push-ups': {
@@ -233,12 +352,12 @@ export const exercisesSeed: Record<string, ExerciseDefinition> = {
     name: 'Розводка гантелей бабочка',
     description: 'Розводка гантелей для грудей',
     muscle_group_id: 'chest',
-    equipment_id: 'dumbbells',
+    equipment_id: 'dumbbell',
     instructions: 'Контроль в негативній фазі.',
     created_at: now,
     updated_at: now,
     muscle_group: muscleGroupsSeed['chest'],
-    equipment: equipmentSeed['dumbbells']
+    equipment: equipmentSeed['dumbbell']
   },
   'rear-delt-flyes': {
     id: 'rear-delt-flyes',
@@ -256,12 +375,12 @@ export const exercisesSeed: Record<string, ExerciseDefinition> = {
     id: 'machine-row',
     name: 'Тяга в тренажері',
     description: 'Тяга сидячи в тренажері',
-    muscle_group_id: 'back',
+    muscle_group_id: 'lats',
     equipment_id: 'machine',
     instructions: 'Поступове збільшення ваги.',
     created_at: now,
     updated_at: now,
-    muscle_group: muscleGroupsSeed['back'],
+    muscle_group: muscleGroupsSeed['lats'],
     equipment: equipmentSeed['machine']
   },
 
@@ -269,61 +388,61 @@ export const exercisesSeed: Record<string, ExerciseDefinition> = {
     id: 'vertical-pull',
     name: 'Вертикальна тяга',
     description: 'Вертикальна тяга в тренажері',
-    muscle_group_id: 'back',
+    muscle_group_id: 'lats',
     equipment_id: 'machine',
     instructions: 'Тяга блоку до грудей, зведення лопаток.',
     created_at: now,
     updated_at: now,
-    muscle_group: muscleGroupsSeed['back'],
+    muscle_group: muscleGroupsSeed['lats'],
     equipment: equipmentSeed['machine']
   },
   'tricep-extension': {
     id: 'tricep-extension',
     name: 'Розгинання на трицепс',
     description: 'Ізольована вправа на трицепс',
-    muscle_group_id: 'arms',
+    muscle_group_id: 'triceps',
     equipment_id: 'machine',
     instructions: 'Повна амплітуда руху, контроль негативної фази.',
     created_at: now,
     updated_at: now,
-    muscle_group: muscleGroupsSeed['arms'],
+    muscle_group: muscleGroupsSeed['triceps'],
     equipment: equipmentSeed['machine']
   },
   'barbell-bicep-curl': {
     id: 'barbell-bicep-curl',
     name: 'Згинання штанги на біцепс',
     description: 'Базова вправа на біцепс зі штангою',
-    muscle_group_id: 'arms',
+    muscle_group_id: 'biceps',
     equipment_id: 'barbell',
     instructions: 'Контрольований темп виконання, повна амплітуда.',
     created_at: now,
     updated_at: now,
-    muscle_group: muscleGroupsSeed['arms'],
+    muscle_group: muscleGroupsSeed['biceps'],
     equipment: equipmentSeed['barbell']
   },
   'one-arm-bent-row': {
     id: 'one-arm-bent-row',
     name: 'Тяга в нахилі по 1 руці',
     description: 'Тяга гантелі однією рукою в нахилі',
-    muscle_group_id: 'back',
-    equipment_id: 'dumbbells',
+    muscle_group_id: 'lats',
+    equipment_id: 'dumbbell',
     instructions: 'Тримай спину прямо, тягни гантелю до пояса.',
     created_at: now,
     updated_at: now,
-    muscle_group: muscleGroupsSeed['back'],
-    equipment: equipmentSeed['dumbbells']
+    muscle_group: muscleGroupsSeed['lats'],
+    equipment: equipmentSeed['dumbbell']
   },
   'dumbbell-shoulder-press': {
     id: 'dumbbell-shoulder-press',
     name: 'Жим на плечі з гантелями',
     description: 'Жим гантелей над головою для плечей',
     muscle_group_id: 'shoulders',
-    equipment_id: 'dumbbells',
+    equipment_id: 'dumbbell',
     instructions: 'Жим гантелей над головою, контроль негативної фази.',
     created_at: now,
     updated_at: now,
     muscle_group: muscleGroupsSeed['shoulders'],
-    equipment: equipmentSeed['dumbbells']
+    equipment: equipmentSeed['dumbbell']
   }
 };
 
