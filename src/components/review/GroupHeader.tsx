@@ -38,22 +38,20 @@ export function GroupHeader({ title, summary, type, isExpanded, onToggle }: Grou
   return (
     <button
       onClick={onToggle}
-      className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-200 hover:bg-gray-100 transition-colors"
+      className="w-full flex items-center justify-between py-2 pl-[5px] rounded-xl hover:bg-gray-50 transition-colors"
     >
-      <div className="flex items-center gap-3">
-        <div className="flex items-center justify-center w-6 h-6">
-          {isExpanded ? (
-            <ChevronDown size={20} className="text-gray-600" />
-          ) : (
-            <ChevronRight size={20} className="text-gray-600" />
-          )}
-        </div>
-        <div className="text-left">
-          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-          <p className={`text-sm ${getStatusColor()}`}>
-            {getSummaryText()}
-          </p>
-        </div>
+      <div className="text-left">
+        <h3 className="text-sm font-medium text-gray-700">{title}</h3>
+        <p className={`text-xs ${getStatusColor()}`}>
+          {getSummaryText()}
+        </p>
+      </div>
+      <div className="flex items-center justify-center">
+        {isExpanded ? (
+          <ChevronDown size={16} className="text-gray-500" />
+        ) : (
+          <ChevronRight size={16} className="text-gray-500" />
+        )}
       </div>
     </button>
   );

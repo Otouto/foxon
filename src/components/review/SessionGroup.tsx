@@ -57,7 +57,7 @@ export function SessionGroup({ group, onDeleteSession }: SessionGroupProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-0">
       <GroupHeader
         title={group.title}
         summary={group.summary}
