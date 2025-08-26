@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { SessionReviewData } from '@/hooks/useReviewData';
 import { formatDate } from '@/lib/utils/dateUtils';
 import { SwipeableCard } from './SwipeableCard';
@@ -15,6 +16,7 @@ interface SessionCardProps {
 export function SessionCard({ session, onDelete }: SessionCardProps) {
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const router = useRouter();
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -38,10 +40,16 @@ export function SessionCard({ session, onDelete }: SessionCardProps) {
     setShowConfirmDelete(true);
   };
 
+  const handleCardClick = () => {
+    router.push(`/session/${session.id}/details`);
+  };
+
   return (
     <>
       <SwipeableCard onDeleteRequest={handleDeleteRequest}>
-        <SessionCardContent session={session} />
+        <div onClick={handleCardClick} className="cursor-pointer">
+          <SessionCardContent session={session} />
+        </div>
       </SwipeableCard>
 
       <DeleteConfirmationModal
