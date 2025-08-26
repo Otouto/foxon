@@ -100,10 +100,10 @@ export function isDateInWeek(date: Date, weekBounds: WeekBounds): boolean {
   return date >= weekBounds.start && date <= weekBounds.end;
 }
 
-export interface SessionGroup {
+export interface SessionGroup<T = { id: string; date: Date; devotionScore?: number | null }> {
   key: string;
   title: string;
-  sessions: Array<{ id: string; date: Date; devotionScore?: number | null }>;
+  sessions: T[];
   summary: GroupSummary;
   type: 'week' | 'month';
 }
@@ -124,8 +124,8 @@ export function calculateWeekStatus(completed: number, planned: number): 'On tra
 export function groupSessionsByTime<T extends { id: string; date: Date; devotionScore?: number | null }>(
   sessions: T[], 
   weeklyGoal: number
-): SessionGroup[] {
-  const groups: SessionGroup[] = [];
+): SessionGroup<T>[] {
+  const groups: SessionGroup<T>[] = [];
   const currentWeek = getCurrentWeekBounds();
   
   const thisWeekSessions = sessions.filter(s => isDateInWeek(s.date, currentWeek));

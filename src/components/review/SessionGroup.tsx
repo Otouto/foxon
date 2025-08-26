@@ -7,7 +7,7 @@ import { SessionCard } from './SessionCard';
 import { GroupHeader } from './GroupHeader';
 
 interface SessionGroupProps {
-  group: SessionGroupType;
+  group: SessionGroupType<SessionReviewData>;
   onDeleteSession: (sessionId: string) => Promise<boolean>;
 }
 
