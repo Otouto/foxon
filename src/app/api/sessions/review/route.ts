@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserId } from '@/lib/auth';
+import { getCurrentUserId, getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export interface SessionReviewData {
@@ -29,8 +29,8 @@ export interface ExerciseStatsData {
 export async function GET(request: NextRequest) {
   try {
     const userId = getCurrentUserId();
+    const user = getCurrentUser();
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '20');
     const tab = searchParams.get('tab') || 'sessions';
 
     if (tab === 'sessions') {
@@ -46,8 +46,7 @@ export async function GET(request: NextRequest) {
           },
           sessionSeal: true
         },
-        orderBy: { date: 'desc' },
-        take: limit
+        orderBy: { date: 'desc' }
       });
 
       const sessionReviewData: SessionReviewData[] = sessions.map(session => {
@@ -65,7 +64,10 @@ export async function GET(request: NextRequest) {
         };
       });
 
-      return NextResponse.json({ sessions: sessionReviewData });
+      return NextResponse.json({ 
+        sessions: sessionReviewData,
+        weeklyGoal: user.weeklyGoal
+      });
     } 
     
     if (tab === 'exercises') {
@@ -105,7 +107,7 @@ export async function GET(request: NextRequest) {
         )
         SELECT * FROM exercise_stats
         ORDER BY total_volume DESC
-        LIMIT ${limit}
+        LIMIT 50
       `;
 
       const exerciseReviewData: ExerciseStatsData[] = exerciseStats.map(stat => ({

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Calendar, TrendingUp } from 'lucide-react';
 import { useReviewData } from '@/hooks/useReviewData';
-import { SessionCard } from '@/components/review/SessionCard';
+import { SessionGroup } from '@/components/review/SessionGroup';
 import { ExerciseStatsCard } from '@/components/review/ExerciseStatsCard';
 import { LoadingState } from '@/components/review/LoadingState';
 import { ErrorState } from '@/components/review/ErrorState';
@@ -11,7 +11,7 @@ import { EmptyState } from '@/components/review/EmptyState';
 
 export default function ReviewPage() {
   const [activeTab, setActiveTab] = useState<'sessions' | 'exercises'>('sessions');
-  const { sessions, exercises, isLoading, error, refetch, deleteSession } = useReviewData(activeTab);
+  const { sessionGroups, exercises, isLoading, error, refetch, deleteSession } = useReviewData(activeTab);
 
   return (
     <div className="px-6 py-8 pb-24">
@@ -52,12 +52,16 @@ export default function ReviewPage() {
         <>
           {/* Sessions Tab */}
           {activeTab === 'sessions' && (
-            <div className="space-y-4 overflow-visible">
-              {sessions.length === 0 ? (
+            <div className="space-y-6 overflow-visible">
+              {sessionGroups.length === 0 ? (
                 <EmptyState type="sessions" />
               ) : (
-                sessions.map((session) => (
-                  <SessionCard key={session.id} session={session} onDelete={deleteSession} />
+                sessionGroups.map((group) => (
+                  <SessionGroup
+                    key={group.key}
+                    group={group}
+                    onDeleteSession={deleteSession}
+                  />
                 ))
               )}
             </div>

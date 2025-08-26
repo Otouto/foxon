@@ -59,3 +59,130 @@ export function getDevotionScoreLabel(score: number): string {
   if (score >= 80) return 'Showed Up';
   return 'Practice';
 }
+
+export interface WeekBounds {
+  start: Date;
+  end: Date;
+}
+
+export function getWeekBounds(date: Date): WeekBounds {
+  const start = new Date(date);
+  const day = start.getDay();
+  const diff = start.getDate() - day;
+  start.setDate(diff);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+
+  return { start, end };
+}
+
+export function getCurrentWeekBounds(): WeekBounds {
+  return getWeekBounds(new Date());
+}
+
+export function getLastWeekBounds(): WeekBounds {
+  const lastWeek = new Date();
+  lastWeek.setDate(lastWeek.getDate() - 7);
+  return getWeekBounds(lastWeek);
+}
+
+export function getMonthKey(date: Date): string {
+  return date.toLocaleDateString('en-US', { 
+    month: 'long', 
+    year: 'numeric' 
+  });
+}
+
+export function isDateInWeek(date: Date, weekBounds: WeekBounds): boolean {
+  return date >= weekBounds.start && date <= weekBounds.end;
+}
+
+export interface SessionGroup {
+  key: string;
+  title: string;
+  sessions: Array<{ id: string; date: Date; devotionScore?: number | null }>;
+  summary: GroupSummary;
+  type: 'week' | 'month';
+}
+
+export interface GroupSummary {
+  totalSessions: number;
+  plannedSessions?: number;
+  averageDevotion?: number;
+  status?: 'On track' | 'Keep going' | 'Catch up';
+}
+
+export function calculateWeekStatus(completed: number, planned: number): 'On track' | 'Keep going' | 'Catch up' {
+  if (completed >= planned) return 'On track';
+  if (completed === planned - 1) return 'Keep going';
+  return 'Catch up';
+}
+
+export function groupSessionsByTime<T extends { id: string; date: Date; devotionScore?: number | null }>(
+  sessions: T[], 
+  weeklyGoal: number
+): SessionGroup[] {
+  const groups: SessionGroup[] = [];
+  const currentWeek = getCurrentWeekBounds();
+  
+  const thisWeekSessions = sessions.filter(s => isDateInWeek(s.date, currentWeek));
+  
+  if (thisWeekSessions.length > 0 || groups.length === 0) {
+    groups.push({
+      key: 'this-week',
+      title: 'This Week',
+      sessions: thisWeekSessions,
+      type: 'week',
+      summary: {
+        totalSessions: thisWeekSessions.length,
+        plannedSessions: weeklyGoal,
+        status: calculateWeekStatus(thisWeekSessions.length, weeklyGoal)
+      }
+    });
+  }
+  
+  const monthGroups: Record<string, T[]> = {};
+  const weekSessionIds = new Set(thisWeekSessions.map(s => s.id));
+  
+  sessions.forEach(session => {
+    if (!weekSessionIds.has(session.id)) {
+      const monthKey = getMonthKey(session.date);
+      if (!monthGroups[monthKey]) {
+        monthGroups[monthKey] = [];
+      }
+      monthGroups[monthKey].push(session);
+    }
+  });
+  
+  Object.entries(monthGroups)
+    .sort(([a], [b]) => {
+      const dateA = new Date(monthGroups[a][0].date);
+      const dateB = new Date(monthGroups[b][0].date);
+      return dateB.getTime() - dateA.getTime();
+    })
+    .forEach(([monthKey, monthlySessions]) => {
+      const devotionScores = monthlySessions
+        .map(s => s.devotionScore)
+        .filter((score): score is number => score !== null && score !== undefined);
+      
+      const averageDevotion = devotionScores.length > 0 
+        ? Math.round(devotionScores.reduce((sum, score) => sum + score, 0) / devotionScores.length)
+        : undefined;
+
+      groups.push({
+        key: monthKey.toLowerCase().replace(' ', '-'),
+        title: monthKey,
+        sessions: monthlySessions.sort((a, b) => b.date.getTime() - a.date.getTime()),
+        type: 'month',
+        summary: {
+          totalSessions: monthlySessions.length,
+          averageDevotion
+        }
+      });
+    });
+
+  return groups;
+}

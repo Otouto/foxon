@@ -1,5 +1,5 @@
 import { SessionReviewData } from '@/hooks/useReviewData';
-import { formatDateWithWeekday, formatDate, getPracticeTimeInfo, getDevotionScoreLabel } from '@/lib/utils/dateUtils';
+import { formatDateWithWeekday, getPracticeTimeInfo, getDevotionScoreLabel } from '@/lib/utils/dateUtils';
 import { CircularGauge } from '@/components/ui/CircularGauge';
 
 interface SessionCardContentProps {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { groupSessionsByTime, SessionGroup } from '@/lib/utils/dateUtils';
 
 export interface SessionReviewData {
   id: string;
@@ -28,6 +29,7 @@ export interface ExerciseStatsData {
 
 interface UseReviewDataReturn {
   sessions: SessionReviewData[];
+  sessionGroups: SessionGroup[];
   exercises: ExerciseStatsData[];
   isLoading: boolean;
   error: string | null;
@@ -37,6 +39,7 @@ interface UseReviewDataReturn {
 
 export function useReviewData(activeTab: 'sessions' | 'exercises', limit: number = 20): UseReviewDataReturn {
   const [sessions, setSessions] = useState<SessionReviewData[]>([]);
+  const [sessionGroups, setSessionGroups] = useState<SessionGroup[]>([]);
   const [exercises, setExercises] = useState<ExerciseStatsData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +49,7 @@ export function useReviewData(activeTab: 'sessions' | 'exercises', limit: number
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/sessions/review?tab=${activeTab}&limit=${limit}`);
+      const response = await fetch(`/api/sessions/review?tab=${activeTab}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch review data');
@@ -55,10 +58,15 @@ export function useReviewData(activeTab: 'sessions' | 'exercises', limit: number
       const data = await response.json();
 
       if (activeTab === 'sessions') {
-        setSessions(data.sessions.map((session: SessionReviewData) => ({
+        const processedSessions = data.sessions.map((session: SessionReviewData) => ({
           ...session,
           date: new Date(session.date)
-        })));
+        }));
+        setSessions(processedSessions);
+        
+        const weeklyGoal = data.weeklyGoal || 2;
+        const grouped = groupSessionsByTime(processedSessions, weeklyGoal);
+        setSessionGroups(grouped);
       } else if (activeTab === 'exercises') {
         setExercises(data.exercises);
       }
@@ -80,10 +88,16 @@ export function useReviewData(activeTab: 'sessions' | 'exercises', limit: number
       }
 
       // Remove the session from local state immediately for better UX
-      setSessions(prevSessions => prevSessions.filter(session => session.id !== sessionId));
+      const updatedSessions = sessions.filter(session => session.id !== sessionId);
+      setSessions(updatedSessions);
       
-      // Refetch data to ensure consistency
+      // Update session groups if we're on the sessions tab
       if (activeTab === 'sessions') {
+        const weeklyGoal = 2; // Default fallback, will be properly set on refetch
+        const updatedGroups = groupSessionsByTime(updatedSessions, weeklyGoal);
+        setSessionGroups(updatedGroups);
+        
+        // Refetch data to ensure consistency
         fetchData();
       }
 
@@ -101,6 +115,7 @@ export function useReviewData(activeTab: 'sessions' | 'exercises', limit: number
 
   return {
     sessions,
+    sessionGroups,
     exercises,
     isLoading,
     error,
