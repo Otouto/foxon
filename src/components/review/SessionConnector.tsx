@@ -14,19 +14,19 @@ export function SessionConnector({ connection }: SessionConnectorProps) {
   const { restAnalysis } = connection;
 
   return (
-    <div className="relative" style={{ marginBottom: '8px', marginTop: '8px' }}>
-      {/* Vertical connector line extending from previous session to next */}
+    <div className="relative h-12 flex items-center">
+      {/* Vertical connector line extending from previous session card to next session card */}
       <div 
-        className="absolute left-6 w-px" 
+        className="absolute w-px bg-gray-300" 
         style={{ 
-          backgroundColor: '#E0E0E0',
-          height: '100%',
-          top: 0
+          left: '36px', // Position to align with center of devotion circle (12px margin + 24px circle center)
+          height: '48px',
+          top: '0'
         }}
       />
       
       {/* Narrative content */}
-      <div className="flex flex-col" style={{ marginLeft: '24px' }}>
+      <div className="flex flex-col" style={{ marginLeft: '50px' }}>
         <span 
           className="text-gray-600" 
           style={{ 

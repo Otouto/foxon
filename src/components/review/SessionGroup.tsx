@@ -74,7 +74,7 @@ export function SessionGroup({ group, onDeleteSession }: SessionGroupProps) {
         }`}
       >
         {isExpanded && (
-          <div className="space-y-4">
+          <div className="space-y-0">
             {(() => {
               // Get session connections for pattern analysis
               const connections = getSessionConnections(group.sessions);
@@ -94,6 +94,10 @@ export function SessionGroup({ group, onDeleteSession }: SessionGroupProps) {
                     {/* Show connector after this session if there's a connection */}
                     {connection && (
                       <SessionConnector connection={connection} />
+                    )}
+                    {/* Add spacing after sessions without connectors */}
+                    {!connection && index < sortedSessions.length - 1 && (
+                      <div className="h-4" />
                     )}
                   </div>
                 );
