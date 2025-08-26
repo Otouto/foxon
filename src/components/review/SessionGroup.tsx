@@ -5,6 +5,8 @@ import { SessionGroup as SessionGroupType } from '@/lib/utils/dateUtils';
 import { SessionReviewData } from '@/hooks/useReviewData';
 import { SessionCard } from './SessionCard';
 import { GroupHeader } from './GroupHeader';
+import { SessionConnector } from './SessionConnector';
+import { getSessionConnections } from '@/lib/utils/sessionPatterns';
 
 interface SessionGroupProps {
   group: SessionGroupType<SessionReviewData>;
@@ -73,13 +75,30 @@ export function SessionGroup({ group, onDeleteSession }: SessionGroupProps) {
       >
         {isExpanded && (
           <div className="space-y-4">
-            {group.sessions.map((session: SessionReviewData) => (
-              <SessionCard
-                key={session.id}
-                session={session}
-                onDelete={onDeleteSession}
-              />
-            ))}
+            {(() => {
+              // Get session connections for pattern analysis
+              const connections = getSessionConnections(group.sessions);
+              const sortedSessions = [...group.sessions].sort((a, b) => b.date.getTime() - a.date.getTime());
+              
+              return sortedSessions.map((session: SessionReviewData, index: number) => {
+                // Find the corresponding connection (connections are in chronological order, sessions are reverse-chronological)
+                const connectionIndex = sortedSessions.length - index - 2; // -2 because connections array is 1 less than sessions
+                const connection = connections[connectionIndex];
+                
+                return (
+                  <div key={session.id}>
+                    <SessionCard
+                      session={session}
+                      onDelete={onDeleteSession}
+                    />
+                    {/* Show connector after this session if there's a connection */}
+                    {connection && (
+                      <SessionConnector connection={connection} />
+                    )}
+                  </div>
+                );
+              });
+            })()}
           </div>
         )}
       </div>
