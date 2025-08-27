@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserId, getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { NarrativeService } from '@/services/NarrativeService';
 
 export interface SessionReviewData {
   id: string;
@@ -13,6 +14,7 @@ export interface SessionReviewData {
   vibeLine?: string;
   note?: string;
   duration?: number;
+  narrative?: string;
 }
 
 export interface ExerciseStatsData {
@@ -49,20 +51,36 @@ export async function GET(request: NextRequest) {
         orderBy: { date: 'desc' }
       });
 
-      const sessionReviewData: SessionReviewData[] = sessions.map(session => {
-        return {
-          id: session.id,
-          date: session.date,
-          workoutTitle: session.workout?.title || null,
-          status: session.status,
-          devotionScore: session.devotionScore,
-          devotionGrade: session.devotionGrade,
-          effort: session.sessionSeal?.effort,
-          vibeLine: session.sessionSeal?.vibeLine,
-          note: session.sessionSeal?.note || undefined,
-          duration: session.duration || undefined
-        };
-      });
+      const sessionReviewData: SessionReviewData[] = await Promise.all(
+        sessions.map(async (session) => {
+          // Calculate narrative for each session
+          let narrative: string | null = null;
+          try {
+            const narrativeContext = await NarrativeService.getNarrativeContext(
+              userId,
+              session.id,
+              session.date
+            );
+            narrative = NarrativeService.calculateNarrative(narrativeContext);
+          } catch (error) {
+            console.error(`Failed to calculate narrative for session ${session.id}:`, error);
+          }
+
+          return {
+            id: session.id,
+            date: session.date,
+            workoutTitle: session.workout?.title || null,
+            status: session.status,
+            devotionScore: session.devotionScore,
+            devotionGrade: session.devotionGrade,
+            effort: session.sessionSeal?.effort,
+            vibeLine: session.sessionSeal?.vibeLine,
+            note: session.sessionSeal?.note || undefined,
+            duration: session.duration || undefined,
+            narrative: narrative || undefined
+          };
+        })
+      );
 
       return NextResponse.json({ 
         sessions: sessionReviewData,

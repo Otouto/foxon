@@ -64,10 +64,10 @@ export function SessionCardContent({ session, className = '', variant = 'detaile
   // Compact view layout
   if (variant === 'compact') {
     return (
-      <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 transition-all duration-200 ease-in-out h-[72px] ${className}`}>
-        <div className="flex items-center p-3 h-full">
+      <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 transition-all duration-200 ease-in-out min-h-[72px] ${className}`}>
+        <div className="flex items-start p-3 min-h-full">
           {/* Devotion Score Circle - Left Side */}
-          <div className="flex-shrink-0 mr-4">
+          <div className="flex-shrink-0 mr-4 mt-1">
             {session.devotionScore ? (
               <CircularGauge 
                 score={session.devotionScore}
@@ -98,6 +98,13 @@ export function SessionCardContent({ session, className = '', variant = 'detaile
             {session.vibeLine && (
               <p className="text-sm text-gray-600 italic leading-tight" style={{ fontSize: '14px' }}>
                 &ldquo;{truncateText(session.vibeLine, 40)}&rdquo;
+              </p>
+            )}
+
+            {/* Third Line: Narrative */}
+            {session.narrative && (
+              <p className="text-xs text-gray-500 leading-tight mt-1" style={{ fontSize: '11px' }}>
+                {session.narrative}
               </p>
             )}
           </div>
@@ -161,6 +168,15 @@ export function SessionCardContent({ session, className = '', variant = 'detaile
         <div className="text-center">
           <p className="text-sm text-gray-600 italic">
             &ldquo;{session.vibeLine}&rdquo;
+          </p>
+        </div>
+      )}
+
+      {/* Narrative */}
+      {session.narrative && (
+        <div className="text-center mt-3">
+          <p className="text-xs text-gray-500">
+            {session.narrative}
           </p>
         </div>
       )}
