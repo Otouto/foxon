@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import styles from './CircularGauge.module.css'
 
 interface CircularGaugeProps {
   score: number // 0-100
@@ -8,6 +9,28 @@ interface CircularGaugeProps {
   strokeWidth?: number
   fontSize?: number
   className?: string
+}
+
+interface ScoreVisualProps {
+  opacity: number
+  shouldPulse: boolean
+}
+
+// Calculate visual properties based on score for devotion hierarchy
+function getScoreVisualProps(score: number): ScoreVisualProps {
+  if (score >= 90) {
+    return { opacity: 1, shouldPulse: true }
+  }
+  
+  // For scores 80 and below: opacity decreases by 20% for every 10 points drop
+  if (score <= 80) {
+    // 80 -> 0.8, 70 -> 0.6, 60 -> 0.4, 50 -> 0.2, etc.
+    const opacity = Math.max(0.2, score / 100)
+    return { opacity, shouldPulse: false }
+  }
+  
+  // Scores 81-89: full opacity, no pulse
+  return { opacity: 1, shouldPulse: false }
 }
 
 export function CircularGauge({ 
@@ -18,6 +41,7 @@ export function CircularGauge({
   className = "" 
 }: CircularGaugeProps) {
   const [animatedScore, setAnimatedScore] = useState(0)
+  const visualProps = getScoreVisualProps(score)
   
   // Animate the score from 0 to target
   useEffect(() => {
@@ -52,9 +76,15 @@ export function CircularGauge({
   const strokeDashoffset = circumference - (progress * circumference)
 
   return (
-    <div className={`relative flex flex-col items-center ${className}`}>
-      {/* SVG Gauge */}
-      <div className="relative">
+    <div 
+      className={`relative flex flex-col items-center ${styles.gaugeContainer} ${className}`}
+      style={{ opacity: visualProps.opacity, width: size, height: size }}
+    >
+      {/* Ring Layer - can pulse independently */}
+      <div 
+        className={`absolute inset-0 ${visualProps.shouldPulse ? styles.devotionPulse : ''}`}
+        style={{ width: size, height: size }}
+      >
         <svg
           width={size}
           height={size}
@@ -95,20 +125,23 @@ export function CircularGauge({
             }}
           />
         </svg>
+      </div>
 
-        {/* Score Text - responsive font size, 700 weight, -0.5 letter spacing */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div 
-            className="font-bold text-[#0F172A]"
-            style={{
-              fontSize: fontSize ? `${fontSize}px` : '52px',
-              fontWeight: 700,
-              letterSpacing: '-0.5px',
-              lineHeight: 1
-            }}
-          >
-            {Math.round(animatedScore)}
-          </div>
+      {/* Score Text Layer - completely independent, always stable */}
+      <div 
+        className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
+        style={{ width: size, height: size }}
+      >
+        <div 
+          className="font-bold text-[#0F172A]"
+          style={{
+            fontSize: fontSize ? `${fontSize}px` : '52px',
+            fontWeight: 700,
+            letterSpacing: '-0.5px',
+            lineHeight: 1
+          }}
+        >
+          {Math.round(animatedScore)}
         </div>
       </div>
     </div>

@@ -1,0 +1,21 @@
+/* CircularGauge pulse animation for high devotion scores */
+
+.devotionPulse {
+  animation: devotionPulse 2s ease-in-out infinite;
+}
+
+@keyframes devotionPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 rgba(192, 132, 252, 0));
+  }
+  50% {
+    transform: scale(1.03);
+    filter: drop-shadow(0 0 15px rgba(192, 132, 252, 0.3));
+  }
+}
+
+/* Ensure smooth opacity transitions */
+.gaugeContainer {
+  transition: opacity 0.3s ease-in-out;
+}
