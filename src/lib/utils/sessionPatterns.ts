@@ -2,7 +2,6 @@ import { SessionReviewData } from '@/hooks/useReviewData';
 
 export interface RestDayAnalysis {
   restDays: number;
-  narrative: string;
 }
 
 export interface SessionConnection {
@@ -32,16 +31,6 @@ export function calculateRestDays(olderSession: Date, newerSession: Date): numbe
   return Math.max(0, totalDaysBetween - 1);
 }
 
-/**
- * Generate narrative text based on rest days
- */
-export function getRestNarrative(restDays: number): string {
-  if (restDays === 0) return "Back-to-back! 💪";
-  if (restDays === 1) return "Quick turnaround";
-  if (restDays >= 2 && restDays <= 3) return `${restDays} days rest`;
-  if (restDays >= 4 && restDays <= 6) return "Long time no see";
-  return "Remind me who is it";
-}
 
 /**
  * Check if a workout is a strength workout
@@ -68,12 +57,12 @@ export function shouldShowConnectors(sessions: SessionReviewData[]): boolean {
  * Calculate proportional spacing visuals based on rest days
  */
 export function calculateProportionalVisuals(restDays: number): { visualState: 'connected' | 'dots' | 'compressed' | 'extended', height: number } {
-  if (restDays <= 1) {
+  if (restDays === 0) {
     return {
       visualState: 'connected',
       height: 30 // Minimum connector height
     };
-  } else if (restDays <= 7) {
+  } else if (restDays >= 1 && restDays <= 7) {
     return {
       visualState: 'dots',
       height: 30 + (restDays * 14) // Base + 14px per rest day
@@ -101,8 +90,7 @@ export function analyzeSessionConnection(
 ): SessionConnection {
   const restDays = calculateRestDays(previousSession.date, currentSession.date);
   const restAnalysis: RestDayAnalysis = {
-    restDays,
-    narrative: getRestNarrative(restDays)
+    restDays
   };
   
   const visuals = calculateProportionalVisuals(restDays);

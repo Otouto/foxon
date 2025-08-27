@@ -16,13 +16,13 @@ export function ProportionalConnector({ connection }: ProportionalConnectorProps
 
   // Calculate dynamic height and visual state
   const getConnectorVisuals = () => {
-    if (restDays <= 1) {
-      // Connected sessions (0-1 days): Single solid line
+    if (restDays === 0) {
+      // Connected sessions (0 days): Single solid line
       return {
         height: 40, // Minimum connector height
         type: 'connected' as const
       };
-    } else if (restDays <= 7) {
+    } else if (restDays >= 1 && restDays <= 7) {
       // Standard gaps (2-7 days): Individual dots
       return {
         height: 40 + (restDays * 14), // Base + 14px per rest day
@@ -56,12 +56,6 @@ export function ProportionalConnector({ connection }: ProportionalConnectorProps
           top: '0'
         }}
       />
-      {/* Narrative text */}
-      <div className="flex items-center h-full" style={{ marginLeft: '50px' }}>
-        <span className="text-xs text-gray-600">
-          {restAnalysis.narrative}
-        </span>
-      </div>
     </div>
   );
 
@@ -91,12 +85,6 @@ export function ProportionalConnector({ connection }: ProportionalConnectorProps
           />
         ))}
         
-        {/* Narrative text positioned to the side */}
-        <div className="absolute top-1/2 transform -translate-y-1/2" style={{ marginLeft: '50px' }}>
-          <span className="text-xs text-gray-600">
-            {restAnalysis.narrative}
-          </span>
-        </div>
       </div>
     );
   };
@@ -122,16 +110,20 @@ export function ProportionalConnector({ connection }: ProportionalConnectorProps
         }}
       />
       
-      {/* Day count badge */}
+      {/* Compressed dots indicator */}
       <div 
-        className="absolute day-count-badge"
+        className="absolute flex flex-col items-center gap-1"
         style={{
           left: '50px',
           top: '50%',
           transform: 'translateY(-50%)'
         }}
       >
-        {restDays} days
+        <div className="w-2 h-2 bg-gray-400 rounded-full" />
+        <div className="w-2 h-2 bg-gray-400 rounded-full" />
+        <div className="w-2 h-2 bg-gray-400 rounded-full" />
+        <div className="w-1 h-1 bg-gray-300 rounded-full" />
+        <div className="w-1 h-1 bg-gray-300 rounded-full" />
       </div>
       
       {/* Second dotted line */}
@@ -151,18 +143,14 @@ export function ProportionalConnector({ connection }: ProportionalConnectorProps
       <div className="absolute top-1/2 left-0 right-0 transform -translate-y-1/2">
         <div className="flex items-center">
           <div className="flex-1 h-px bg-gray-300" />
-          <span className="px-4 text-xs text-gray-500">
-            {restDays} day break
-          </span>
+          <div className="px-4 flex flex-col items-center gap-1">
+            <div className="w-2 h-2 bg-gray-300 rounded-full" />
+            <div className="w-1 h-1 bg-gray-300 rounded-full" />
+            <div className="w-1 h-1 bg-gray-300 rounded-full" />
+          </div>
           <div className="flex-1 h-px bg-gray-300" />
         </div>
         
-        {/* Welcome back message */}
-        <div className="text-center mt-2">
-          <span className="text-xs text-gray-600 italic">
-            Welcome back
-          </span>
-        </div>
       </div>
     </div>
   );
