@@ -290,3 +290,38 @@
     -webkit-tap-highlight-color: transparent;
   }
 }
+
+/* Proportional connector styles */
+.rest-day-dot {
+  width: 8px;
+  height: 8px;
+  border: 1px solid #D0D0D0;
+  border-radius: 50%;
+  background: white;
+  transition: transform 0.2s ease;
+}
+
+.rest-day-dot:hover {
+  transform: scale(1.5);
+}
+
+.long-gap-line {
+  width: 1px;
+  height: 30px;
+  background: linear-gradient(
+    to bottom,
+    #D0D0D0 0%,
+    transparent 50%,
+    #D0D0D0 100%
+  );
+}
+
+.day-count-badge {
+  margin: 8px 0;
+  padding: 2px 8px;
+  background: white;
+  border: 1px solid #E0E0E0;
+  border-radius: 10px;
+  font-size: 11px;
+  color: #999;
+}

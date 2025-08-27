@@ -5,7 +5,7 @@ import { SessionGroup as SessionGroupType } from '@/lib/utils/dateUtils';
 import { SessionReviewData } from '@/hooks/useReviewData';
 import { SessionCard } from './SessionCard';
 import { GroupHeader } from './GroupHeader';
-import { SessionConnector } from './SessionConnector';
+import { ProportionalConnector } from './ProportionalConnector';
 import { getSessionConnections } from '@/lib/utils/sessionPatterns';
 
 interface SessionGroupProps {
@@ -93,7 +93,7 @@ export function SessionGroup({ group, onDeleteSession }: SessionGroupProps) {
                     />
                     {/* Show connector after this session if there's a connection */}
                     {connection && (
-                      <SessionConnector connection={connection} />
+                      <ProportionalConnector connection={connection} />
                     )}
                     {/* Add spacing after sessions without connectors */}
                     {!connection && index < sortedSessions.length - 1 && (

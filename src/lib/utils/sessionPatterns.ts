@@ -8,6 +8,8 @@ export interface RestDayAnalysis {
 export interface SessionConnection {
   restAnalysis: RestDayAnalysis;
   showConnector: boolean;
+  visualState: 'connected' | 'dots' | 'compressed' | 'extended';
+  height: number;
 }
 
 /**
@@ -63,6 +65,33 @@ export function shouldShowConnectors(sessions: SessionReviewData[]): boolean {
 }
 
 /**
+ * Calculate proportional spacing visuals based on rest days
+ */
+export function calculateProportionalVisuals(restDays: number): { visualState: 'connected' | 'dots' | 'compressed' | 'extended', height: number } {
+  if (restDays <= 1) {
+    return {
+      visualState: 'connected',
+      height: 30 // Minimum connector height
+    };
+  } else if (restDays <= 7) {
+    return {
+      visualState: 'dots',
+      height: 30 + (restDays * 14) // Base + 14px per rest day
+    };
+  } else if (restDays <= 14) {
+    return {
+      visualState: 'compressed',
+      height: 80 // Fixed height for compressed view
+    };
+  } else {
+    return {
+      visualState: 'extended',
+      height: 60 // Fixed height for break indicator
+    };
+  }
+}
+
+/**
  * Analyze the connection between two consecutive sessions
  */
 export function analyzeSessionConnection(
@@ -76,9 +105,13 @@ export function analyzeSessionConnection(
     narrative: getRestNarrative(restDays)
   };
   
+  const visuals = calculateProportionalVisuals(restDays);
+  
   return {
     restAnalysis,
-    showConnector: groupShouldShowConnectors
+    showConnector: groupShouldShowConnectors,
+    visualState: visuals.visualState,
+    height: visuals.height
   };
 }
 
