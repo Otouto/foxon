@@ -325,3 +325,43 @@
   font-size: 11px;
   color: #999;
 }
+
+/* Review page specific styles to prevent black background issues */
+.review-page {
+  background-color: #f9fafb !important;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Ensure review page content has proper background */
+.review-page-content {
+  background-color: #f9fafb;
+}
+
+/* Override any session-specific styles that might affect review page */
+.review-page .session-layout-wrapper {
+  background-color: #f9fafb !important;
+}
+
+/* PWA standalone mode - ensure review page has proper background */
+@media (display-mode: standalone) {
+  .review-page {
+    background-color: #f9fafb !important;
+  }
+  
+  .review-page .session-layout-wrapper {
+    background-color: #f9fafb !important;
+  }
+}
+
+/* Session pages specific styles to prevent black background issues */
+.session-layout-wrapper {
+  background-color: #f9fafb !important;
+}
+
+/* PWA standalone mode - ensure session pages have proper background */
+@media (display-mode: standalone) {
+  .session-layout-wrapper {
+    background-color: #f9fafb !important;
+  }
+}

@@ -41,30 +41,32 @@ export default async function SessionDetailsPage({ params }: { params: Promise<{
   };
 
   return (
-    <div className="px-6 py-8 pb-32">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <Link href="/review" className="p-2 -ml-2">
-          <ArrowLeft size={24} className="text-gray-600" />
-        </Link>
-        <h1 className="text-2xl font-bold text-gray-900">Session Details</h1>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="px-6 py-8 pb-32">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <Link href="/review" className="p-2 -ml-2">
+            <ArrowLeft size={24} className="text-gray-600" />
+          </Link>
+          <h1 className="text-2xl font-bold text-gray-900">Session Details</h1>
+        </div>
 
-      {/* Session Card */}
-      <div className="mb-6">
-        <SessionCardContent session={sessionReviewData} />
-      </div>
+        {/* Session Card */}
+        <div className="mb-6">
+          <SessionCardContent session={sessionReviewData} />
+        </div>
 
-      {/* Exercise Performance List */}
-      <div className="space-y-4 mb-8">
-        <h3 className="font-semibold text-gray-900">Performance</h3>
-        {session.sessionExercises.map((sessionExercise, index) => (
-          <ExercisePerformanceCard 
-            key={sessionExercise.id} 
-            sessionExercise={sessionExercise}
-            exerciseNumber={index + 1}
-          />
-        ))}
+        {/* Exercise Performance List */}
+        <div className="space-y-4 mb-8">
+          <h3 className="font-semibold text-gray-900">Performance</h3>
+          {session.sessionExercises.map((sessionExercise, index) => (
+            <ExercisePerformanceCard 
+              key={sessionExercise.id} 
+              sessionExercise={sessionExercise}
+              exerciseNumber={index + 1}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
