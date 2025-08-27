@@ -13,6 +13,11 @@ interface GroupHeaderProps {
 
 export function GroupHeader({ title, summary, type, isExpanded, onToggle }: GroupHeaderProps) {
   const getSummaryText = () => {
+    if (summary.intelligentHeader) {
+      return summary.intelligentHeader;
+    }
+    
+    // Fallback to original logic if intelligent header is not available
     if (type === 'week') {
       const { totalSessions, plannedSessions, status } = summary;
       return `${totalSessions} of ${plannedSessions} planned • ${status}`;

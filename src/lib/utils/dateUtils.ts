@@ -1,3 +1,5 @@
+import { generateWeeklyHeader, generateMonthlyHeader, getCurrentDayOfWeek } from './headerIntelligence';
+
 export function formatDate(date: Date): string {
   const today = new Date();
   const yesterday = new Date(today);
@@ -113,6 +115,7 @@ export interface GroupSummary {
   plannedSessions?: number;
   averageDevotion?: number;
   status?: 'On track' | 'Keep going' | 'Catch up';
+  intelligentHeader?: string;
 }
 
 export function calculateWeekStatus(completed: number, planned: number): 'On track' | 'Keep going' | 'Catch up' {
@@ -131,6 +134,9 @@ export function groupSessionsByTime<T extends { id: string; date: Date; devotion
   const thisWeekSessions = sessions.filter(s => isDateInWeek(s.date, currentWeek));
   
   if (thisWeekSessions.length > 0 || groups.length === 0) {
+    const currentDay = getCurrentDayOfWeek();
+    const intelligentHeader = generateWeeklyHeader(weeklyGoal, thisWeekSessions.length, currentDay);
+    
     groups.push({
       key: 'this-week',
       title: 'This Week',
@@ -139,7 +145,8 @@ export function groupSessionsByTime<T extends { id: string; date: Date; devotion
       summary: {
         totalSessions: thisWeekSessions.length,
         plannedSessions: weeklyGoal,
-        status: calculateWeekStatus(thisWeekSessions.length, weeklyGoal)
+        status: calculateWeekStatus(thisWeekSessions.length, weeklyGoal),
+        intelligentHeader
       }
     });
   }
@@ -172,6 +179,8 @@ export function groupSessionsByTime<T extends { id: string; date: Date; devotion
         ? Math.round(devotionScores.reduce((sum, score) => sum + score, 0) / devotionScores.length)
         : undefined;
 
+      const intelligentHeader = generateMonthlyHeader(monthlySessions, averageDevotion);
+
       groups.push({
         key: monthKey.toLowerCase().replace(' ', '-'),
         title: monthKey,
@@ -179,7 +188,8 @@ export function groupSessionsByTime<T extends { id: string; date: Date; devotion
         type: 'month',
         summary: {
           totalSessions: monthlySessions.length,
-          averageDevotion
+          averageDevotion,
+          intelligentHeader
         }
       });
     });
