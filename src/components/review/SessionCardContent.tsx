@@ -48,8 +48,9 @@ export function SessionCardContent({ session, className = '', variant = 'detaile
       return date.toLocaleDateString('en-US', { weekday: 'long' });
     }
     
-    // Previous week or earlier - show date format like "Aug 15"
+    // Previous week or earlier - show date format like "Wed, Aug 15"
     return date.toLocaleDateString('en-US', { 
+      weekday: 'short',
       month: 'short', 
       day: 'numeric'
     });
