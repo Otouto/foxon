@@ -13,7 +13,7 @@ export function SessionCardContent({ session, className = '', variant = 'detaile
   const devotionLabel = session.devotionScore ? getDevotionScoreLabel(session.devotionScore) : 'Practice';
   
   // Helper function to get glow effect class for high-scoring sessions
-  const getGlowClass = (score: number | null): string => {
+  const getGlowClass = (score: number | null | undefined): string => {
     if (!score) return '';
     if (score >= 95) return 'lavender-glow-intense';
     if (score >= 90) return 'lavender-glow';
