@@ -52,14 +52,14 @@ export default function WorkoutPage() {
 
   if (isLoading) {
     return (
-      <div className="px-6 py-8 pb-24">
+      <div className="px-6 py-8 pb-above-nav">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">Workouts</h1>
         </div>
         <WorkoutLoadingState />
         
         {/* Create Workout Button */}
-        <div className="fixed bottom-24 left-6 right-6">
+        <div className="fixed bottom-above-nav left-6 right-6">
           <Link 
             href="/workout/create"
             className="w-full bg-cyan-400 text-white font-semibold py-4 rounded-2xl text-center block flex items-center justify-center gap-3"
@@ -92,7 +92,7 @@ export default function WorkoutPage() {
   }
 
   return (
-    <div className="px-6 py-8 pb-24">
+    <div className="px-6 py-8 pb-above-nav">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Workouts</h1>
       </div>
@@ -117,7 +117,7 @@ export default function WorkoutPage() {
       )}
 
       {/* Create Workout Button */}
-      <div className="fixed bottom-24 left-6 right-6">
+      <div className="fixed bottom-above-nav left-6 right-6">
         <Link 
           href="/workout/create"
           className="w-full bg-cyan-400 text-white font-semibold py-4 rounded-2xl text-center block flex items-center justify-center gap-3"

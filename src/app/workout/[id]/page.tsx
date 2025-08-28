@@ -18,7 +18,7 @@ export default async function WorkoutDetailPage({ params }: { params: Promise<{ 
   }
 
   return (
-    <div className="px-6 py-8 pb-32">
+    <div className="px-6 py-8 pb-above-nav">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
@@ -101,7 +101,7 @@ export default async function WorkoutDetailPage({ params }: { params: Promise<{ 
       </div>
 
       {/* Start Button */}
-      <div className="fixed bottom-24 left-6 right-6">
+      <div className="fixed bottom-above-nav left-6 right-6">
         <Link 
           href={`/session/log?workoutId=${id}&preloaded=false`}
           className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl flex items-center justify-center gap-3"

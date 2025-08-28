@@ -43,6 +43,8 @@
 }
 
 :root {
+  /* Default height for BottomNav; will be updated at runtime */
+  --bottom-nav-height: 64px;
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -143,6 +145,16 @@
 /* Safe area utilities for mobile */
 .h-safe-area-inset-bottom {
   height: env(safe-area-inset-bottom);
+}
+
+/* Unified helpers for spacing above the fixed bottom nav and safe-area */
+.bottom-above-nav {
+  bottom: calc(var(--bottom-nav-height) + 1rem + env(safe-area-inset-bottom, 0));
+}
+
+.pb-above-nav {
+  /* Reserve space for bottom nav + approx. 6rem button + safe-area */
+  padding-bottom: calc(var(--bottom-nav-height) + 6rem + env(safe-area-inset-bottom, 0));
 }
 
 /* Tabular numerals for better alignment */
