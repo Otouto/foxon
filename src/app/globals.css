@@ -149,7 +149,7 @@
 
 /* Unified helpers for spacing above the fixed bottom nav and safe-area */
 .bottom-above-nav {
-  bottom: calc(var(--bottom-nav-height) + 1rem + env(safe-area-inset-bottom, 0));
+  bottom: calc(var(--bottom-nav-height) + 0.5rem + env(safe-area-inset-bottom, 0));
 }
 
 .pb-above-nav {

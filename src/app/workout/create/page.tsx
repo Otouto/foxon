@@ -3,7 +3,7 @@ import { ArrowLeft, Plus } from 'lucide-react';
 
 export default function CreateWorkoutPage() {
   return (
-    <div className="px-6 py-8 pb-32">
+    <div className="px-6 py-8 pb-above-nav">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <Link href="/workout" className="p-2 -ml-2">
@@ -47,7 +47,7 @@ export default function CreateWorkoutPage() {
       </div>
 
       {/* Save Button */}
-      <div className="fixed bottom-24 left-6 right-6">
+      <div className="fixed bottom-above-nav left-6 right-6">
         <button className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl">
           Save Workout
         </button>
