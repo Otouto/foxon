@@ -87,7 +87,6 @@ export default async function WorkoutDetailPage({ params }: { params: Promise<{ 
                   </span>
                   <span className="text-gray-900 font-medium">
                     {set.targetReps} reps × {set.targetLoad > 0 ? `${set.targetLoad}kg` : 'Bodyweight'}
-                    {set.notes && <span className="text-gray-500 ml-2">({set.notes})</span>}
                   </span>
                 </div>
               ))}
