@@ -39,20 +39,17 @@ export default async function SessionDetailsPage({ params }: { params: Promise<{
     workoutTemplate = await WorkoutService.getWorkoutById(session.workoutId);
   }
 
-  // Separate template exercises from alternative exercises
+  // Separate alternative exercises from template exercises
   const templateExerciseIds = workoutTemplate?.items.map(item => item.exercise.id) || [];
-  const templateExercises = session.sessionExercises.filter(se => 
-    templateExerciseIds.includes(se.exerciseId)
-  );
   const alternativeExercises = session.sessionExercises.filter(se => 
     !templateExerciseIds.includes(se.exerciseId)
   );
 
-  // Calculate completed exercises count
-  const completedExercises = session.sessionExercises.filter(se => 
-    se.sessionSets.some(set => set.completed)
+  // Calculate completed template exercises count
+  const completedTemplateExercises = session.sessionExercises.filter(se => 
+    templateExerciseIds.includes(se.exerciseId) && se.sessionSets.some(set => set.completed)
   ).length;
-  const totalExercises = session.sessionExercises.length;
+  const totalTemplateExercises = workoutTemplate?.items.length || 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -73,34 +70,46 @@ export default async function SessionDetailsPage({ params }: { params: Promise<{
             workoutTitle={session.workout?.title || null}
             devotionScore={session.devotionScore}
             duration={session.duration}
-            completedExercises={completedExercises}
-            totalExercises={totalExercises}
+            completedExercises={completedTemplateExercises}
+            totalExercises={totalTemplateExercises}
           />
         </div>
 
         {/* Exercise Performance List */}
-        {templateExercises.length > 0 && (
+        {workoutTemplate && workoutTemplate.items.length > 0 && (
           <div className="space-y-4 mb-8">
             <h3 className="font-semibold text-gray-900">Performance</h3>
-            {templateExercises.map((sessionExercise, index) => {
-              // Find matching template sets for this exercise
-              const workoutItem = workoutTemplate?.items.find(
-                item => item.exercise.id === sessionExercise.exerciseId
+            {workoutTemplate.items.map((workoutItem, index) => {
+              // Find corresponding session exercise if it exists
+              const sessionExercise = session.sessionExercises.find(
+                se => se.exerciseId === workoutItem.exercise.id
               );
-              const templateSets = workoutItem?.sets.map(set => ({
+              
+              const templateSets = workoutItem.sets.map(set => ({
                 type: set.type,
                 targetLoad: Number(set.targetLoad),
                 targetReps: set.targetReps,
                 order: set.order
               }));
 
+              // Create a mock sessionExercise structure for skipped exercises
+              const displaySessionExercise = sessionExercise || {
+                id: `mock-${workoutItem.exercise.id}`,
+                sessionId: session.id,
+                exerciseId: workoutItem.exercise.id,
+                order: workoutItem.order,
+                notes: null,
+                exercise: workoutItem.exercise,
+                sessionSets: []
+              };
+
               return (
                 <ExercisePerformanceCard 
-                  key={sessionExercise.id} 
-                  sessionExercise={sessionExercise}
+                  key={displaySessionExercise.id} 
+                  sessionExercise={displaySessionExercise}
                   exerciseNumber={index + 1}
                   templateSets={templateSets}
-                  muscleGroup={workoutItem?.exercise.muscleGroup?.name}
+                  muscleGroup={workoutItem.exercise.muscleGroup?.name}
                 />
               );
             })}

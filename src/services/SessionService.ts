@@ -23,6 +23,7 @@ export interface SessionWithDetails {
   workoutId: string | null;
   date: Date;
   status: SessionStatus;
+  duration: number | null; // Duration in seconds
   devotionScore: number | null; // 0-100 Commitment & Devotion Score
   devotionGrade: string | null; // "Dialed in", "On plan", "Loose", "Off plan"
   devotionPillars: DevotionPillars | null; // Pillar scores for visualization

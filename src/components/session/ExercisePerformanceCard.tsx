@@ -5,6 +5,16 @@ interface TemplateSet {
   order: number;
 }
 
+interface SessionSet {
+  id: string;
+  type: string;
+  load: number;
+  reps: number;
+  completed: boolean;
+  order: number;
+  notes: string | null;
+}
+
 interface ExercisePerformanceCardProps {
   sessionExercise: {
     id: string;
@@ -33,14 +43,8 @@ export function ExercisePerformanceCard({ sessionExercise, exerciseNumber, templ
   const completedSetsCount = sessionExercise.sessionSets.filter(set => set.completed).length;
   const totalSetsCount = templateSets ? templateSets.length : sessionExercise.sessionSets.length;
 
-  // Helper to find template set for a given session set
-  const getTemplateSet = (sessionSet: any): TemplateSet | null => {
-    if (!templateSets) return null;
-    return templateSets.find(t => t.order === sessionSet.order) || null;
-  };
-
   // Helper to format set display with template comparison
-  const formatSetDisplay = (sessionSet: any, templateSet: TemplateSet | null) => {
+  const formatSetDisplay = (sessionSet: SessionSet | null, templateSet: TemplateSet | null) => {
     // Handle case where no session set exists (template set but not performed)
     if (!sessionSet) {
       return {
