@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { SessionService } from '@/services/SessionService';
+import { WorkoutService } from '@/services/WorkoutService';
 import { getCurrentUserId, isAuthenticated } from '@/lib/auth';
-import { SessionCardContent } from '@/components/review/SessionCardContent';
+import { SessionHeroBlock } from '@/components/session/SessionHeroBlock';
 import { ExercisePerformanceCard } from '@/components/session/ExercisePerformanceCard';
+import { AlternativeWorkSection } from '@/components/session/AlternativeWorkSection';
 import { redirect } from 'next/navigation';
 
 export default async function SessionDetailsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -16,8 +18,11 @@ export default async function SessionDetailsPage({ params }: { params: Promise<{
 
   const userId = getCurrentUserId();
   
-  // Fetch session details
-  const session = await SessionService.getSession(id, userId);
+  // Fetch session details and session count
+  const [session, sessionNumber] = await Promise.all([
+    SessionService.getSession(id, userId),
+    SessionService.getSessionNumber(id, userId)
+  ]);
 
   if (!session) {
     return (
@@ -28,17 +33,26 @@ export default async function SessionDetailsPage({ params }: { params: Promise<{
     );
   }
 
-  // Convert session to SessionReviewData format for SessionCardContent
-  const sessionReviewData = {
-    id: session.id,
-    date: session.date,
-    workoutTitle: session.workout?.title || null,
-    status: session.status,
-    devotionScore: session.devotionScore,
-    devotionGrade: session.devotionGrade,
-    vibeLine: undefined, // TODO: Add vibeLine from sessionSeal when available
-    duration: undefined, // TODO: Add duration calculation
-  };
+  // Fetch workout template if session has a workoutId
+  let workoutTemplate = null;
+  if (session.workoutId) {
+    workoutTemplate = await WorkoutService.getWorkoutById(session.workoutId);
+  }
+
+  // Separate template exercises from alternative exercises
+  const templateExerciseIds = workoutTemplate?.items.map(item => item.exercise.id) || [];
+  const templateExercises = session.sessionExercises.filter(se => 
+    templateExerciseIds.includes(se.exerciseId)
+  );
+  const alternativeExercises = session.sessionExercises.filter(se => 
+    !templateExerciseIds.includes(se.exerciseId)
+  );
+
+  // Calculate completed exercises count
+  const completedExercises = session.sessionExercises.filter(se => 
+    se.sessionSets.some(set => set.completed)
+  ).length;
+  const totalExercises = session.sessionExercises.length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -48,24 +62,54 @@ export default async function SessionDetailsPage({ params }: { params: Promise<{
           <Link href="/review" className="p-2 -ml-2">
             <ArrowLeft size={24} className="text-gray-600" />
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Session Details</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Session Review</h1>
         </div>
 
-        {/* Session Card */}
+        {/* Session Hero */}
         <div className="mb-6">
-          <SessionCardContent session={sessionReviewData} />
+          <SessionHeroBlock
+            sessionNumber={sessionNumber || 1}
+            date={session.date}
+            workoutTitle={session.workout?.title || null}
+            devotionScore={session.devotionScore}
+            duration={session.duration}
+            completedExercises={completedExercises}
+            totalExercises={totalExercises}
+          />
         </div>
 
         {/* Exercise Performance List */}
-        <div className="space-y-4 mb-8">
-          <h3 className="font-semibold text-gray-900">Performance</h3>
-          {session.sessionExercises.map((sessionExercise, index) => (
-            <ExercisePerformanceCard 
-              key={sessionExercise.id} 
-              sessionExercise={sessionExercise}
-              exerciseNumber={index + 1}
-            />
-          ))}
+        {templateExercises.length > 0 && (
+          <div className="space-y-4 mb-8">
+            <h3 className="font-semibold text-gray-900">Performance</h3>
+            {templateExercises.map((sessionExercise, index) => {
+              // Find matching template sets for this exercise
+              const workoutItem = workoutTemplate?.items.find(
+                item => item.exercise.id === sessionExercise.exerciseId
+              );
+              const templateSets = workoutItem?.sets.map(set => ({
+                type: set.type,
+                targetLoad: Number(set.targetLoad),
+                targetReps: set.targetReps,
+                order: set.order
+              }));
+
+              return (
+                <ExercisePerformanceCard 
+                  key={sessionExercise.id} 
+                  sessionExercise={sessionExercise}
+                  exerciseNumber={index + 1}
+                  templateSets={templateSets}
+                  muscleGroup={workoutItem?.exercise.muscleGroup?.name}
+                />
+              );
+            })}
+          </div>
+        )}
+
+        {/* Alternative Work Section */}
+        <div className="mb-8">
+          <AlternativeWorkSection alternativeExercises={alternativeExercises} />
         </div>
       </div>
     </div>

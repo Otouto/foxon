@@ -600,5 +600,37 @@ export class SessionService {
       return false;
     }
   }
+
+  /**
+   * Get the session number (count) for a specific session by a user
+   */
+  static async getSessionNumber(sessionId: string, userId: string): Promise<number | null> {
+    try {
+      // Get the session date first
+      const targetSession = await prisma.session.findFirst({
+        where: { id: sessionId, userId },
+        select: { date: true }
+      });
+
+      if (!targetSession) {
+        return null;
+      }
+
+      // Count all sessions by this user that were created before or on the target session's date
+      const sessionNumber = await prisma.session.count({
+        where: {
+          userId,
+          date: {
+            lte: targetSession.date
+          }
+        }
+      });
+
+      return sessionNumber;
+    } catch (error) {
+      console.error('Failed to get session number:', error);
+      return null;
+    }
+  }
 }
 

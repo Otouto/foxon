@@ -1,3 +1,10 @@
+interface TemplateSet {
+  type: string;
+  targetLoad: number;
+  targetReps: number;
+  order: number;
+}
+
 interface ExercisePerformanceCardProps {
   sessionExercise: {
     id: string;
@@ -18,54 +25,153 @@ interface ExercisePerformanceCardProps {
     }[];
   };
   exerciseNumber: number;
+  templateSets?: TemplateSet[]; // Optional template sets for comparison
+  muscleGroup?: string; // Optional muscle group name
 }
 
-export function ExercisePerformanceCard({ sessionExercise, exerciseNumber }: ExercisePerformanceCardProps) {
+export function ExercisePerformanceCard({ sessionExercise, exerciseNumber, templateSets, muscleGroup }: ExercisePerformanceCardProps) {
   const completedSetsCount = sessionExercise.sessionSets.filter(set => set.completed).length;
-  const totalSetsCount = sessionExercise.sessionSets.length;
+  const totalSetsCount = templateSets ? templateSets.length : sessionExercise.sessionSets.length;
+
+  // Helper to find template set for a given session set
+  const getTemplateSet = (sessionSet: any): TemplateSet | null => {
+    if (!templateSets) return null;
+    return templateSets.find(t => t.order === sessionSet.order) || null;
+  };
+
+  // Helper to format set display with template comparison
+  const formatSetDisplay = (sessionSet: any, templateSet: TemplateSet | null) => {
+    // Handle case where no session set exists (template set but not performed)
+    if (!sessionSet) {
+      return {
+        text: '— not completed —',
+        className: 'text-gray-500'
+      };
+    }
+
+    const actualReps = sessionSet.reps;
+    const actualLoad = sessionSet.load;
+    const isBodyweight = actualLoad === 0;
+
+    if (!sessionSet.completed) {
+      return {
+        text: '— not completed —',
+        className: 'text-gray-500'
+      };
+    }
+
+    if (!templateSet) {
+      // No template to compare against (alternative work)
+      return {
+        text: `${actualReps} reps × ${isBodyweight ? 'Bodyweight' : `${actualLoad}kg`}`,
+        className: 'text-lime-800 font-medium'
+      };
+    }
+
+    const targetReps = templateSet.targetReps;
+    const targetLoad = Number(templateSet.targetLoad);
+    const repsDiff = actualReps - targetReps;
+    const loadDiff = actualLoad - targetLoad;
+
+    // Check if performance matches template exactly
+    if (repsDiff === 0 && loadDiff === 0) {
+      return {
+        text: `${actualReps} reps × ${isBodyweight ? 'Bodyweight' : `${actualLoad}kg`}`,
+        className: 'text-lime-800 font-medium'
+      };
+    }
+
+    // Performance differs from template - show difference
+    let differenceText = '';
+    const differences = [];
+    
+    if (repsDiff !== 0) {
+      differences.push(`${repsDiff > 0 ? '+' : ''}${repsDiff} reps`);
+    }
+    if (loadDiff !== 0) {
+      differences.push(`${loadDiff > 0 ? '+' : ''}${loadDiff}kg`);
+    }
+    
+    if (differences.length > 0) {
+      differenceText = ` (${differences.join(', ')})`;
+    }
+
+    return {
+      text: `${actualReps} reps × ${isBodyweight ? 'Bodyweight' : `${actualLoad}kg`}${differenceText}`,
+      className: 'text-lime-800 font-medium'
+    };
+  };
+
+  // Create a complete list of sets (template + any additional session sets)
+  const allSets = [];
+  
+  if (templateSets) {
+    // Start with template sets
+    templateSets.forEach(templateSet => {
+      const sessionSet = sessionExercise.sessionSets.find(s => s.order === templateSet.order);
+      allSets.push({ templateSet, sessionSet });
+    });
+    
+    // Add any additional session sets not in template
+    sessionExercise.sessionSets.forEach(sessionSet => {
+      if (!templateSets.find(t => t.order === sessionSet.order)) {
+        allSets.push({ templateSet: null, sessionSet });
+      }
+    });
+  } else {
+    // No template - just show session sets
+    sessionExercise.sessionSets.forEach(sessionSet => {
+      allSets.push({ templateSet: null, sessionSet });
+    });
+  }
 
   return (
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
-          <h4 className="font-medium text-gray-900">{sessionExercise.exercise.name}</h4>
+          <h4 className="font-medium text-gray-900">
+            {exerciseNumber}. {sessionExercise.exercise.name}
+          </h4>
           <p className="text-sm text-gray-500">
-            {completedSetsCount} of {totalSetsCount} sets completed
+            {completedSetsCount} of {totalSetsCount} sets{muscleGroup && ` • ${muscleGroup}`}
           </p>
         </div>
-        <div className="text-sm text-gray-400 font-medium">{exerciseNumber}</div>
       </div>
       
       {/* Sets breakdown */}
-      <div className="space-y-2 mb-3">
-        {sessionExercise.sessionSets.map((set) => (
-          <div 
-            key={set.id} 
-            className={`flex items-center justify-between text-sm rounded-lg px-3 py-2 ${
-              set.completed 
-                ? 'bg-green-50 border border-green-200' 
-                : 'bg-gray-50 border border-gray-200'
-            }`}
-          >
-            <span className={`${set.completed ? 'text-green-700' : 'text-gray-600'}`}>
-              Set {set.order}
-              {set.type === 'WARMUP' && <span className="text-orange-500 ml-1">(Warmup)</span>}
-            </span>
-            <div className="flex items-center gap-2">
-              <span className={`font-medium ${set.completed ? 'text-green-900' : 'text-gray-900'}`}>
-                {set.reps} reps × {set.load > 0 ? `${set.load}kg` : 'Bodyweight'}
-                {set.notes && <span className="text-gray-500 ml-2">({set.notes})</span>}
-              </span>
-              {set.completed && (
-                <span className="text-green-600">✓</span>
+      <div className="space-y-1.5">
+        {allSets.map((setData, index) => {
+          const { templateSet, sessionSet } = setData;
+          const setNumber = templateSet?.order || sessionSet?.order || index + 1;
+          const setDisplay = formatSetDisplay(sessionSet, templateSet);
+          
+          return (
+            <div 
+              key={sessionSet?.id || `template-${setNumber}`}
+              className={`rounded-lg px-3 py-2 text-sm ${
+                sessionSet?.completed 
+                  ? 'bg-lime-50 border border-lime-200' 
+                  : 'bg-gray-50 border border-gray-200'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-gray-700 font-medium">Set {setNumber}</span>
+                <span className={setDisplay.className}>
+                  {setDisplay.text}
+                </span>
+              </div>
+              {sessionSet?.notes && (
+                <div className="mt-1 text-xs text-gray-500 italic">
+                  {sessionSet.notes}
+                </div>
               )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       
       {sessionExercise.notes && (
-        <p className="text-xs text-gray-500 italic">💡 {sessionExercise.notes}</p>
+        <p className="text-xs text-gray-500 italic mt-3">💡 {sessionExercise.notes}</p>
       )}
     </div>
   );
