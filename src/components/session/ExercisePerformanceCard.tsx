@@ -107,13 +107,13 @@ export function ExercisePerformanceCard({ sessionExercise, exerciseNumber, templ
   };
 
   // Create a complete list of sets (template + any additional session sets)
-  const allSets = [];
+  const allSets: Array<{ templateSet: TemplateSet | null; sessionSet: SessionSet | null }> = [];
   
   if (templateSets) {
     // Start with template sets
     templateSets.forEach(templateSet => {
       const sessionSet = sessionExercise.sessionSets.find(s => s.order === templateSet.order);
-      allSets.push({ templateSet, sessionSet });
+      allSets.push({ templateSet, sessionSet: sessionSet || null });
     });
     
     // Add any additional session sets not in template

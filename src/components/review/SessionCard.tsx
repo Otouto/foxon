@@ -48,7 +48,7 @@ export function SessionCard({ session, onDelete }: SessionCardProps) {
     <>
       <SwipeableCard onDeleteRequest={handleDeleteRequest}>
         <div onClick={handleCardClick} className="cursor-pointer">
-          <SessionCardContent session={session} variant="compact" />
+          <SessionCardContent session={session} />
         </div>
       </SwipeableCard>
 
