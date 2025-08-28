@@ -25,8 +25,10 @@ export default function SessionLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="session-layout-wrapper">
-      {children}
+    <div className="fullscreen-layout-wrapper">
+      <div className="fullscreen-content">
+        {children}
+      </div>
     </div>
   );
 }

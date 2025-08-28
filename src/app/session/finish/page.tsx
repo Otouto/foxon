@@ -267,7 +267,7 @@ function SessionFinishContent() {
   }
 
   return (
-    <div className="px-6 py-8 pb-32">
+    <div className="px-6 py-8">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <Link href={`/session/log?workoutId=${workoutId}&preloaded=false`} className="p-2 -ml-2">
@@ -280,7 +280,7 @@ function SessionFinishContent() {
       <SessionReflectionForm 
         onSubmit={handleReflectionSubmit}
         disabled={backgroundSave.status === 'error'}
-        className="mb-32"
+        className=""
       />
 
       {/* Background save status indicator - Fixed at bottom */}

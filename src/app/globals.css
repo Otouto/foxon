@@ -155,12 +155,10 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Session-specific styles for full-screen experience */
-.session-layout-wrapper {
+/* Generic full-screen scrollable layout */
+.fullscreen-layout-wrapper {
   height: 100vh;
   height: 100dvh;
-  overflow: hidden;
-  -webkit-overflow-scrolling: touch;
   position: fixed;
   top: 0;
   left: 0;
@@ -168,6 +166,29 @@
   bottom: 0;
   z-index: 50;
   background-color: #f9fafb;
+  overflow: hidden;
+}
+
+.fullscreen-content {
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Safe padding for sticky buttons - 6rem (24) + 1rem buffer + safe area */
+  padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0));
+}
+
+/* Legacy session-layout-wrapper class for backward compatibility */
+.session-layout-wrapper {
+  height: 100vh;
+  height: 100dvh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  background-color: #f9fafb;
+  overflow: hidden;
 }
 
 .session-container {
@@ -204,8 +225,9 @@
   justify-content: center;
 }
 
-/* Enhanced mobile optimizations for session */
+/* Enhanced mobile optimizations */
 @media screen and (max-width: 768px) {
+  .fullscreen-layout-wrapper,
   .session-layout-wrapper {
     -webkit-text-size-adjust: 100%;
     -webkit-font-smoothing: antialiased;
@@ -214,20 +236,28 @@
     user-select: none;
   }
   
+  .fullscreen-content,
+  .session-content {
+    overscroll-behavior: contain;
+  }
+  
   .session-container {
     position: relative;
     isolation: isolate;
-  }
-  
-  .session-content {
-    overscroll-behavior: contain;
   }
 }
 
 /* PWA standalone mode optimizations */
 @media (display-mode: standalone) {
+  .fullscreen-layout-wrapper,
   .session-layout-wrapper {
     background-color: #000;
+  }
+  
+  .fullscreen-content {
+    background-color: #f9fafb;
+    border-radius: 0;
+    margin-top: env(safe-area-inset-top);
   }
   
   .session-container {
@@ -237,8 +267,9 @@
   }
 }
 
-/* iOS-specific session optimizations */
+/* iOS-specific optimizations */
 @supports (-webkit-appearance: none) {
+  .fullscreen-layout-wrapper,
   .session-layout-wrapper {
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
@@ -339,7 +370,8 @@
 }
 
 /* Override any session-specific styles that might affect review page */
-.review-page .session-layout-wrapper {
+.review-page .session-layout-wrapper,
+.review-page .fullscreen-layout-wrapper {
   background-color: #f9fafb !important;
 }
 
@@ -349,19 +381,22 @@
     background-color: #f9fafb !important;
   }
   
-  .review-page .session-layout-wrapper {
+  .review-page .session-layout-wrapper,
+  .review-page .fullscreen-layout-wrapper {
     background-color: #f9fafb !important;
   }
 }
 
-/* Session pages specific styles to prevent black background issues */
-.session-layout-wrapper {
+/* Full-screen pages specific styles to prevent black background issues */
+.session-layout-wrapper,
+.fullscreen-layout-wrapper {
   background-color: #f9fafb !important;
 }
 
-/* PWA standalone mode - ensure session pages have proper background */
+/* PWA standalone mode - ensure full-screen pages have proper background */
 @media (display-mode: standalone) {
-  .session-layout-wrapper {
+  .session-layout-wrapper,
+  .fullscreen-layout-wrapper {
     background-color: #f9fafb !important;
   }
 }

@@ -42,7 +42,7 @@ export default async function SessionDetailsPage({ params }: { params: Promise<{
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="px-6 py-8 pb-32">
+      <div className="px-6 py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <Link href="/review" className="p-2 -ml-2">
