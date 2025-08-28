@@ -12,6 +12,14 @@ export function SessionCardContent({ session, className = '', variant = 'detaile
   const practiceTimeInfo = getPracticeTimeInfo(session.date);
   const devotionLabel = session.devotionScore ? getDevotionScoreLabel(session.devotionScore) : 'Practice';
   
+  // Helper function to get glow effect class for high-scoring sessions
+  const getGlowClass = (score: number | null): string => {
+    if (!score) return '';
+    if (score >= 95) return 'lavender-glow-intense';
+    if (score >= 90) return 'lavender-glow';
+    return '';
+  };
+  
   // Format duration to rounded minutes with "min" suffix
   const formatDurationToMinutes = (seconds: number): string => {
     const minutes = Math.round(seconds / 60);
@@ -64,8 +72,12 @@ export function SessionCardContent({ session, className = '', variant = 'detaile
   
   // Compact view layout
   if (variant === 'compact') {
+    const glowClass = getGlowClass(session.devotionScore);
+    const baseClasses = 'bg-white rounded-2xl shadow-sm border border-gray-100 transition-all duration-200 ease-in-out min-h-[72px]';
+    const containerClasses = glowClass ? `${baseClasses} ${glowClass}` : `${baseClasses}`;
+    
     return (
-      <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 transition-all duration-200 ease-in-out min-h-[72px] ${className}`}>
+      <div className={`${containerClasses} ${className}`}>
         <div className="flex items-start p-3 min-h-full">
           {/* Devotion Score Circle - Left Side */}
           <div className="flex-shrink-0 mr-4 mt-1">
@@ -115,8 +127,12 @@ export function SessionCardContent({ session, className = '', variant = 'detaile
   }
 
   // Detailed view layout (original)
+  const glowClass = getGlowClass(session.devotionScore);
+  const baseClasses = 'bg-white rounded-2xl p-6 shadow-sm border border-gray-100 transition-all duration-200 ease-in-out';
+  const containerClasses = glowClass ? `${baseClasses} ${glowClass}` : `${baseClasses}`;
+  
   return (
-    <div className={`bg-white rounded-2xl p-6 shadow-sm border border-gray-100 transition-all duration-200 ease-in-out ${className}`}>
+    <div className={`${containerClasses} ${className}`}>
       {/* Header: Date with weekday + gym emoji */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-medium text-gray-900">
