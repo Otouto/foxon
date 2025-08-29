@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { groupSessionsByTime, SessionGroup } from '@/lib/utils/dateUtils';
+import { ExerciseAnalytics } from '@/services/ExerciseAnalyticsService';
 
 export interface SessionReviewData {
   id: string;
@@ -31,7 +32,7 @@ export interface ExerciseStatsData {
 interface UseReviewDataReturn {
   sessions: SessionReviewData[];
   sessionGroups: SessionGroup<SessionReviewData>[];
-  exercises: ExerciseStatsData[];
+  exercises: ExerciseAnalytics[];
   isLoading: boolean;
   error: string | null;
   refetch: () => void;
@@ -47,7 +48,7 @@ interface CacheData {
     timestamp: number;
   } | null;
   exercises: {
-    data: ExerciseStatsData[];
+    data: ExerciseAnalytics[];
     timestamp: number;
   } | null;
 }
@@ -75,7 +76,7 @@ export function useReviewData(activeTab: 'sessions' | 'exercises', limit: number
   
   const [sessions, setSessions] = useState<SessionReviewData[]>([]);
   const [sessionGroups, setSessionGroups] = useState<SessionGroup<SessionReviewData>[]>([]);
-  const [exercises, setExercises] = useState<ExerciseStatsData[]>([]);
+  const [exercises, setExercises] = useState<ExerciseAnalytics[]>([]);
   const [isLoading, setIsLoading] = useState(!hasFreshCache);
   const [error, setError] = useState<string | null>(null);
 

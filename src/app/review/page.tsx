@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Calendar, TrendingUp } from 'lucide-react';
 import { useReviewData } from '@/hooks/useReviewData';
 import { SessionGroup } from '@/components/review/SessionGroup';
-import { ExerciseStatsCard } from '@/components/review/ExerciseStatsCard';
+import { ExerciseListCard } from '@/components/exercise/ExerciseListCard';
 import { LoadingState } from '@/components/review/LoadingState';
 import { ErrorState } from '@/components/review/ErrorState';
 import { EmptyState } from '@/components/review/EmptyState';
@@ -70,12 +70,12 @@ export default function ReviewPage() {
 
             {/* Exercises Tab */}
             {activeTab === 'exercises' && (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {exercises.length === 0 ? (
                   <EmptyState type="exercises" />
                 ) : (
                   exercises.map((exercise) => (
-                    <ExerciseStatsCard key={exercise.exerciseId} exercise={exercise} />
+                    <ExerciseListCard key={exercise.id} exercise={exercise} />
                   ))
                 )}
               </div>
