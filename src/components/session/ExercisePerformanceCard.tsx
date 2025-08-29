@@ -164,11 +164,6 @@ export function ExercisePerformanceCard({ sessionExercise, exerciseNumber, templ
                   {setDisplay.text}
                 </span>
               </div>
-              {sessionSet?.notes && (
-                <div className="mt-1 text-xs text-gray-500 italic">
-                  {sessionSet.notes}
-                </div>
-              )}
             </div>
           );
         })}
