@@ -9,7 +9,8 @@ interface ExerciseAnalytics {
     reps: number;
     isBodyweight: boolean;
   } | null;
-  devotionDots: boolean[]; // 12 weeks of activity (true = active, false = inactive)
+  devotionDots: boolean[]; // Variable length array (1-12 weeks of activity)
+  actualWeeksTracked: number; // Actual number of weeks being displayed (1-12)
   consistency: number; // 0-1 representing percentage
   chips: ('foundation' | 'missing')[];
 }
@@ -70,7 +71,10 @@ export function ExerciseListCard({ exercise }: ExerciseListCardProps) {
             ))}
           </div>
           <span className="text-xs text-gray-500 ml-1">
-            Last 12 weeks
+            {exercise.actualWeeksTracked > 0 
+              ? `Last ${exercise.actualWeeksTracked} week${exercise.actualWeeksTracked === 1 ? '' : 's'}`
+              : 'No activity yet'
+            }
           </span>
         </div>
         

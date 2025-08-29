@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/auth';
+import { Prisma } from '@prisma/client';
 
 export interface ExerciseAnalytics {
   id: string;
@@ -10,7 +11,8 @@ export interface ExerciseAnalytics {
     reps: number;
     isBodyweight: boolean;
   } | null;
-  devotionDots: boolean[]; // 12 weeks of activity (true = active, false = inactive)
+  devotionDots: boolean[]; // Variable length array (1-12 weeks of activity)
+  actualWeeksTracked: number; // Actual number of weeks being displayed (1-12)
   consistency: number; // 0-1 representing percentage
   chips: ('foundation' | 'missing')[];
 }
@@ -54,7 +56,7 @@ export class ExerciseAnalyticsService {
     const analytics = await Promise.all(
       exercisesWithSessions.map(async (exercise) => {
         const peakPerformance = this.calculatePeakPerformance(exercise.sessionExercises);
-        const devotionDots = this.calculateDevotionDots(exercise.sessionExercises);
+        const devotionData = this.calculateDevotionDots(exercise.sessionExercises);
         const consistency = this.calculateConsistency(exercise.sessionExercises);
         const chips = this.determineChips(consistency);
 
@@ -63,7 +65,8 @@ export class ExerciseAnalyticsService {
           name: exercise.name,
           muscleGroup: exercise.muscleGroup?.name || null,
           peakPerformance,
-          devotionDots,
+          devotionDots: devotionData.dots,
+          actualWeeksTracked: devotionData.weeksTracked,
           consistency,
           chips
         };
@@ -74,9 +77,15 @@ export class ExerciseAnalyticsService {
     return analytics.sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  private static calculatePeakPerformance(sessionExercises: any[]): ExerciseAnalytics['peakPerformance'] {
+  private static calculatePeakPerformance(sessionExercises: Array<{
+    sessionSets: Array<{
+      load: Prisma.Decimal;
+      reps: number;
+      completed: boolean;
+    }>;
+  }>): ExerciseAnalytics['peakPerformance'] {
     let maxScore = 0;
-    let bestSet: any = null;
+    let bestSet: { load: Prisma.Decimal; reps: number } | null = null;
 
     for (const sessionExercise of sessionExercises) {
       for (const set of sessionExercise.sessionSets) {
@@ -103,18 +112,30 @@ export class ExerciseAnalyticsService {
     };
   }
 
-  private static calculateDevotionDots(sessionExercises: any[]): boolean[] {
-    const startDate = new Date('2024-07-01');
+  private static calculateDevotionDots(sessionExercises: Array<{
+    session: {
+      date: Date;
+    };
+  }>): { dots: boolean[]; weeksTracked: number } {
+    const earliestDate = this.getEarliestSessionDate(sessionExercises);
+    if (!earliestDate) return { dots: [], weeksTracked: 0 };
+
+    const now = new Date();
     const dots: boolean[] = [];
     
-    // Calculate 12 weeks from start date
-    for (let week = 0; week < 12; week++) {
-      const weekStart = new Date(startDate);
-      weekStart.setDate(startDate.getDate() + (week * 7));
-      
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 6);
+    // Calculate weeks since first session, capped at 12 weeks
+    const weeksSinceStart = Math.ceil((now.getTime() - earliestDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
+    const weeksToShow = Math.min(12, Math.max(1, weeksSinceStart));
+    
+    // Calculate dots for the relevant period (most recent first, then reverse)
+    for (let week = 0; week < weeksToShow; week++) {
+      const weekEnd = new Date(now);
+      weekEnd.setDate(now.getDate() - (week * 7));
       weekEnd.setHours(23, 59, 59, 999);
+      
+      const weekStart = new Date(weekEnd);
+      weekStart.setDate(weekEnd.getDate() - 6);
+      weekStart.setHours(0, 0, 0, 0);
 
       // Check if exercise was performed this week
       const hasActivity = sessionExercises.some(sessionExercise => {
@@ -125,27 +146,49 @@ export class ExerciseAnalyticsService {
       dots.push(hasActivity);
     }
 
-    return dots;
+    // Return variable-length array without padding
+    return {
+      dots: dots.reverse(), // Reverse to show oldest week first (left) to newest week last (right)
+      weeksTracked: weeksToShow
+    };
   }
 
-  private static calculateConsistency(sessionExercises: any[]): number {
+  private static calculateConsistency(sessionExercises: Array<{
+    session: {
+      date: Date;
+    };
+  }>): number {
     if (sessionExercises.length === 0) return 0;
 
-    // Get unique weeks with sessions
+    const earliestDate = this.getEarliestSessionDate(sessionExercises);
+    if (!earliestDate) return 0;
+
+    const now = new Date();
+    
+    // Calculate actual weeks since first session, capped at 12 weeks
+    const weeksSinceStart = Math.ceil((now.getTime() - earliestDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
+    const totalAvailableWeeks = Math.min(12, Math.max(1, weeksSinceStart));
+    
+    // Calculate the time window we're considering
+    const windowStartWeeks = Math.min(12, weeksSinceStart);
+    const windowStart = new Date(now);
+    windowStart.setDate(now.getDate() - (windowStartWeeks * 7));
+
+    // Get unique weeks with sessions within the available period
     const weeksSeen = new Set<string>();
     
     sessionExercises.forEach(sessionExercise => {
       const sessionDate = new Date(sessionExercise.session.date);
-      const weekKey = this.getWeekKey(sessionDate);
-      weeksSeen.add(weekKey);
+      
+      // Only count sessions within the available window
+      if (sessionDate >= windowStart && sessionDate <= now) {
+        const weekKey = this.getWeekKey(sessionDate);
+        weeksSeen.add(weekKey);
+      }
     });
 
-    // Calculate consistency as weeks with activity / total weeks since July 1, 2024
-    const startDate = new Date('2024-07-01');
-    const now = new Date();
-    const totalWeeks = Math.min(12, Math.ceil((now.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000)));
-    
-    return weeksSeen.size / Math.max(1, totalWeeks);
+    // Calculate consistency as weeks with activity / actual available weeks
+    return weeksSeen.size / totalAvailableWeeks;
   }
 
   private static determineChips(consistency: number): ('foundation' | 'missing')[] {
@@ -166,5 +209,16 @@ export class ExerciseAnalyticsService {
     const startOfWeek = new Date(date);
     startOfWeek.setDate(date.getDate() - date.getDay());
     return startOfWeek.toISOString().split('T')[0];
+  }
+
+  private static getEarliestSessionDate(sessionExercises: Array<{
+    session: {
+      date: Date;
+    };
+  }>): Date | null {
+    if (sessionExercises.length === 0) return null;
+    
+    const dates = sessionExercises.map(se => new Date(se.session.date));
+    return new Date(Math.min(...dates.map(d => d.getTime())));
   }
 }
