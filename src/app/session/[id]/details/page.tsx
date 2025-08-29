@@ -80,7 +80,7 @@ export default async function SessionDetailsPage({ params }: { params: Promise<{
           <div className="mb-6">
             <h3 className="font-semibold text-gray-900 mb-3">Reflection</h3>
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-              <p className="text-gray-700 italic">"{session.sessionSeal.vibeLine}"</p>
+              <p className="text-gray-700 italic">&ldquo;{session.sessionSeal.vibeLine}&rdquo;</p>
             </div>
           </div>
         )}
