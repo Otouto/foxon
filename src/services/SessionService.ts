@@ -30,6 +30,13 @@ export interface SessionWithDetails {
   devotionDeviations: DevotionDeviation[] | null; // Top 3 deviations
   createdAt: Date;
   updatedAt: Date;
+  sessionSeal?: {
+    sessionId: string;
+    effort: string;
+    vibeLine: string;
+    note: string | null;
+    createdAt: Date;
+  } | null;
   sessionExercises: {
     id: string;
     sessionId: string;
@@ -254,7 +261,8 @@ export class SessionService {
         },
         workout: {
           select: { id: true, title: true }
-        }
+        },
+        sessionSeal: true
       }
     });
 

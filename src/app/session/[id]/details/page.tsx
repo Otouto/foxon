@@ -75,6 +75,16 @@ export default async function SessionDetailsPage({ params }: { params: Promise<{
           />
         </div>
 
+        {/* Reflection Section */}
+        {session.sessionSeal?.vibeLine && (
+          <div className="mb-6">
+            <h3 className="font-semibold text-gray-900 mb-3">Reflection</h3>
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+              <p className="text-gray-700 italic">"{session.sessionSeal.vibeLine}"</p>
+            </div>
+          </div>
+        )}
+
         {/* Exercise Performance List */}
         {workoutTemplate && workoutTemplate.items.length > 0 && (
           <div className="space-y-4 mb-8">

@@ -173,10 +173,6 @@ export function ExercisePerformanceCard({ sessionExercise, exerciseNumber, templ
           );
         })}
       </div>
-      
-      {sessionExercise.notes && (
-        <p className="text-xs text-gray-500 italic mt-3">💡 {sessionExercise.notes}</p>
-      )}
     </div>
   );
 }
