@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { groupSessionsByTime, SessionGroup } from '@/lib/utils/dateUtils';
-import { ExerciseAnalytics } from '@/services/ExerciseAnalyticsService';
+import { ExerciseAnalytics, CategorizedExerciseAnalytics } from '@/services/ExerciseAnalyticsService';
 
 export interface SessionReviewData {
   id: string;
@@ -33,6 +33,7 @@ interface UseReviewDataReturn {
   sessions: SessionReviewData[];
   sessionGroups: SessionGroup<SessionReviewData>[];
   exercises: ExerciseAnalytics[];
+  categorizedExercises: CategorizedExerciseAnalytics | null;
   isLoading: boolean;
   error: string | null;
   refetch: () => void;
@@ -49,6 +50,7 @@ interface CacheData {
   } | null;
   exercises: {
     data: ExerciseAnalytics[];
+    categorizedData: CategorizedExerciseAnalytics;
     timestamp: number;
   } | null;
 }
@@ -77,6 +79,7 @@ export function useReviewData(activeTab: 'sessions' | 'exercises', limit: number
   const [sessions, setSessions] = useState<SessionReviewData[]>([]);
   const [sessionGroups, setSessionGroups] = useState<SessionGroup<SessionReviewData>[]>([]);
   const [exercises, setExercises] = useState<ExerciseAnalytics[]>([]);
+  const [categorizedExercises, setCategorizedExercises] = useState<CategorizedExerciseAnalytics | null>(null);
   const [isLoading, setIsLoading] = useState(!hasFreshCache);
   const [error, setError] = useState<string | null>(null);
 
@@ -93,6 +96,7 @@ export function useReviewData(activeTab: 'sessions' | 'exercises', limit: number
           } else {
             const exerciseCache = cachedData as CacheData['exercises'];
             setExercises(exerciseCache!.data);
+            setCategorizedExercises(exerciseCache!.categorizedData);
           }
           setIsLoading(false);
           return;
@@ -129,11 +133,16 @@ export function useReviewData(activeTab: 'sessions' | 'exercises', limit: number
           timestamp: Date.now()
         };
       } else if (activeTab === 'exercises') {
-        setExercises(data.exercises);
+        const { activeExercises, archivedExercises } = data;
+        const allExercises = [...activeExercises, ...archivedExercises];
+        
+        setExercises(allExercises);
+        setCategorizedExercises(data);
 
         // Cache the data
         cache.exercises = {
-          data: data.exercises,
+          data: allExercises,
+          categorizedData: data,
           timestamp: Date.now()
         };
       }
@@ -198,6 +207,7 @@ export function useReviewData(activeTab: 'sessions' | 'exercises', limit: number
     sessions,
     sessionGroups,
     exercises,
+    categorizedExercises,
     isLoading,
     error,
     refetch: () => fetchData(true),

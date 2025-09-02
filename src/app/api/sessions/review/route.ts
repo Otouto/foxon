@@ -90,9 +90,9 @@ export async function GET(request: NextRequest) {
     } 
     
     if (tab === 'exercises') {
-      // Get exercise analytics
-      const exerciseAnalytics = await ExerciseAnalyticsService.getAllExerciseAnalytics();
-      return NextResponse.json({ exercises: exerciseAnalytics });
+      // Get categorized exercise analytics
+      const categorizedExercises = await ExerciseAnalyticsService.getCategorizedExerciseAnalytics();
+      return NextResponse.json(categorizedExercises);
     }
 
     return NextResponse.json({ error: 'Invalid tab parameter' }, { status: 400 });

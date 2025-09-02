@@ -11,7 +11,7 @@ import { EmptyState } from '@/components/review/EmptyState';
 
 export default function ReviewPage() {
   const [activeTab, setActiveTab] = useState<'sessions' | 'exercises'>('sessions');
-  const { sessionGroups, exercises, isLoading, error, refetch, deleteSession } = useReviewData(activeTab);
+  const { sessionGroups, categorizedExercises, isLoading, error, refetch, deleteSession } = useReviewData(activeTab);
 
   return (
     <div className="min-h-screen bg-gray-50 review-page">
@@ -70,13 +70,35 @@ export default function ReviewPage() {
 
             {/* Exercises Tab */}
             {activeTab === 'exercises' && (
-              <div className="space-y-3">
-                {exercises.length === 0 ? (
+              <div className="space-y-6">
+                {!categorizedExercises || (categorizedExercises.activeExercises.length === 0 && categorizedExercises.archivedExercises.length === 0) ? (
                   <EmptyState type="exercises" />
                 ) : (
-                  exercises.map((exercise) => (
-                    <ExerciseListCard key={exercise.id} exercise={exercise} />
-                  ))
+                  <>
+                    {/* Active Workouts Section */}
+                    {categorizedExercises.activeExercises.length > 0 && (
+                      <div>
+                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Current Workouts</h2>
+                        <div className="space-y-3">
+                          {categorizedExercises.activeExercises.map((exercise) => (
+                            <ExerciseListCard key={exercise.id} exercise={exercise} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Exercise Archive Section */}
+                    {categorizedExercises.archivedExercises.length > 0 && (
+                      <div>
+                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Exercise Archive</h2>
+                        <div className="space-y-3">
+                          {categorizedExercises.archivedExercises.map((exercise) => (
+                            <ExerciseListCard key={exercise.id} exercise={exercise} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}

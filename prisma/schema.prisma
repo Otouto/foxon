@@ -45,6 +45,12 @@ enum EffortLevel {
   ALL_OUT_10
 }
 
+enum WorkoutStatus {
+  ACTIVE
+  ARCHIVED
+  DRAFT
+}
+
 // Core User Management
 model User {
   id               String          @id @default(cuid())
@@ -114,12 +120,13 @@ model Exercise {
 
 // User Workout Templates
 model Workout {
-  id          String   @id @default(cuid())
-  userId      String   @map("user_id")
+  id          String        @id @default(cuid())
+  userId      String        @map("user_id")
   title       String
   description String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  status      WorkoutStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
 
   // Relations
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)

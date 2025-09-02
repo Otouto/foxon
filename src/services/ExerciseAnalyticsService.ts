@@ -17,7 +17,121 @@ export interface ExerciseAnalytics {
   chips: ('foundation' | 'missing')[];
 }
 
+export interface CategorizedExerciseAnalytics {
+  activeExercises: ExerciseAnalytics[];
+  archivedExercises: ExerciseAnalytics[];
+}
+
 export class ExerciseAnalyticsService {
+  
+  static async getCategorizedExerciseAnalytics(): Promise<CategorizedExerciseAnalytics> {
+    const userId = getCurrentUserId();
+    
+    // Get all exercises the user has performed
+    const exercisesWithSessions = await prisma.exercise.findMany({
+      where: {
+        sessionExercises: {
+          some: {
+            session: {
+              userId: userId
+            }
+          }
+        }
+      },
+      include: {
+        muscleGroup: true,
+        sessionExercises: {
+          where: {
+            session: {
+              userId: userId
+            }
+          },
+          include: {
+            session: true,
+            sessionSets: {
+              where: {
+                completed: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Get exercises from active workouts
+    const activeWorkoutExercises = await prisma.exercise.findMany({
+      where: {
+        workoutItems: {
+          some: {
+            workout: {
+              userId: userId,
+              status: 'ACTIVE'
+            }
+          }
+        }
+      },
+      select: {
+        id: true
+      }
+    });
+
+    const activeExerciseIds = new Set(activeWorkoutExercises.map(ex => ex.id));
+
+    const allAnalytics = await Promise.all(
+      exercisesWithSessions.map(async (exercise) => {
+        const peakPerformance = this.calculatePeakPerformance(exercise.sessionExercises);
+        const devotionData = this.calculateDevotionDots(exercise.sessionExercises);
+        const consistency = this.calculateConsistency(exercise.sessionExercises);
+        const chips = this.determineChips(consistency);
+
+        return {
+          id: exercise.id,
+          name: exercise.name,
+          muscleGroup: exercise.muscleGroup?.name || null,
+          peakPerformance,
+          devotionDots: devotionData.dots,
+          actualWeeksTracked: devotionData.weeksTracked,
+          consistency,
+          chips,
+          isActive: activeExerciseIds.has(exercise.id)
+        };
+      })
+    );
+
+    // Separate active and archived exercises
+    const activeExercises = allAnalytics
+      .filter(exercise => exercise.isActive)
+      .map(exercise => ({
+        id: exercise.id,
+        name: exercise.name,
+        muscleGroup: exercise.muscleGroup,
+        peakPerformance: exercise.peakPerformance,
+        devotionDots: exercise.devotionDots,
+        actualWeeksTracked: exercise.actualWeeksTracked,
+        consistency: exercise.consistency,
+        chips: exercise.chips
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const archivedExercises = allAnalytics
+      .filter(exercise => !exercise.isActive)
+      .map(exercise => ({
+        id: exercise.id,
+        name: exercise.name,
+        muscleGroup: exercise.muscleGroup,
+        peakPerformance: exercise.peakPerformance,
+        devotionDots: exercise.devotionDots,
+        actualWeeksTracked: exercise.actualWeeksTracked,
+        consistency: exercise.consistency,
+        chips: exercise.chips
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    return {
+      activeExercises,
+      archivedExercises
+    };
+  }
   
   static async getAllExerciseAnalytics(): Promise<ExerciseAnalytics[]> {
     const userId = getCurrentUserId();
