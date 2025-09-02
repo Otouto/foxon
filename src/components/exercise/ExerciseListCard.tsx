@@ -17,9 +17,10 @@ interface ExerciseAnalytics {
 
 interface ExerciseListCardProps {
   exercise: ExerciseAnalytics;
+  isArchived?: boolean;
 }
 
-export function ExerciseListCard({ exercise }: ExerciseListCardProps) {
+export function ExerciseListCard({ exercise, isArchived = false }: ExerciseListCardProps) {
   const formatPeakPerformance = () => {
     if (!exercise.peakPerformance) return null;
     
@@ -55,43 +56,45 @@ export function ExerciseListCard({ exercise }: ExerciseListCardProps) {
         </div>
       )}
 
-      {/* Devotion Dots */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="flex gap-1">
-            {exercise.devotionDots.map((isActive, index) => (
-              <div
-                key={index}
-                className={`w-2 h-2 rounded-full ${
-                  isActive 
-                    ? 'bg-lime-400' 
-                    : 'bg-gray-200'
-                }`}
-              />
-            ))}
+      {/* Devotion Dots and Chips - only show for active exercises */}
+      {!isArchived && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1">
+              {exercise.devotionDots.map((isActive, index) => (
+                <div
+                  key={index}
+                  className={`w-2 h-2 rounded-full ${
+                    isActive 
+                      ? 'bg-lime-400' 
+                      : 'bg-gray-200'
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="text-xs text-gray-500 ml-1">
+              {exercise.actualWeeksTracked > 0 
+                ? `Last ${exercise.actualWeeksTracked} week${exercise.actualWeeksTracked === 1 ? '' : 's'}`
+                : 'No activity yet'
+              }
+            </span>
           </div>
-          <span className="text-xs text-gray-500 ml-1">
-            {exercise.actualWeeksTracked > 0 
-              ? `Last ${exercise.actualWeeksTracked} week${exercise.actualWeeksTracked === 1 ? '' : 's'}`
-              : 'No activity yet'
-            }
-          </span>
+          
+          {/* Chips */}
+          {exercise.chips.length > 0 && (
+            <div className="flex gap-1.5">
+              {exercise.chips.map((chip, index) => (
+                <span
+                  key={`${chip}-${index}`}
+                  className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700"
+                >
+                  {chip === 'foundation' ? 'Foundation' : 'Missing'}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
-        
-        {/* Chips */}
-        {exercise.chips.length > 0 && (
-          <div className="flex gap-1.5">
-            {exercise.chips.map((chip, index) => (
-              <span
-                key={`${chip}-${index}`}
-                className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700"
-              >
-                {chip === 'foundation' ? 'Foundation' : 'Missing'}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

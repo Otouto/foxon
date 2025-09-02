@@ -81,7 +81,7 @@ export default function ReviewPage() {
                         <h2 className="text-lg font-semibold text-gray-900 mb-4">Current Workouts</h2>
                         <div className="space-y-3">
                           {categorizedExercises.activeExercises.map((exercise) => (
-                            <ExerciseListCard key={exercise.id} exercise={exercise} />
+                            <ExerciseListCard key={exercise.id} exercise={exercise} isArchived={false} />
                           ))}
                         </div>
                       </div>
@@ -93,7 +93,7 @@ export default function ReviewPage() {
                         <h2 className="text-lg font-semibold text-gray-900 mb-4">Exercise Archive</h2>
                         <div className="space-y-3">
                           {categorizedExercises.archivedExercises.map((exercise) => (
-                            <ExerciseListCard key={exercise.id} exercise={exercise} />
+                            <ExerciseListCard key={exercise.id} exercise={exercise} isArchived={true} />
                           ))}
                         </div>
                       </div>
