@@ -80,8 +80,8 @@ export class ExerciseAnalyticsService {
     const allAnalytics = await Promise.all(
       exercisesWithSessions.map(async (exercise) => {
         const peakPerformance = this.calculatePeakPerformance(exercise.sessionExercises);
-        const devotionData = this.calculateDevotionDots(exercise.sessionExercises);
-        const consistency = this.calculateConsistency(exercise.sessionExercises);
+        const devotionData = await this.calculateDevotionDots(exercise.id, exercise.sessionExercises);
+        const consistency = await this.calculateConsistency(exercise.id, exercise.sessionExercises);
         const chips = this.determineChips(consistency);
 
         return {
@@ -170,8 +170,8 @@ export class ExerciseAnalyticsService {
     const analytics = await Promise.all(
       exercisesWithSessions.map(async (exercise) => {
         const peakPerformance = this.calculatePeakPerformance(exercise.sessionExercises);
-        const devotionData = this.calculateDevotionDots(exercise.sessionExercises);
-        const consistency = this.calculateConsistency(exercise.sessionExercises);
+        const devotionData = await this.calculateDevotionDots(exercise.id, exercise.sessionExercises);
+        const consistency = await this.calculateConsistency(exercise.id, exercise.sessionExercises);
         const chips = this.determineChips(consistency);
 
         return {
@@ -226,30 +226,39 @@ export class ExerciseAnalyticsService {
     };
   }
 
-  private static calculateDevotionDots(sessionExercises: Array<{
+  private static async calculateDevotionDots(exerciseId: string, sessionExercises: Array<{
     session: {
       date: Date;
     };
-  }>): { dots: boolean[]; weeksTracked: number } {
-    const earliestDate = this.getEarliestSessionDate(sessionExercises);
+  }>): Promise<{ dots: boolean[]; weeksTracked: number }> {
+    const earliestDate = await this.getEarliestWorkoutSessionDate(exerciseId);
     if (!earliestDate) return { dots: [], weeksTracked: 0 };
 
     const now = new Date();
     const dots: boolean[] = [];
     
-    // Calculate weeks since first session, capped at 12 weeks
-    const weeksSinceStart = Math.ceil((now.getTime() - earliestDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
+    // Calculate weeks since first session using proper Monday-Sunday boundaries, capped at 12 weeks
+    const weeksSinceStart = this.getWeeksBetweenDates(earliestDate, now);
     const weeksToShow = Math.min(12, Math.max(1, weeksSinceStart));
     
     // Calculate dots for the relevant period (most recent first, then reverse)
     for (let week = 0; week < weeksToShow; week++) {
-      const weekEnd = new Date(now);
-      weekEnd.setDate(now.getDate() - (week * 7));
-      weekEnd.setHours(23, 59, 59, 999);
+      // Calculate current week's Monday-Sunday boundaries
+      const referenceDate = new Date(now);
+      referenceDate.setDate(now.getDate() - (week * 7));
       
-      const weekStart = new Date(weekEnd);
-      weekStart.setDate(weekEnd.getDate() - 6);
+      // Get start of week (Monday)
+      const dayOfWeek = referenceDate.getDay();
+      const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sunday = 6 days from Monday
+      
+      const weekStart = new Date(referenceDate);
+      weekStart.setDate(referenceDate.getDate() - daysFromMonday);
       weekStart.setHours(0, 0, 0, 0);
+      
+      // Get end of week (Sunday)
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
 
       // Check if exercise was performed this week
       const hasActivity = sessionExercises.some(sessionExercise => {
@@ -267,26 +276,26 @@ export class ExerciseAnalyticsService {
     };
   }
 
-  private static calculateConsistency(sessionExercises: Array<{
+  private static async calculateConsistency(exerciseId: string, sessionExercises: Array<{
     session: {
       date: Date;
     };
-  }>): number {
+  }>): Promise<number> {
     if (sessionExercises.length === 0) return 0;
 
-    const earliestDate = this.getEarliestSessionDate(sessionExercises);
+    const earliestDate = await this.getEarliestWorkoutSessionDate(exerciseId);
     if (!earliestDate) return 0;
 
     const now = new Date();
     
-    // Calculate actual weeks since first session, capped at 12 weeks
-    const weeksSinceStart = Math.ceil((now.getTime() - earliestDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
+    // Calculate actual weeks since first session using proper Monday-Sunday boundaries, capped at 12 weeks
+    const weeksSinceStart = this.getWeeksBetweenDates(earliestDate, now);
     const totalAvailableWeeks = Math.min(12, Math.max(1, weeksSinceStart));
     
-    // Calculate the time window we're considering
-    const windowStartWeeks = Math.min(12, weeksSinceStart);
-    const windowStart = new Date(now);
-    windowStart.setDate(now.getDate() - (windowStartWeeks * 7));
+    // Calculate the time window we're considering (go back the calculated number of weeks from current Monday)
+    const currentMonday = this.getMondayOfWeek(now);
+    const windowStart = new Date(currentMonday);
+    windowStart.setDate(currentMonday.getDate() - ((totalAvailableWeeks - 1) * 7));
 
     // Get unique weeks with sessions within the available period
     const weeksSeen = new Set<string>();
@@ -308,11 +317,11 @@ export class ExerciseAnalyticsService {
   private static determineChips(consistency: number): ('foundation' | 'missing')[] {
     const chips: ('foundation' | 'missing')[] = [];
     
-    if (consistency >= 0.8) {
+    if (consistency >= 0.75) {
       chips.push('foundation');
     }
     
-    if (consistency < 0.3) {
+    if (consistency < 0.4) {
       chips.push('missing');
     }
     
@@ -321,18 +330,68 @@ export class ExerciseAnalyticsService {
 
   private static getWeekKey(date: Date): string {
     const startOfWeek = new Date(date);
-    startOfWeek.setDate(date.getDate() - date.getDay());
+    // Get Monday as start of week (0 = Sunday, 1 = Monday, etc.)
+    const dayOfWeek = date.getDay();
+    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sunday = 6 days from Monday
+    startOfWeek.setDate(date.getDate() - daysFromMonday);
     return startOfWeek.toISOString().split('T')[0];
   }
 
-  private static getEarliestSessionDate(sessionExercises: Array<{
-    session: {
-      date: Date;
-    };
-  }>): Date | null {
-    if (sessionExercises.length === 0) return null;
-    
-    const dates = sessionExercises.map(se => new Date(se.session.date));
-    return new Date(Math.min(...dates.map(d => d.getTime())));
+  private static getMondayOfWeek(date: Date): Date {
+    const monday = new Date(date);
+    const dayOfWeek = date.getDay();
+    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sunday = 6 days from Monday
+    monday.setDate(date.getDate() - daysFromMonday);
+    monday.setHours(0, 0, 0, 0);
+    return monday;
   }
+
+  private static getWeeksBetweenDates(startDate: Date, endDate: Date): number {
+    const startMonday = this.getMondayOfWeek(startDate);
+    const endMonday = this.getMondayOfWeek(endDate);
+    const timeDiff = endMonday.getTime() - startMonday.getTime();
+    return Math.floor(timeDiff / (7 * 24 * 60 * 60 * 1000)) + 1; // +1 to include both start and end weeks
+  }
+
+  private static async getEarliestWorkoutSessionDate(exerciseId: string): Promise<Date | null> {
+    const userId = getCurrentUserId();
+    
+    // Find all workouts that contain this exercise
+    const workoutsWithExercise = await prisma.workout.findMany({
+      where: {
+        userId: userId,
+        workoutItems: {
+          some: {
+            exerciseId: exerciseId
+          }
+        }
+      },
+      select: {
+        id: true
+      }
+    });
+
+    if (workoutsWithExercise.length === 0) return null;
+
+    const workoutIds = workoutsWithExercise.map(w => w.id);
+
+    // Find the earliest session of ANY workout that contains this exercise
+    const earliestSession = await prisma.session.findFirst({
+      where: {
+        userId: userId,
+        workoutId: {
+          in: workoutIds
+        }
+      },
+      orderBy: {
+        date: 'asc'
+      },
+      select: {
+        date: true
+      }
+    });
+
+    return earliestSession?.date || null;
+  }
+
 }
