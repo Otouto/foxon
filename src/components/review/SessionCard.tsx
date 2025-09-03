@@ -41,7 +41,7 @@ export function SessionCard({ session, onDelete }: SessionCardProps) {
   };
 
   const handleCardClick = () => {
-    router.push(`/session/${session.id}/details`);
+    router.push(`/session/${session.id}/details?from=review&tab=sessions`);
   };
 
   return (

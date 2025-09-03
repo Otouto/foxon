@@ -8,8 +8,15 @@ import { ExercisePerformanceCard } from '@/components/session/ExercisePerformanc
 import { AlternativeWorkSection } from '@/components/session/AlternativeWorkSection';
 import { redirect } from 'next/navigation';
 
-export default async function SessionDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function SessionDetailsPage({ 
+  params,
+  searchParams
+}: { 
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string; tab?: string; exerciseId?: string }>;
+}) {
   const { id } = await params;
+  const { from, tab, exerciseId } = await searchParams;
   
   // Check authentication
   if (!isAuthenticated()) {
@@ -25,12 +32,28 @@ export default async function SessionDetailsPage({ params }: { params: Promise<{
   ]);
 
   if (!session) {
+    // Create back URL based on search parameters
+    let backUrl = '/review';
+    if (from === 'review' && tab) {
+      backUrl = `/review?tab=${tab}`;
+    } else if (from === 'exercise' && exerciseId) {
+      backUrl = `/exercise/${exerciseId}?from=review&tab=exercises`;
+    }
+    
     return (
       <div className="px-6 py-8">
         <h1 className="text-2xl font-bold text-gray-900">Session not found</h1>
-        <Link href="/review" className="text-cyan-400 mt-4 block">← Back to review</Link>
+        <Link href={backUrl} className="text-cyan-400 mt-4 block">← Back</Link>
       </div>
     );
+  }
+
+  // Create back URL based on search parameters
+  let backUrl = '/review';
+  if (from === 'review' && tab) {
+    backUrl = `/review?tab=${tab}`;
+  } else if (from === 'exercise' && exerciseId) {
+    backUrl = `/exercise/${exerciseId}?from=review&tab=exercises`;
   }
 
   // Fetch workout template if session has a workoutId
@@ -56,7 +79,7 @@ export default async function SessionDetailsPage({ params }: { params: Promise<{
       <div className="px-6 py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
-          <Link href="/review" className="p-2 -ml-2">
+          <Link href={backUrl} className="p-2 -ml-2">
             <ArrowLeft size={24} className="text-gray-600" />
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Session Review</h1>

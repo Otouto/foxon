@@ -36,7 +36,7 @@ export function ExerciseListCard({ exercise, isArchived = false }: ExerciseListC
   };
 
   return (
-    <Link href={`/exercise/${exercise.id}`} className="block">
+    <Link href={`/exercise/${exercise.id}?from=review&tab=exercises`} className="block">
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer">
         {/* Header */}
         <div className="mb-3">

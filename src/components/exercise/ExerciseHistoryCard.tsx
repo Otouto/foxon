@@ -33,9 +33,10 @@ interface ExerciseHistoryEntry {
 
 interface ExerciseHistoryCardProps {
   historyEntry: ExerciseHistoryEntry;
+  exerciseId: string;
 }
 
-export function ExerciseHistoryCard({ historyEntry }: ExerciseHistoryCardProps) {
+export function ExerciseHistoryCard({ historyEntry, exerciseId }: ExerciseHistoryCardProps) {
   const { sessionExercise, date, workoutTitle } = historyEntry;
   const completedSets = sessionExercise.sessionSets.filter(set => set.completed);
 
@@ -55,7 +56,7 @@ export function ExerciseHistoryCard({ historyEntry }: ExerciseHistoryCardProps) 
   };
 
   return (
-    <Link href={`/session/${historyEntry.id}/details`} className="block">
+    <Link href={`/session/${historyEntry.id}/details?from=exercise&exerciseId=${exerciseId}`} className="block">
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
         {/* Header with date and workout */}
         <div className="flex items-center justify-between mb-3">

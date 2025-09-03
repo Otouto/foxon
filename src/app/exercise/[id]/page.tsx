@@ -6,8 +6,15 @@ import { ExerciseHistoryCard } from '@/components/exercise/ExerciseHistoryCard';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 
-export default async function ExerciseDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ExerciseDetailsPage({ 
+  params, 
+  searchParams 
+}: { 
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string; tab?: string }>;
+}) {
   const { id } = await params;
+  const { from, tab } = await searchParams;
   
   // Check authentication
   if (!isAuthenticated()) {
@@ -32,20 +39,24 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
   ]);
 
   if (!exercise) {
+    const backUrl = from === 'review' && tab ? `/review?tab=${tab}` : '/review';
     return (
       <div className="px-6 py-8">
         <h1 className="text-2xl font-bold text-gray-900">Exercise not found</h1>
-        <Link href="/review" className="text-cyan-400 mt-4 block">← Back to review</Link>
+        <Link href={backUrl} className="text-cyan-400 mt-4 block">← Back to review</Link>
       </div>
     );
   }
+
+  // Create back URL based on search parameters
+  const backUrl = from === 'review' && tab ? `/review?tab=${tab}` : '/review';
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="px-6 py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
-          <Link href="/review" className="p-2 -ml-2">
+          <Link href={backUrl} className="p-2 -ml-2">
             <ArrowLeft size={24} className="text-gray-600" />
           </Link>
           <div className="flex-1">
@@ -78,6 +89,7 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
                 <ExerciseHistoryCard
                   key={historyEntry.id}
                   historyEntry={historyEntry}
+                  exerciseId={id}
                 />
               ))}
             </div>

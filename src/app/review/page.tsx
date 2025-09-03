@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Calendar, TrendingUp } from 'lucide-react';
 import { useReviewData } from '@/hooks/useReviewData';
 import { SessionGroup } from '@/components/review/SessionGroup';
@@ -10,8 +11,27 @@ import { ErrorState } from '@/components/review/ErrorState';
 import { EmptyState } from '@/components/review/EmptyState';
 
 export default function ReviewPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const [activeTab, setActiveTab] = useState<'sessions' | 'exercises'>('sessions');
   const { sessionGroups, categorizedExercises, isLoading, error, refetch, deleteSession } = useReviewData(activeTab);
+
+  // Initialize tab from URL parameter
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'exercises' || tabParam === 'sessions') {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  // Update URL when tab changes
+  const handleTabChange = (newTab: 'sessions' | 'exercises') => {
+    setActiveTab(newTab);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', newTab);
+    router.replace(`${pathname}?${params.toString()}`);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 review-page">
@@ -21,7 +41,7 @@ export default function ReviewPage() {
         {/* Tab Navigation */}
         <div className="flex bg-gray-100 rounded-2xl p-1 mb-6">
           <button
-            onClick={() => setActiveTab('sessions')}
+            onClick={() => handleTabChange('sessions')}
             className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-medium transition-colors ${
               activeTab === 'sessions'
                 ? 'bg-white text-gray-900 shadow-sm'
@@ -32,7 +52,7 @@ export default function ReviewPage() {
             Sessions
           </button>
           <button
-            onClick={() => setActiveTab('exercises')}
+            onClick={() => handleTabChange('exercises')}
             className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-medium transition-colors ${
               activeTab === 'exercises'
                 ? 'bg-white text-gray-900 shadow-sm'
