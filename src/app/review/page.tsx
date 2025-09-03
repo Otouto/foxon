@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Calendar, TrendingUp } from 'lucide-react';
 import { useReviewData } from '@/hooks/useReviewData';
@@ -11,6 +11,14 @@ import { ErrorState } from '@/components/review/ErrorState';
 import { EmptyState } from '@/components/review/EmptyState';
 
 export default function ReviewPage() {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <ReviewContent />
+    </Suspense>
+  );
+}
+
+function ReviewContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
