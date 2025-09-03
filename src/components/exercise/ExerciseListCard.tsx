@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 interface ExerciseAnalytics {
   id: string;
   name: string;
@@ -34,67 +36,69 @@ export function ExerciseListCard({ exercise, isArchived = false }: ExerciseListC
   };
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-      {/* Header */}
-      <div className="mb-3">
-        <h3 className="font-semibold text-gray-900 truncate mb-1">
-          {exercise.name}
-        </h3>
-        {exercise.muscleGroup && (
-          <p className="text-sm text-gray-600 truncate">
-            {exercise.muscleGroup}
-          </p>
-        )}
-      </div>
-
-      {/* Peak Performance */}
-      {exercise.peakPerformance && (
+    <Link href={`/exercise/${exercise.id}`} className="block">
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer">
+        {/* Header */}
         <div className="mb-3">
-          <p className="text-sm text-gray-600">
-            Strongest moment: {formatPeakPerformance()}
-          </p>
-        </div>
-      )}
-
-      {/* Devotion Dots and Chips - only show for active exercises */}
-      {!isArchived && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex gap-1">
-              {exercise.devotionDots.map((isActive, index) => (
-                <div
-                  key={index}
-                  className={`w-2 h-2 rounded-full ${
-                    isActive 
-                      ? 'bg-lime-400' 
-                      : 'bg-gray-200'
-                  }`}
-                />
-              ))}
-            </div>
-            <span className="text-xs text-gray-500 ml-1">
-              {exercise.actualWeeksTracked > 0 
-                ? `Last ${exercise.actualWeeksTracked} week${exercise.actualWeeksTracked === 1 ? '' : 's'}`
-                : 'No activity yet'
-              }
-            </span>
-          </div>
-          
-          {/* Chips */}
-          {exercise.chips.length > 0 && (
-            <div className="flex gap-1.5">
-              {exercise.chips.map((chip, index) => (
-                <span
-                  key={`${chip}-${index}`}
-                  className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700"
-                >
-                  {chip === 'foundation' ? 'Foundation' : 'Missing'}
-                </span>
-              ))}
-            </div>
+          <h3 className="font-semibold text-gray-900 truncate mb-1">
+            {exercise.name}
+          </h3>
+          {exercise.muscleGroup && (
+            <p className="text-sm text-gray-600 truncate">
+              {exercise.muscleGroup}
+            </p>
           )}
         </div>
-      )}
-    </div>
+
+        {/* Peak Performance */}
+        {exercise.peakPerformance && (
+          <div className="mb-3">
+            <p className="text-sm text-gray-600">
+              Strongest moment: {formatPeakPerformance()}
+            </p>
+          </div>
+        )}
+
+        {/* Devotion Dots and Chips - only show for active exercises */}
+        {!isArchived && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1">
+                {exercise.devotionDots.map((isActive, index) => (
+                  <div
+                    key={index}
+                    className={`w-2 h-2 rounded-full ${
+                      isActive 
+                        ? 'bg-lime-400' 
+                        : 'bg-gray-200'
+                    }`}
+                  />
+                ))}
+              </div>
+              <span className="text-xs text-gray-500 ml-1">
+                {exercise.actualWeeksTracked > 0 
+                  ? `Last ${exercise.actualWeeksTracked} week${exercise.actualWeeksTracked === 1 ? '' : 's'}`
+                  : 'No activity yet'
+                }
+              </span>
+            </div>
+            
+            {/* Chips */}
+            {exercise.chips.length > 0 && (
+              <div className="flex gap-1.5">
+                {exercise.chips.map((chip, index) => (
+                  <span
+                    key={`${chip}-${index}`}
+                    className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700"
+                  >
+                    {chip === 'foundation' ? 'Foundation' : 'Missing'}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </Link>
   );
 }

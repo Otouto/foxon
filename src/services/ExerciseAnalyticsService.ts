@@ -133,6 +133,67 @@ export class ExerciseAnalyticsService {
     };
   }
   
+  static async getExerciseHistory(exerciseId: string, userId: string) {
+    // Get all sessions where this exercise was performed, ordered by date (newest first)
+    const sessions = await prisma.session.findMany({
+      where: {
+        userId: userId,
+        sessionExercises: {
+          some: {
+            exerciseId: exerciseId
+          }
+        }
+      },
+      include: {
+        workout: {
+          select: {
+            title: true
+          }
+        },
+        sessionExercises: {
+          where: {
+            exerciseId: exerciseId
+          },
+          include: {
+            exercise: {
+              select: {
+                name: true,
+                muscleGroup: {
+                  select: {
+                    name: true
+                  }
+                }
+              }
+            },
+            sessionSets: {
+              orderBy: {
+                order: 'asc'
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        date: 'desc'
+      }
+    });
+
+    return sessions.map(session => ({
+      id: session.id,
+      date: session.date,
+      workoutTitle: session.workout?.title || null,
+      duration: session.duration,
+      devotionScore: session.devotionScore,
+      sessionExercise: {
+        ...session.sessionExercises[0],
+        sessionSets: session.sessionExercises[0]?.sessionSets.map(set => ({
+          ...set,
+          load: parseFloat(set.load.toString())
+        })) || []
+      }
+    }));
+  }
+
   static async getAllExerciseAnalytics(): Promise<ExerciseAnalytics[]> {
     const userId = getCurrentUserId();
     
