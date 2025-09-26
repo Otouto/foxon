@@ -136,9 +136,26 @@ export class WorkoutService {
   }
 
   /**
-   * Create a new workout
+   * Create a new workout with ACTIVE status
    */
   static async createWorkout(data: CreateWorkoutRequest): Promise<WorkoutDetails> {
+    return this.createWorkoutWithStatus(data, 'ACTIVE');
+  }
+
+  /**
+   * Create a new draft workout
+   */
+  static async createDraftWorkout(data: CreateWorkoutRequest): Promise<WorkoutDetails> {
+    return this.createWorkoutWithStatus(data, 'DRAFT');
+  }
+
+  /**
+   * Create a new workout with specified status
+   */
+  private static async createWorkoutWithStatus(
+    data: CreateWorkoutRequest,
+    status: 'ACTIVE' | 'DRAFT'
+  ): Promise<WorkoutDetails> {
     const userId = getCurrentUserId();
 
     const workout = await prisma.workout.create({
@@ -146,6 +163,7 @@ export class WorkoutService {
         userId,
         title: data.title,
         description: data.description || null,
+        status,
         workoutItems: {
           create: data.items.map((item) => ({
             exerciseId: item.exerciseId,
@@ -352,15 +370,86 @@ export class WorkoutService {
   }
 
   /**
+   * Update workout status (e.g., DRAFT -> ACTIVE)
+   */
+  static async updateWorkoutStatus(
+    workoutId: string,
+    status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED'
+  ): Promise<boolean> {
+    const userId = getCurrentUserId();
+
+    try {
+      await prisma.workout.updateMany({
+        where: {
+          id: workoutId,
+          userId: userId,
+        },
+        data: {
+          status,
+        },
+      });
+      return true;
+    } catch (error) {
+      console.error('Failed to update workout status:', error);
+      return false;
+    }
+  }
+
+  /**
    * Get workout count for the current user
    */
   static async getUserWorkoutCount(): Promise<number> {
     const userId = getCurrentUserId();
-    
+
     return prisma.workout.count({
       where: {
         userId: userId,
       },
+    });
+  }
+
+  /**
+   * Get draft workouts for the current user
+   */
+  static async getDraftWorkouts(): Promise<WorkoutListItem[]> {
+    const userId = getCurrentUserId();
+
+    const workouts = await prisma.workout.findMany({
+      where: {
+        userId: userId,
+        status: 'DRAFT',
+      },
+      include: {
+        workoutItems: {
+          include: {
+            workoutItemSets: true,
+          },
+        },
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+
+    return workouts.map((workout) => {
+      const exerciseCount = workout.workoutItems.length;
+      const totalSets = workout.workoutItems.reduce(
+        (total: number, item) => total + item.workoutItemSets.length,
+        0
+      );
+
+      // Estimate: 3 minutes per set + 1 minute rest between exercises
+      const estimatedDuration = totalSets * 3 + Math.max(0, exerciseCount - 1);
+
+      return {
+        id: workout.id,
+        title: workout.title,
+        description: workout.description,
+        exerciseCount,
+        estimatedDuration,
+        createdAt: workout.createdAt,
+        updatedAt: workout.updatedAt,
+      };
     });
   }
 }
