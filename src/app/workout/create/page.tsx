@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Plus, Save, FileText } from 'lucide-react';
@@ -8,7 +8,7 @@ import { useWorkoutCreation } from '@/hooks/useWorkoutCreation';
 import { ExerciseSelectionModal } from '@/components/workout/ExerciseSelectionModal';
 import { WorkoutExerciseCard } from '@/components/workout/WorkoutExerciseCard';
 
-export default function CreateWorkoutPage() {
+function CreateWorkoutPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editWorkoutId = searchParams.get('edit');
@@ -224,5 +224,13 @@ export default function CreateWorkoutPage() {
         onSelectExercise={addExercise}
       />
     </div>
+  );
+}
+
+export default function CreateWorkoutPage() {
+  return (
+    <Suspense fallback={<div className="px-6 py-8 pb-above-nav">Loading...</div>}>
+      <CreateWorkoutPageInner />
+    </Suspense>
   );
 }
