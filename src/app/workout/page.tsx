@@ -4,16 +4,21 @@ import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { WorkoutCard } from '@/components/workout/WorkoutCard';
+import { WorkoutGroup } from '@/components/workout/WorkoutGroup';
 import { WorkoutLoadingState } from '@/components/workout/WorkoutLoadingState';
 import { useWorkoutPreload } from '@/hooks/useWorkoutPreload';
-import type { WorkoutListItem } from '@/lib/types/workout';
+import type { WorkoutListItem, CategorizedWorkouts } from '@/lib/types/workout';
 
 export default function WorkoutPage() {
-  const [workouts, setWorkouts] = useState<WorkoutListItem[]>([]);
+  const [categorizedWorkouts, setCategorizedWorkouts] = useState<CategorizedWorkouts>({
+    activeWorkouts: [],
+    draftWorkouts: [],
+    archivedWorkouts: [],
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
-  
+
   const { preloadWorkouts } = useWorkoutPreload();
 
   useEffect(() => {
@@ -32,7 +37,15 @@ export default function WorkoutPage() {
         }
 
         const { workouts: workoutData } = await response.json();
-        setWorkouts(workoutData);
+
+        // Categorize workouts by status
+        const categorized: CategorizedWorkouts = {
+          activeWorkouts: workoutData.filter((w: WorkoutListItem) => w.status === 'ACTIVE'),
+          draftWorkouts: workoutData.filter((w: WorkoutListItem) => w.status === 'DRAFT'),
+          archivedWorkouts: workoutData.filter((w: WorkoutListItem) => w.status === 'ARCHIVED'),
+        };
+
+        setCategorizedWorkouts(categorized);
         setHasLoaded(true);
 
         // Start preloading workout data in the background (fire and forget)
@@ -97,12 +110,48 @@ export default function WorkoutPage() {
         <h1 className="text-2xl font-bold text-gray-900">Workouts</h1>
       </div>
 
-      {workouts.length > 0 ? (
-        /* Workout List */
-        <div className="space-y-4">
-          {workouts.map((workout) => (
-            <WorkoutCard key={workout.id} workout={workout} />
-          ))}
+{categorizedWorkouts.activeWorkouts.length > 0 ||
+      categorizedWorkouts.draftWorkouts.length > 0 ||
+      categorizedWorkouts.archivedWorkouts.length > 0 ? (
+        /* Workout List - Organized by Status */
+        <div className="space-y-6">
+          {/* Active Workouts - Always Visible */}
+          {categorizedWorkouts.activeWorkouts.length > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Active Workouts</h2>
+              <div className="space-y-4">
+                {categorizedWorkouts.activeWorkouts.map((workout) => (
+                  <WorkoutCard key={workout.id} workout={workout} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Draft Workouts - Collapsible */}
+          {categorizedWorkouts.draftWorkouts.length > 0 && (
+            <WorkoutGroup
+              group={{
+                key: 'draft',
+                title: 'Draft Workouts',
+                workouts: categorizedWorkouts.draftWorkouts,
+                count: categorizedWorkouts.draftWorkouts.length,
+              }}
+              defaultExpanded={false}
+            />
+          )}
+
+          {/* Archived Workouts - Collapsible */}
+          {categorizedWorkouts.archivedWorkouts.length > 0 && (
+            <WorkoutGroup
+              group={{
+                key: 'archived',
+                title: 'Archived Workouts',
+                workouts: categorizedWorkouts.archivedWorkouts,
+                count: categorizedWorkouts.archivedWorkouts.length,
+              }}
+              defaultExpanded={false}
+            />
+          )}
         </div>
       ) : (
         /* Empty State for New Users */

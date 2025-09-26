@@ -1,10 +1,11 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/auth';
-import type { 
-  WorkoutListItem, 
-  WorkoutDetails, 
-  CreateWorkoutRequest, 
-  UpdateWorkoutRequest 
+import type {
+  WorkoutListItem,
+  WorkoutDetails,
+  CreateWorkoutRequest,
+  UpdateWorkoutRequest,
+  CategorizedWorkouts
 } from '@/lib/types/workout';
 
 export class WorkoutService {
@@ -25,18 +26,23 @@ export class WorkoutService {
           },
         },
       },
-      orderBy: {
-        createdAt: 'asc',
-      },
+      orderBy: [
+        {
+          status: 'asc', // ACTIVE first, then ARCHIVED, then DRAFT
+        },
+        {
+          updatedAt: 'desc', // Most recent within each status
+        },
+      ],
     });
 
     return workouts.map((workout) => {
       const exerciseCount = workout.workoutItems.length;
       const totalSets = workout.workoutItems.reduce(
-        (total: number, item) => total + item.workoutItemSets.length, 
+        (total: number, item) => total + item.workoutItemSets.length,
         0
       );
-      
+
       // Estimate: 3 minutes per set + 1 minute rest between exercises
       const estimatedDuration = totalSets * 3 + Math.max(0, exerciseCount - 1);
 
@@ -46,6 +52,7 @@ export class WorkoutService {
         description: workout.description,
         exerciseCount,
         estimatedDuration,
+        status: workout.status as 'ACTIVE' | 'DRAFT' | 'ARCHIVED',
         createdAt: workout.createdAt,
         updatedAt: workout.updatedAt,
       };
@@ -447,9 +454,23 @@ export class WorkoutService {
         description: workout.description,
         exerciseCount,
         estimatedDuration,
+        status: workout.status as 'ACTIVE' | 'DRAFT' | 'ARCHIVED',
         createdAt: workout.createdAt,
         updatedAt: workout.updatedAt,
       };
     });
+  }
+
+  /**
+   * Get categorized workouts for organized display
+   */
+  static async getCategorizedWorkouts(): Promise<CategorizedWorkouts> {
+    const allWorkouts = await this.getUserWorkouts();
+
+    return {
+      activeWorkouts: allWorkouts.filter(w => w.status === 'ACTIVE'),
+      draftWorkouts: allWorkouts.filter(w => w.status === 'DRAFT'),
+      archivedWorkouts: allWorkouts.filter(w => w.status === 'ARCHIVED'),
+    };
   }
 }

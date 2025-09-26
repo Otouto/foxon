@@ -6,6 +6,7 @@ export interface WorkoutListItem {
   description: string | null;
   exerciseCount: number;
   estimatedDuration: number;
+  status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -85,4 +86,19 @@ export interface UpdateWorkoutRequest {
       notes?: string;
     }>;
   }>;
+}
+
+// Categorized workouts for organization
+export interface CategorizedWorkouts {
+  activeWorkouts: WorkoutListItem[];
+  draftWorkouts: WorkoutListItem[];
+  archivedWorkouts: WorkoutListItem[];
+}
+
+// Workout group for collapsible sections
+export interface WorkoutGroup {
+  key: string;
+  title: string;
+  workouts: WorkoutListItem[];
+  count: number;
 }
