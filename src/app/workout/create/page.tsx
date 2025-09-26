@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Plus, Save, FileText } from 'lucide-react';
 import { useWorkoutCreation } from '@/hooks/useWorkoutCreation';
 import { ExerciseSelectionModal } from '@/components/workout/ExerciseSelectionModal';
@@ -10,8 +10,13 @@ import { WorkoutExerciseCard } from '@/components/workout/WorkoutExerciseCard';
 
 export default function CreateWorkoutPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editWorkoutId = searchParams.get('edit');
+  const isEditing = Boolean(editWorkoutId);
+
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(isEditing);
 
   const {
     workoutName,
@@ -29,16 +34,47 @@ export default function CreateWorkoutPage() {
     removeSet,
     updateSet,
     saveWorkout,
+    loadWorkoutForEditing,
   } = useWorkoutCreation();
+
+  // Load existing workout data when in edit mode
+  useEffect(() => {
+    const loadWorkoutData = async () => {
+      if (editWorkoutId && isEditing) {
+        setIsLoading(true);
+        try {
+          const response = await fetch(`/api/workouts/${editWorkoutId}`);
+
+          if (!response.ok) {
+            throw new Error('Failed to fetch workout data');
+          }
+
+          const workoutData = await response.json();
+          loadWorkoutForEditing(workoutData);
+        } catch (error) {
+          console.error('Failed to load workout for editing:', error);
+          setSaveError('Failed to load workout data');
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadWorkoutData();
+  }, [editWorkoutId, isEditing, loadWorkoutForEditing]);
 
   const handleSaveWorkout = async (asDraft: boolean = false) => {
     try {
       setSaveError(null);
       setSaveSuccess(null);
 
-      await saveWorkout(asDraft);
+      await saveWorkout(asDraft, editWorkoutId || undefined);
 
-      setSaveSuccess(asDraft ? 'Draft saved successfully!' : 'Workout created successfully!');
+      const successMessage = isEditing
+        ? (asDraft ? 'Workout draft updated successfully!' : 'Workout updated successfully!')
+        : (asDraft ? 'Draft saved successfully!' : 'Workout created successfully!');
+
+      setSaveSuccess(successMessage);
 
       // Redirect after a short delay
       setTimeout(() => {
@@ -50,6 +86,23 @@ export default function CreateWorkoutPage() {
     }
   };
 
+  // Show loading state while fetching workout data for editing
+  if (isLoading) {
+    return (
+      <div className="px-6 py-8 pb-above-nav">
+        <div className="flex items-center gap-4 mb-8">
+          <Link href="/workout" className="p-2 -ml-2">
+            <ArrowLeft size={24} className="text-gray-600" />
+          </Link>
+          <h1 className="text-2xl font-bold text-gray-900">Loading Workout...</h1>
+        </div>
+        <div className="flex justify-center items-center py-12">
+          <div className="w-8 h-8 border-4 border-gray-200 border-t-cyan-400 rounded-full animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="px-6 py-8 pb-above-nav">
       {/* Header */}
@@ -57,7 +110,9 @@ export default function CreateWorkoutPage() {
         <Link href="/workout" className="p-2 -ml-2">
           <ArrowLeft size={24} className="text-gray-600" />
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">Create Workout</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {isEditing ? 'Edit Workout' : 'Create Workout'}
+        </h1>
       </div>
 
       {/* Workout Name */}
@@ -155,7 +210,7 @@ export default function CreateWorkoutPage() {
             ) : (
               <>
                 <Save size={18} />
-                <span>Create Workout</span>
+                <span>{isEditing ? 'Update Workout' : 'Create Workout'}</span>
               </>
             )}
           </button>

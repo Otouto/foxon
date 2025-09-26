@@ -64,7 +64,7 @@ export class WorkoutService {
    */
   static async getWorkoutById(workoutId: string): Promise<WorkoutDetails | null> {
     const userId = getCurrentUserId();
-    
+
     const workout = await prisma.workout.findFirst({
       where: {
         id: workoutId,
@@ -106,7 +106,7 @@ export class WorkoutService {
 
     const exerciseCount = workout.workoutItems.length;
     const totalSets = workout.workoutItems.reduce(
-      (total: number, item) => total + item.workoutItemSets.length, 
+      (total: number, item) => total + item.workoutItemSets.length,
       0
     );
     const estimatedDuration = totalSets * 3 + Math.max(0, exerciseCount - 1);
@@ -117,6 +117,7 @@ export class WorkoutService {
       description: workout.description,
       exerciseCount,
       estimatedDuration,
+      status: workout.status as 'ACTIVE' | 'DRAFT' | 'ARCHIVED',
       createdAt: workout.createdAt,
       updatedAt: workout.updatedAt,
       items: workout.workoutItems.map((item) => ({
@@ -232,6 +233,7 @@ export class WorkoutService {
       description: workout.description,
       exerciseCount,
       estimatedDuration,
+      status: workout.status as 'ACTIVE' | 'DRAFT' | 'ARCHIVED',
       createdAt: workout.createdAt,
       updatedAt: workout.updatedAt,
       items: workout.workoutItems.map((item) => ({
@@ -275,7 +277,23 @@ export class WorkoutService {
       return null;
     }
 
-    // Update the workout
+    // Delete all existing workout items and sets, then recreate them
+    // This is simpler than trying to match and update individual items
+    await prisma.workoutItemSet.deleteMany({
+      where: {
+        workoutItem: {
+          workoutId: workoutId,
+        },
+      },
+    });
+
+    await prisma.workoutItem.deleteMany({
+      where: {
+        workoutId: workoutId,
+      },
+    });
+
+    // Update the workout with new data
     const workout = await prisma.workout.update({
       where: {
         id: workoutId,
@@ -283,9 +301,22 @@ export class WorkoutService {
       data: {
         title: data.title,
         description: data.description,
-        // Note: For now, we'll handle items updates separately
-        // In a full implementation, you'd need complex logic to handle
-        // adding/removing/updating workout items and sets
+        workoutItems: {
+          create: data.items?.map((item) => ({
+            exerciseId: item.exerciseId,
+            order: item.order,
+            notes: item.notes,
+            workoutItemSets: {
+              create: item.sets.map((set) => ({
+                type: set.type,
+                targetLoad: set.targetLoad,
+                targetReps: set.targetReps,
+                order: set.order,
+                notes: set.notes || null,
+              })),
+            },
+          })) || [],
+        },
       },
       include: {
         workoutItems: {
@@ -331,6 +362,7 @@ export class WorkoutService {
       description: workout.description,
       exerciseCount,
       estimatedDuration,
+      status: workout.status as 'ACTIVE' | 'DRAFT' | 'ARCHIVED',
       createdAt: workout.createdAt,
       updatedAt: workout.updatedAt,
       items: workout.workoutItems.map((item) => ({

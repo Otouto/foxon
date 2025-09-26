@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { isBodyweightExercise } from '@/lib/utils/exerciseUtils';
 import type { ExerciseListItem } from '@/lib/types/exercise';
+import type { WorkoutDetails } from '@/lib/types/workout';
 
 export interface WorkoutSet {
   type: 'WARMUP' | 'NORMAL';
@@ -151,7 +152,33 @@ export function useWorkoutCreation() {
     });
   }, []);
 
-  const saveWorkout = useCallback(async (asDraft: boolean = false) => {
+  const loadWorkoutForEditing = useCallback((workoutData: WorkoutDetails) => {
+    const exerciseItems: WorkoutExerciseItem[] = workoutData.items.map(item => ({
+      id: `temp-${item.id}`, // Use temp prefix to distinguish from actual DB IDs
+      exercise: {
+        id: item.exercise.id,
+        name: item.exercise.name,
+        description: item.exercise.description,
+        muscleGroup: item.exercise.muscleGroup?.name || null,
+        equipment: item.exercise.equipment?.name || null,
+      },
+      sets: item.sets.map(set => ({
+        type: set.type,
+        targetLoad: set.targetLoad,
+        targetReps: set.targetReps,
+        order: set.order,
+      })),
+      notes: item.notes || undefined,
+    }));
+
+    setState(prev => ({
+      ...prev,
+      workoutName: workoutData.title,
+      exercises: exerciseItems,
+    }));
+  }, []);
+
+  const saveWorkout = useCallback(async (asDraft: boolean = false, editWorkoutId?: string) => {
     if (!state.workoutName.trim() || state.exercises.length === 0) {
       throw new Error('Workout name and at least one exercise are required');
     }
@@ -176,9 +203,24 @@ export function useWorkoutCreation() {
         })),
       };
 
-      const endpoint = asDraft ? '/api/workouts/draft' : '/api/workouts';
+      let endpoint: string;
+      let method: string;
+
+      if (editWorkoutId) {
+        // Editing existing workout
+        endpoint = `/api/workouts/${editWorkoutId}`;
+        method = 'PUT';
+        if (asDraft) {
+          endpoint += '?status=DRAFT';
+        }
+      } else {
+        // Creating new workout
+        endpoint = asDraft ? '/api/workouts/draft' : '/api/workouts';
+        method = 'POST';
+      }
+
       const response = await fetch(endpoint, {
-        method: 'POST',
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -191,13 +233,17 @@ export function useWorkoutCreation() {
 
       const result = await response.json();
 
-      // Reset state after successful save
-      setState({
-        workoutName: '',
-        exercises: [],
-        isModalOpen: false,
-        isSaving: false,
-      });
+      // Reset state after successful save (only for new workouts)
+      if (!editWorkoutId) {
+        setState({
+          workoutName: '',
+          exercises: [],
+          isModalOpen: false,
+          isSaving: false,
+        });
+      } else {
+        setState(prev => ({ ...prev, isSaving: false }));
+      }
 
       return result;
     } catch (error) {
@@ -221,6 +267,7 @@ export function useWorkoutCreation() {
     updateSet,
     reorderExercises,
     saveWorkout,
+    loadWorkoutForEditing,
     canSave,
   };
 }

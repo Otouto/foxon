@@ -46,6 +46,7 @@ export interface WorkoutDetails {
   description: string | null;
   exerciseCount: number;
   estimatedDuration: number;
+  status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED';
   createdAt: Date;
   updatedAt: Date;
   items: WorkoutItem[];

@@ -1,10 +1,10 @@
 import Link from 'next/link';
-import { ArrowLeft, Play, Edit, Target } from 'lucide-react';
+import { ArrowLeft, Play, Edit, Target, Archive, FileText } from 'lucide-react';
 import { WorkoutService } from '@/services/WorkoutService';
 
 export default async function WorkoutDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  
+
   // Fetch real workout from database
   const workout = await WorkoutService.getWorkoutById(id);
 
@@ -16,6 +16,35 @@ export default async function WorkoutDetailPage({ params }: { params: Promise<{ 
       </div>
     );
   }
+
+  // Helper function to get CTA button configuration based on workout status
+  const getCTAConfig = (status: string) => {
+    switch (status) {
+      case 'DRAFT':
+        return {
+          text: 'Continue Creation',
+          href: `/workout/create?edit=${id}`,
+          icon: FileText,
+          className: 'bg-blue-400 hover:bg-blue-500 text-white'
+        };
+      case 'ARCHIVED':
+        return {
+          text: 'Unarchive & Start',
+          href: `/session/log?workoutId=${id}&preloaded=false`,
+          icon: Archive,
+          className: 'bg-green-400 hover:bg-green-500 text-black'
+        };
+      default: // ACTIVE
+        return {
+          text: `Start ${workout.title}`,
+          href: `/session/log?workoutId=${id}&preloaded=false`,
+          icon: Play,
+          className: 'bg-lime-400 hover:bg-lime-500 text-black'
+        };
+    }
+  };
+
+  const ctaConfig = getCTAConfig(workout.status);
 
   return (
     <div className="px-6 py-8 pb-above-nav">
@@ -30,7 +59,7 @@ export default async function WorkoutDetailPage({ params }: { params: Promise<{ 
             <p className="text-sm text-gray-500">{workout.exerciseCount} exercises • {workout.estimatedDuration} min</p>
           </div>
         </div>
-        <Link href={`/workout/${id}/edit`} className="p-2 text-gray-400 hover:text-gray-600">
+        <Link href={`/workout/create?edit=${id}`} className="p-2 text-gray-400 hover:text-gray-600">
           <Edit size={20} />
         </Link>
       </div>
@@ -80,11 +109,17 @@ export default async function WorkoutDetailPage({ params }: { params: Promise<{ 
             {/* Sets breakdown */}
             <div className="space-y-2 mb-3">
               {item.sets.map((set) => (
-                <div key={set.id} className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
-                  <span className="text-gray-600">
-                    Set {set.order}
-                    {set.type === 'WARMUP' && <span className="text-orange-500 ml-1">(Warmup)</span>}
-                  </span>
+                <div key={set.id} className={`flex items-center justify-between text-sm rounded-lg px-3 py-2 ${
+                  set.type === 'WARMUP' ? 'bg-orange-50' : 'bg-gray-50'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600">Set {set.order}</span>
+                    {set.type === 'WARMUP' && (
+                      <span className="px-2 py-1 bg-orange-200 text-orange-800 text-xs font-medium rounded-lg">
+                        W
+                      </span>
+                    )}
+                  </div>
                   <span className="text-gray-900 font-medium">
                     {set.targetReps} reps × {set.targetLoad > 0 ? `${set.targetLoad}kg` : 'Bodyweight'}
                   </span>
@@ -99,14 +134,14 @@ export default async function WorkoutDetailPage({ params }: { params: Promise<{ 
         ))}
       </div>
 
-      {/* Start Button */}
+      {/* Dynamic CTA Button */}
       <div className="fixed bottom-above-nav left-6 right-6">
-        <Link 
-          href={`/session/log?workoutId=${id}&preloaded=false`}
-          className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl flex items-center justify-center gap-3"
+        <Link
+          href={ctaConfig.href}
+          className={`w-full font-semibold py-4 rounded-2xl flex items-center justify-center gap-3 transition-colors ${ctaConfig.className}`}
         >
-          <Play size={20} />
-          Start {workout.title}
+          <ctaConfig.icon size={20} />
+          {ctaConfig.text}
         </Link>
       </div>
     </div>
