@@ -131,4 +131,56 @@ export class ExerciseService {
       equipment: exercise.equipment?.name || null,
     }));
   }
+
+  /**
+   * Create a new exercise
+   */
+  static async createExercise(data: {
+    name: string;
+    muscleGroupId?: string;
+    equipmentId?: string;
+    description?: string;
+  }): Promise<ExerciseListItem> {
+    // Check for duplicate names
+    const existingExercise = await prisma.exercise.findFirst({
+      where: {
+        name: {
+          equals: data.name.trim(),
+          mode: 'insensitive',
+        },
+      },
+    });
+
+    if (existingExercise) {
+      throw new Error('Exercise with this name already exists');
+    }
+
+    const exercise = await prisma.exercise.create({
+      data: {
+        name: data.name.trim(),
+        description: data.description?.trim() || null,
+        muscleGroupId: data.muscleGroupId || null,
+        equipmentId: data.equipmentId || null,
+      },
+      include: {
+        muscleGroup: {
+          select: {
+            name: true,
+          },
+        },
+        equipment: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+
+    return {
+      id: exercise.id,
+      name: exercise.name,
+      muscleGroup: exercise.muscleGroup?.name || null,
+      equipment: exercise.equipment?.name || null,
+    };
+  }
 }

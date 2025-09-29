@@ -22,3 +22,39 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export async function POST(request: NextRequest) {
+  try {
+    const { name, muscleGroupId, equipmentId, description } = await request.json();
+
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      return NextResponse.json(
+        { error: 'Exercise name is required' },
+        { status: 400 }
+      );
+    }
+
+    const exercise = await ExerciseService.createExercise({
+      name,
+      muscleGroupId: muscleGroupId || undefined,
+      equipmentId: equipmentId || undefined,
+      description: description || undefined,
+    });
+
+    return NextResponse.json({ exercise }, { status: 201 });
+  } catch (error) {
+    console.error('Failed to create exercise:', error);
+
+    if (error instanceof Error && error.message === 'Exercise with this name already exists') {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 409 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to create exercise' },
+      { status: 500 }
+    );
+  }
+}
