@@ -70,7 +70,9 @@ export interface WeekBounds {
 export function getWeekBounds(date: Date): WeekBounds {
   const start = new Date(date);
   const day = start.getDay();
-  const diff = start.getDate() - day;
+  // Adjust so Monday = 0, Tuesday = 1, ..., Sunday = 6
+  const adjustedDay = (day + 6) % 7;
+  const diff = start.getDate() - adjustedDay;
   start.setDate(diff);
   start.setHours(0, 0, 0, 0);
 
