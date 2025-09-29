@@ -15,14 +15,14 @@ interface WorkoutExerciseCardProps {
   onUpdateNotes: (notes: string) => void;
 }
 
-export function WorkoutExerciseCard({
-  exercise,
-  onRemove,
-  onAddSet,
-  onRemoveSet,
-  onUpdateSet,
-  onUpdateNotes, // Future feature for exercise notes
-}: WorkoutExerciseCardProps) {
+export function WorkoutExerciseCard(props: WorkoutExerciseCardProps) {
+  const {
+    exercise,
+    onRemove,
+    onAddSet,
+    onRemoveSet,
+    onUpdateSet,
+  } = props;
   const [editingSet, setEditingSet] = useState<number | null>(null);
   const [editingValues, setEditingValues] = useState<{ weight: number; reps: number } | null>(null);
 

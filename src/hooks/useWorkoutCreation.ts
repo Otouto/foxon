@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { isBodyweightExercise } from '@/lib/utils/exerciseUtils';
 import type { ExerciseListItem } from '@/lib/types/exercise';
 import type { WorkoutDetails } from '@/lib/types/workout';
 
