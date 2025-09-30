@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Search, X, Dumbbell, Plus, ArrowLeft } from 'lucide-react';
+import { ImageUploadField } from '@/components/exercise/ImageUploadField';
 import type { ExerciseListItem } from '@/lib/types/exercise';
 
 interface MuscleGroup {
@@ -37,7 +38,8 @@ export function ExerciseSelectionModal({
     name: '',
     muscleGroupId: '',
     equipmentId: '',
-    description: ''
+    instructions: '',
+    imageUrl: null as string | null
   });
   const [createError, setCreateError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -134,7 +136,8 @@ export function ExerciseSelectionModal({
           name: createForm.name.trim(),
           muscleGroupId: createForm.muscleGroupId || null,
           equipmentId: createForm.equipmentId || null,
-          description: createForm.description?.trim() || null,
+          instructions: createForm.instructions?.trim() || null,
+          imageUrl: createForm.imageUrl || null,
         }),
       });
 
@@ -174,7 +177,8 @@ export function ExerciseSelectionModal({
       name: '',
       muscleGroupId: '',
       equipmentId: '',
-      description: ''
+      instructions: '',
+      imageUrl: null
     });
     setCreateError(null);
   };
@@ -185,7 +189,8 @@ export function ExerciseSelectionModal({
       name: debouncedSearchQuery.trim(),
       muscleGroupId: '',
       equipmentId: '',
-      description: ''
+      instructions: '',
+      imageUrl: null
     });
     setCreateError(null);
   };
@@ -196,7 +201,8 @@ export function ExerciseSelectionModal({
       name: '',
       muscleGroupId: '',
       equipmentId: '',
-      description: ''
+      instructions: '',
+      imageUrl: null
     });
     setCreateError(null);
   };
@@ -300,20 +306,27 @@ export function ExerciseSelectionModal({
                 </select>
               </div>
 
-              {/* Description */}
+              {/* Instructions */}
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-900 mb-2">
-                  Description
+                <label htmlFor="instructions" className="block text-sm font-medium text-gray-900 mb-2">
+                  Instructions
                 </label>
                 <textarea
-                  id="description"
-                  value={createForm.description}
-                  onChange={(e) => setCreateForm(prev => ({ ...prev, description: e.target.value }))}
+                  id="instructions"
+                  value={createForm.instructions}
+                  onChange={(e) => setCreateForm(prev => ({ ...prev, instructions: e.target.value }))}
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent resize-none"
                   rows={3}
-                  placeholder="Optional description or instructions"
+                  placeholder="How to perform this exercise (optional)"
                 />
               </div>
+
+              {/* Image Upload */}
+              <ImageUploadField
+                value={createForm.imageUrl}
+                onChange={(url) => setCreateForm(prev => ({ ...prev, imageUrl: url }))}
+                disabled={isSubmitting}
+              />
 
               {/* Error Message */}
               {createError && (

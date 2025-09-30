@@ -71,6 +71,8 @@ export class ExerciseService {
       id: exercise.id,
       name: exercise.name,
       description: exercise.description,
+      instructions: exercise.instructions,
+      imageUrl: exercise.imageUrl,
       muscleGroup: exercise.muscleGroup,
       equipment: exercise.equipment,
     };
@@ -139,7 +141,8 @@ export class ExerciseService {
     name: string;
     muscleGroupId?: string;
     equipmentId?: string;
-    description?: string;
+    instructions?: string;
+    imageUrl?: string;
   }): Promise<ExerciseListItem> {
     // Check for duplicate names
     const existingExercise = await prisma.exercise.findFirst({
@@ -158,7 +161,8 @@ export class ExerciseService {
     const exercise = await prisma.exercise.create({
       data: {
         name: data.name.trim(),
-        description: data.description?.trim() || null,
+        instructions: data.instructions?.trim() || null,
+        imageUrl: data.imageUrl || null,
         muscleGroupId: data.muscleGroupId || null,
         equipmentId: data.equipmentId || null,
       },

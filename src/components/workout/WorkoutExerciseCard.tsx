@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { Trash2, Plus, Minus } from 'lucide-react';
+import { CldImage } from 'next-cloudinary';
 import { SetEditor } from './SetEditor';
 import { isBodyweightExercise, hasBodyweightSets } from '@/lib/utils/exerciseUtils';
+import { isVideoUrl } from '@/lib/utils/mediaUtils';
 import type { WorkoutExerciseItem } from '@/hooks/useWorkoutCreation';
 
 interface WorkoutExerciseCardProps {
@@ -62,8 +64,38 @@ export function WorkoutExerciseCard(props: WorkoutExerciseCardProps) {
     }
   };
 
+  const isVideo = exercise.exercise.imageUrl ? isVideoUrl(exercise.exercise.imageUrl) : false;
+
   return (
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+      {/* Exercise Media (Image or Video) */}
+      {exercise.exercise.imageUrl && (
+        <div className="mb-4 rounded-xl overflow-hidden -mx-4 -mt-4">
+          {isVideo ? (
+            <video
+              src={exercise.exercise.imageUrl}
+              controls
+              loop
+              playsInline
+              muted
+              className="w-full h-32 object-cover"
+            >
+              Your browser does not support the video tag.
+            </video>
+          ) : (
+            <CldImage
+              src={exercise.exercise.imageUrl}
+              alt={exercise.exercise.name}
+              width={800}
+              height={400}
+              crop="fill"
+              gravity="center"
+              className="w-full h-32 object-cover"
+            />
+          )}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">

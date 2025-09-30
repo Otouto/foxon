@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, muscleGroupId, equipmentId, description } = await request.json();
+    const { name, muscleGroupId, equipmentId, instructions, imageUrl } = await request.json();
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json(
@@ -38,7 +38,8 @@ export async function POST(request: NextRequest) {
       name,
       muscleGroupId: muscleGroupId || undefined,
       equipmentId: equipmentId || undefined,
-      description: description || undefined,
+      instructions: instructions || undefined,
+      imageUrl: imageUrl || undefined,
     });
 
     return NextResponse.json({ exercise }, { status: 201 });
@@ -52,8 +53,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Return detailed error message for debugging
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create exercise';
     return NextResponse.json(
-      { error: 'Failed to create exercise' },
+      {
+        error: 'Failed to create exercise',
+        details: errorMessage
+      },
       { status: 500 }
     );
   }

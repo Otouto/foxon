@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { ArrowLeft, Play, Edit, Target, Archive, FileText } from 'lucide-react';
+import { CldImage } from 'next-cloudinary';
 import { WorkoutService } from '@/services/WorkoutService';
+import { isVideoUrl } from '@/lib/utils/mediaUtils';
 
 export default async function WorkoutDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -91,8 +93,39 @@ export default async function WorkoutDetailPage({ params }: { params: Promise<{ 
       {/* Exercise List */}
       <div className="space-y-4 mb-8">
         <h3 className="font-semibold text-gray-900">Exercises</h3>
-        {workout.items.map((item) => (
+        {workout.items.map((item) => {
+          const isVideo = item.exercise.imageUrl ? isVideoUrl(item.exercise.imageUrl) : false;
+
+          return (
           <div key={item.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+            {/* Exercise Media (Image or Video) */}
+            {item.exercise.imageUrl && (
+              <div className="mb-3 rounded-xl overflow-hidden">
+                {isVideo ? (
+                  <video
+                    src={item.exercise.imageUrl}
+                    controls
+                    loop
+                    playsInline
+                    muted
+                    className="w-full h-32 object-cover"
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                ) : (
+                  <CldImage
+                    src={item.exercise.imageUrl}
+                    alt={item.exercise.name}
+                    width={800}
+                    height={450}
+                    crop="fill"
+                    gravity="center"
+                    className="w-full h-32 object-cover"
+                  />
+                )}
+              </div>
+            )}
+
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
                 <h4 className="font-medium text-gray-900">{item.exercise.name}</h4>
@@ -131,7 +164,8 @@ export default async function WorkoutDetailPage({ params }: { params: Promise<{ 
               <p className="text-xs text-gray-500 italic">💡 {item.notes}</p>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Dynamic CTA Button */}
