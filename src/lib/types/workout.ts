@@ -24,6 +24,7 @@ export interface WorkoutExercise {
   id: string;
   name: string;
   description: string | null;
+  instructions?: string | null;
   imageUrl?: string | null;
   muscleGroup: {
     name: string;

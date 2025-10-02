@@ -1,6 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { CldImage } from 'next-cloudinary';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { isVideoUrl } from '@/lib/utils/mediaUtils';
 
 interface WorkoutSet {
@@ -13,6 +15,7 @@ interface WorkoutSet {
 
 interface Exercise {
   name: string;
+  instructions?: string | null;
   imageUrl?: string | null;
   muscleGroup: {
     name: string;
@@ -32,38 +35,14 @@ interface WorkoutDetailExerciseCardProps {
 }
 
 export function WorkoutDetailExerciseCard({ item }: WorkoutDetailExerciseCardProps) {
+  const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
   const isVideo = item.exercise.imageUrl ? isVideoUrl(item.exercise.imageUrl) : false;
+  
+  // Check if there's anything to show in the details section
+  const hasDetails = !!(item.exercise.instructions || item.exercise.imageUrl);
 
   return (
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-      {/* Exercise Media (Image or Video) */}
-      {item.exercise.imageUrl && (
-        <div className="mb-3 rounded-xl overflow-hidden">
-          {isVideo ? (
-            <video
-              src={item.exercise.imageUrl}
-              controls
-              loop
-              playsInline
-              muted
-              className="w-full h-32 object-cover"
-            >
-              Your browser does not support the video tag.
-            </video>
-          ) : (
-            <CldImage
-              src={item.exercise.imageUrl}
-              alt={item.exercise.name}
-              width={800}
-              height={450}
-              crop="fill"
-              gravity="center"
-              className="w-full h-32 object-cover"
-            />
-          )}
-        </div>
-      )}
-
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <h4 className="font-medium text-gray-900">{item.exercise.name}</h4>
@@ -99,7 +78,69 @@ export function WorkoutDetailExerciseCard({ item }: WorkoutDetailExerciseCardPro
       </div>
       
       {item.notes && (
-        <p className="text-xs text-gray-500 italic">💡 {item.notes}</p>
+        <p className="text-xs text-gray-500 italic mb-3">💡 {item.notes}</p>
+      )}
+
+      {/* Collapsible Details Section */}
+      {hasDetails && (
+        <div className="border-t border-gray-100 pt-3">
+          <button
+            onClick={() => setIsDetailsExpanded(!isDetailsExpanded)}
+            className="w-full flex items-center justify-between py-1 hover:bg-gray-50 rounded-lg px-3 -mx-3 transition-colors"
+          >
+            <span className="text-sm font-medium text-gray-700">Details</span>
+            {isDetailsExpanded ? (
+              <ChevronDown size={16} className="text-gray-500" />
+            ) : (
+              <ChevronRight size={16} className="text-gray-500" />
+            )}
+          </button>
+
+          <div
+            className={`transition-all duration-300 ease-in-out overflow-hidden ${
+              isDetailsExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'
+            }`}
+          >
+            {isDetailsExpanded && (
+              <div className="mt-3 space-y-3 px-3">
+                {/* Instructions */}
+                {item.exercise.instructions && (
+                  <div className="text-sm text-gray-600 leading-relaxed">
+                    {item.exercise.instructions}
+                  </div>
+                )}
+
+                {/* Exercise Media (Image or Video) */}
+                {item.exercise.imageUrl && (
+                  <div className="rounded-xl overflow-hidden">
+                    {isVideo ? (
+                      <video
+                        src={item.exercise.imageUrl}
+                        controls
+                        loop
+                        playsInline
+                        muted
+                        className="w-full h-48 object-cover"
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                    ) : (
+                      <CldImage
+                        src={item.exercise.imageUrl}
+                        alt={item.exercise.name}
+                        width={800}
+                        height={450}
+                        crop="fill"
+                        gravity="center"
+                        className="w-full h-48 object-cover"
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

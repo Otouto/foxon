@@ -56,12 +56,15 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
               </p>
             )}
           </div>
-          <button
-            onClick={handleStartSession}
-            className="bg-lime-400 text-black p-3 rounded-full hover:bg-lime-500 transition-colors"
-          >
-            <Play size={18} />
-          </button>
+          {/* Only show Play button for Active workouts */}
+          {workout.status === 'ACTIVE' && (
+            <button
+              onClick={handleStartSession}
+              className="bg-lime-400 text-black p-3 rounded-full hover:bg-lime-500 transition-colors"
+            >
+              <Play size={18} />
+            </button>
+          )}
         </div>
       </div>
     </div>
