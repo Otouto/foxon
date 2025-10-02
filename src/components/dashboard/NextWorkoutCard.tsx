@@ -23,7 +23,7 @@ export function NextWorkoutCard({ workout, isWeekComplete }: NextWorkoutCardProp
             All workouts complete this week!
           </h2>
           <p className="text-gray-800 mb-6">
-            Great job! You've hit your weekly goal. 🎉
+            Great job! You&apos;ve hit your weekly goal. 🎉
           </p>
           <Link 
             href="/workout"

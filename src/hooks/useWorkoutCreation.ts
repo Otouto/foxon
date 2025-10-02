@@ -160,6 +160,7 @@ export function useWorkoutCreation() {
         description: item.exercise.description,
         muscleGroup: item.exercise.muscleGroup?.name || null,
         equipment: item.exercise.equipment?.name || null,
+        imageUrl: item.exercise.imageUrl || null,
       },
       sets: item.sets.map(set => ({
         type: set.type,
