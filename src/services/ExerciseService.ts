@@ -36,6 +36,7 @@ export class ExerciseService {
       name: exercise.name,
       muscleGroup: exercise.muscleGroup?.name || null,
       equipment: exercise.equipment?.name || null,
+      imageUrl: exercise.imageUrl || null,
     }));
   }
 
@@ -131,6 +132,7 @@ export class ExerciseService {
       name: exercise.name,
       muscleGroup: exercise.muscleGroup?.name || null,
       equipment: exercise.equipment?.name || null,
+      imageUrl: exercise.imageUrl || null,
     }));
   }
 
@@ -185,6 +187,73 @@ export class ExerciseService {
       name: exercise.name,
       muscleGroup: exercise.muscleGroup?.name || null,
       equipment: exercise.equipment?.name || null,
+      imageUrl: exercise.imageUrl || null,
+    };
+  }
+
+  /**
+   * Update an existing exercise
+   */
+  static async updateExercise(
+    exerciseId: string,
+    data: {
+      name?: string;
+      muscleGroupId?: string | null;
+      equipmentId?: string | null;
+      instructions?: string | null;
+      imageUrl?: string | null;
+    }
+  ): Promise<ExerciseListItem> {
+    // Check if name is being updated and if it conflicts with existing exercises
+    if (data.name) {
+      const existingExercise = await prisma.exercise.findFirst({
+        where: {
+          name: {
+            equals: data.name.trim(),
+            mode: 'insensitive',
+          },
+          NOT: {
+            id: exerciseId,
+          },
+        },
+      });
+
+      if (existingExercise) {
+        throw new Error('Exercise with this name already exists');
+      }
+    }
+
+    const exercise = await prisma.exercise.update({
+      where: {
+        id: exerciseId,
+      },
+      data: {
+        ...(data.name !== undefined && { name: data.name.trim() }),
+        ...(data.instructions !== undefined && { instructions: data.instructions?.trim() || null }),
+        ...(data.imageUrl !== undefined && { imageUrl: data.imageUrl || null }),
+        ...(data.muscleGroupId !== undefined && { muscleGroupId: data.muscleGroupId || null }),
+        ...(data.equipmentId !== undefined && { equipmentId: data.equipmentId || null }),
+      },
+      include: {
+        muscleGroup: {
+          select: {
+            name: true,
+          },
+        },
+        equipment: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+
+    return {
+      id: exercise.id,
+      name: exercise.name,
+      muscleGroup: exercise.muscleGroup?.name || null,
+      equipment: exercise.equipment?.name || null,
+      imageUrl: exercise.imageUrl || null,
     };
   }
 }

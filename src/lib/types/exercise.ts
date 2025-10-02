@@ -21,5 +21,5 @@ export interface ExerciseListItem {
   name: string;
   muscleGroup: string | null;
   equipment: string | null;
-  imageUrl?: string | null;
+  imageUrl: string | null;
 }
