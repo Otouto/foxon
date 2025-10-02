@@ -13,7 +13,7 @@ interface WorkoutSet {
 
 interface Exercise {
   name: string;
-  imageUrl: string | null;
+  imageUrl?: string | null;
   muscleGroup: {
     name: string;
   } | null;
