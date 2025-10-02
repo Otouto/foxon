@@ -23,6 +23,65 @@ export interface DashboardData {
 
 export class DashboardService {
   /**
+   * Calculate fox progression state based on workout completion and devotion
+   */
+  private static calculateFoxState(
+    completedWorkouts: number,
+    plannedPerWeek: number,
+    avgDevotionScore: number | null
+  ): ProgressionState {
+    const totalPlanned = plannedPerWeek * 8; // 8 weeks
+
+    // Special case: Zero workouts = always SLIM
+    if (completedWorkouts === 0) {
+      return ProgressionState.SLIM;
+    }
+
+    // Special case: Perfect consistency = always FIERY
+    if (completedWorkouts >= totalPlanned) {
+      return ProgressionState.FIERY;
+    }
+
+    // Calculate base state based on completion percentage
+    let baseState: ProgressionState;
+    if (completedWorkouts < totalPlanned * 0.5) {
+      baseState = ProgressionState.SLIM;        // 0-7 workouts (for goal of 2/week)
+    } else if (completedWorkouts < totalPlanned * 0.75) {
+      baseState = ProgressionState.FIT;         // 8-11 workouts
+    } else if (completedWorkouts < totalPlanned) {
+      baseState = ProgressionState.STRONG;      // 12-15 workouts
+    } else {
+      baseState = ProgressionState.FIERY;       // 16+ workouts
+    }
+
+    // Apply devotion score modifiers (only if enough data)
+    if (completedWorkouts >= 4 && avgDevotionScore !== null) {
+      // PROMOTION: High devotion score bumps up one level
+      if (avgDevotionScore >= 90 && baseState !== ProgressionState.FIERY) {
+        const promotionMap = {
+          [ProgressionState.SLIM]: ProgressionState.FIT,
+          [ProgressionState.FIT]: ProgressionState.STRONG,
+          [ProgressionState.STRONG]: ProgressionState.FIERY,
+          [ProgressionState.FIERY]: ProgressionState.FIERY,
+        };
+        return promotionMap[baseState];
+      }
+      
+      // DEMOTION: Low devotion score drops down one level
+      if (avgDevotionScore < 80 && baseState !== ProgressionState.SLIM) {
+        const demotionMap = {
+          [ProgressionState.SLIM]: ProgressionState.SLIM,
+          [ProgressionState.FIT]: ProgressionState.SLIM,
+          [ProgressionState.STRONG]: ProgressionState.FIT,
+          [ProgressionState.FIERY]: ProgressionState.STRONG,
+        };
+        return demotionMap[baseState];
+      }
+    }
+
+    return baseState;
+  }
+  /**
    * Get all dashboard data
    */
   static async getDashboardData(): Promise<DashboardData> {
@@ -37,26 +96,33 @@ export class DashboardService {
       throw new Error('User not found');
     }
 
-    // Get sessions from the last 4 weeks for devotion score
-    const fourWeeksAgo = new Date();
-    fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+    // Get sessions from the last 8 weeks for fox state calculation
+    const eightWeeksAgo = new Date();
+    eightWeeksAgo.setDate(eightWeeksAgo.getDate() - 56);
 
-    const recentSessions = await prisma.session.findMany({
+    const last8WeeksSessions = await prisma.session.findMany({
       where: {
         userId,
         status: SessionStatus.FINISHED,
-        date: { gte: fourWeeksAgo }
+        date: { gte: eightWeeksAgo }
       }
     });
 
-    // Calculate average devotion score
-    const sessionsWithDevotionScore = recentSessions.filter(s => s.devotionScore !== null);
+    // Calculate average devotion score from last 8 weeks
+    const sessionsWithDevotionScore = last8WeeksSessions.filter(s => s.devotionScore !== null);
     const averageDevotionScore = sessionsWithDevotionScore.length > 0
       ? Math.round(
           sessionsWithDevotionScore.reduce((sum, s) => sum + (s.devotionScore || 0), 0) / 
           sessionsWithDevotionScore.length
         )
       : null;
+
+    // Calculate fox state dynamically
+    const foxState = this.calculateFoxState(
+      last8WeeksSessions.length,
+      user.weeklyGoal,
+      averageDevotionScore
+    );
 
     // Get this week's sessions (Monday to Sunday)
     const now = new Date();
@@ -123,9 +189,9 @@ export class DashboardService {
 
     return {
       foxState: {
-        state: user.progressionState,
+        state: foxState,
         devotionScore: averageDevotionScore,
-        timePeriod: 'Last 4 weeks'
+        timePeriod: 'Last 8 weeks'
       },
       weekProgress: {
         completed: completedThisWeek,
