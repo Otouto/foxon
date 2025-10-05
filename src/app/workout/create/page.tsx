@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, type ReactElement } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Plus, Save, FileText } from 'lucide-react';
@@ -187,10 +187,10 @@ function CreateWorkoutPageInner() {
               });
 
               // Render exercises in order, grouping blocks together
-              const rendered: JSX.Element[] = [];
+              const rendered: ReactElement[] = [];
               const processedBlocks = new Set<string>();
 
-              exercises.forEach((exercise, index) => {
+              exercises.forEach((exercise) => {
                 if (exercise.blockId && !processedBlocks.has(exercise.blockId)) {
                   // Render entire block
                   processedBlocks.add(exercise.blockId);

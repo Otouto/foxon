@@ -11,7 +11,7 @@ interface ExerciseBlockContainerProps {
 }
 
 export function ExerciseBlockContainer({
-  blockId,
+  blockId: _blockId,
   blockLabel,
   children,
   onDissolveBlock,

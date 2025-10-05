@@ -20,7 +20,7 @@ interface ExerciseContextMenuProps {
 export function ExerciseContextMenu({
   isOpen,
   onClose,
-  exerciseId,
+  exerciseId: _exerciseId,
   exerciseName,
   isInBlock,
   currentBlockId,
