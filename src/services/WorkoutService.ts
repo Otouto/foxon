@@ -124,6 +124,8 @@ export class WorkoutService {
         id: item.id,
         order: item.order,
         notes: item.notes,
+        blockId: item.blockId,
+        blockOrder: item.blockOrder,
         exercise: {
           id: item.exercise.id,
           name: item.exercise.name,
@@ -179,6 +181,8 @@ export class WorkoutService {
             exerciseId: item.exerciseId,
             order: item.order,
             notes: item.notes || null,
+            blockId: item.blockId || null,
+            blockOrder: item.blockOrder || null,
             workoutItemSets: {
               create: item.sets.map((set) => ({
                 type: set.type,
@@ -242,6 +246,8 @@ export class WorkoutService {
         id: item.id,
         order: item.order,
         notes: item.notes,
+        blockId: item.blockId,
+        blockOrder: item.blockOrder,
         exercise: {
           id: item.exercise.id,
           name: item.exercise.name,
@@ -281,24 +287,25 @@ export class WorkoutService {
       return null;
     }
 
-    // Delete all existing workout items and sets, then recreate them
-    // This is simpler than trying to match and update individual items
-    await prisma.workoutItemSet.deleteMany({
-      where: {
-        workoutItem: {
+    try {
+      // Delete all existing workout items and sets, then recreate them
+      // This is simpler than trying to match and update individual items
+      await prisma.workoutItemSet.deleteMany({
+        where: {
+          workoutItem: {
+            workoutId: workoutId,
+          },
+        },
+      });
+
+      await prisma.workoutItem.deleteMany({
+        where: {
           workoutId: workoutId,
         },
-      },
-    });
+      });
 
-    await prisma.workoutItem.deleteMany({
-      where: {
-        workoutId: workoutId,
-      },
-    });
-
-    // Update the workout with new data
-    const workout = await prisma.workout.update({
+      // Update the workout with new data
+      const workout = await prisma.workout.update({
       where: {
         id: workoutId,
       },
@@ -310,6 +317,8 @@ export class WorkoutService {
             exerciseId: item.exerciseId,
             order: item.order,
             notes: item.notes,
+            blockId: item.blockId || null,
+            blockOrder: item.blockOrder || null,
             workoutItemSets: {
               create: item.sets.map((set) => ({
                 type: set.type,
@@ -373,6 +382,8 @@ export class WorkoutService {
         id: item.id,
         order: item.order,
         notes: item.notes,
+        blockId: item.blockId,
+        blockOrder: item.blockOrder,
         exercise: {
           id: item.exercise.id,
           name: item.exercise.name,
@@ -392,6 +403,10 @@ export class WorkoutService {
         })),
       })),
     };
+    } catch (error) {
+      console.error('Error updating workout:', error);
+      throw error;
+    }
   }
 
   /**

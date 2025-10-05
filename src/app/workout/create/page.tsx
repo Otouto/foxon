@@ -7,6 +7,8 @@ import { ArrowLeft, Plus, Save, FileText } from 'lucide-react';
 import { useWorkoutCreation } from '@/hooks/useWorkoutCreation';
 import { ExerciseSelectionModal } from '@/components/workout/ExerciseSelectionModal';
 import { WorkoutExerciseCard } from '@/components/workout/WorkoutExerciseCard';
+import { ExerciseBlockContainer } from '@/components/workout/ExerciseBlockContainer';
+import { ExerciseContextMenu } from '@/components/workout/ExerciseContextMenu';
 
 function CreateWorkoutPageInner() {
   const router = useRouter();
@@ -35,7 +37,15 @@ function CreateWorkoutPageInner() {
     updateSet,
     saveWorkout,
     loadWorkoutForEditing,
+    createBlock,
+    addToBlock,
+    removeFromBlock,
+    moveToBlock,
+    dissolveBlock,
+    getAvailableBlocks,
   } = useWorkoutCreation();
+
+  const [contextMenuExerciseId, setContextMenuExerciseId] = useState<string | null>(null);
 
   // Load existing workout data when in edit mode
   useEffect(() => {
@@ -155,17 +165,78 @@ function CreateWorkoutPageInner() {
           </div>
         ) : (
           <div className="space-y-4">
-            {exercises.map((exercise) => (
-              <WorkoutExerciseCard
-                key={exercise.id}
-                exercise={exercise}
-                onRemove={() => removeExercise(exercise.id)}
-                onAddSet={() => addSet(exercise.id)}
-                onRemoveSet={(setOrder) => removeSet(exercise.id, setOrder)}
-                onUpdateSet={(setOrder, field, value) => updateSet(exercise.id, setOrder, field, value)}
-                onUpdateNotes={(notes) => updateExerciseNotes(exercise.id, notes)}
-              />
-            ))}
+            {(() => {
+              // Group exercises by blockId
+              const blocks = new Map<string, typeof exercises>();
+              const standalone: typeof exercises = [];
+
+              exercises.forEach(ex => {
+                if (ex.blockId) {
+                  if (!blocks.has(ex.blockId)) {
+                    blocks.set(ex.blockId, []);
+                  }
+                  blocks.get(ex.blockId)!.push(ex);
+                } else {
+                  standalone.push(ex);
+                }
+              });
+
+              // Sort exercises within blocks by blockOrder
+              blocks.forEach(blockExercises => {
+                blockExercises.sort((a, b) => (a.blockOrder || 0) - (b.blockOrder || 0));
+              });
+
+              // Render exercises in order, grouping blocks together
+              const rendered: JSX.Element[] = [];
+              const processedBlocks = new Set<string>();
+
+              exercises.forEach((exercise, index) => {
+                if (exercise.blockId && !processedBlocks.has(exercise.blockId)) {
+                  // Render entire block
+                  processedBlocks.add(exercise.blockId);
+                  const blockExercises = blocks.get(exercise.blockId)!;
+                  const blockNumber = exercise.blockId.replace('block-', '');
+
+                  rendered.push(
+                    <ExerciseBlockContainer
+                      key={exercise.blockId}
+                      blockId={exercise.blockId}
+                      blockLabel={`Block ${blockNumber}`}
+                      onDissolveBlock={() => dissolveBlock(exercise.blockId!)}
+                    >
+                      {blockExercises.map(ex => (
+                        <WorkoutExerciseCard
+                          key={ex.id}
+                          exercise={ex}
+                          onRemove={() => removeExercise(ex.id)}
+                          onAddSet={() => addSet(ex.id)}
+                          onRemoveSet={(setOrder) => removeSet(ex.id, setOrder)}
+                          onUpdateSet={(setOrder, field, value) => updateSet(ex.id, setOrder, field, value)}
+                          onUpdateNotes={(notes) => updateExerciseNotes(ex.id, notes)}
+                          onOpenMenu={() => setContextMenuExerciseId(ex.id)}
+                        />
+                      ))}
+                    </ExerciseBlockContainer>
+                  );
+                } else if (!exercise.blockId) {
+                  // Render standalone exercise
+                  rendered.push(
+                    <WorkoutExerciseCard
+                      key={exercise.id}
+                      exercise={exercise}
+                      onRemove={() => removeExercise(exercise.id)}
+                      onAddSet={() => addSet(exercise.id)}
+                      onRemoveSet={(setOrder) => removeSet(exercise.id, setOrder)}
+                      onUpdateSet={(setOrder, field, value) => updateSet(exercise.id, setOrder, field, value)}
+                      onUpdateNotes={(notes) => updateExerciseNotes(exercise.id, notes)}
+                      onOpenMenu={() => setContextMenuExerciseId(exercise.id)}
+                    />
+                  );
+                }
+              });
+
+              return rendered;
+            })()}
           </div>
         )}
       </div>
@@ -223,6 +294,31 @@ function CreateWorkoutPageInner() {
         onClose={closeExerciseModal}
         onSelectExercise={addExercise}
       />
+
+      {/* Exercise Context Menu */}
+      {contextMenuExerciseId && (() => {
+        const exercise = exercises.find(ex => ex.id === contextMenuExerciseId);
+        if (!exercise) return null;
+
+        const availableBlocks = getAvailableBlocks();
+
+        return (
+          <ExerciseContextMenu
+            isOpen={true}
+            onClose={() => setContextMenuExerciseId(null)}
+            exerciseId={exercise.id}
+            exerciseName={exercise.exercise.name}
+            isInBlock={!!exercise.blockId}
+            currentBlockId={exercise.blockId}
+            availableBlocks={availableBlocks}
+            onCreateBlock={() => createBlock(exercise.id)}
+            onAddToBlock={(blockId) => addToBlock(exercise.id, blockId)}
+            onMoveToBlock={(blockId) => moveToBlock(exercise.id, blockId)}
+            onRemoveFromBlock={() => removeFromBlock(exercise.id)}
+            onDelete={() => removeExercise(exercise.id)}
+          />
+        );
+      })()}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Trash2, Plus, Minus } from 'lucide-react';
+import { MoreVertical, Plus, Minus } from 'lucide-react';
 import { CldImage } from 'next-cloudinary';
 import { SetEditor } from './SetEditor';
 import { isBodyweightExercise, hasBodyweightSets } from '@/lib/utils/exerciseUtils';
@@ -15,6 +15,7 @@ interface WorkoutExerciseCardProps {
   onRemoveSet: (setOrder: number) => void;
   onUpdateSet: (setOrder: number, field: 'targetLoad' | 'targetReps' | 'type', value: number | 'WARMUP' | 'NORMAL') => void;
   onUpdateNotes: (notes: string) => void;
+  onOpenMenu?: () => void;
 }
 
 export function WorkoutExerciseCard(props: WorkoutExerciseCardProps) {
@@ -24,6 +25,7 @@ export function WorkoutExerciseCard(props: WorkoutExerciseCardProps) {
     onAddSet,
     onRemoveSet,
     onUpdateSet,
+    onOpenMenu,
   } = props;
   const [editingSet, setEditingSet] = useState<number | null>(null);
   const [editingValues, setEditingValues] = useState<{ weight: number; reps: number } | null>(null);
@@ -110,11 +112,11 @@ export function WorkoutExerciseCard(props: WorkoutExerciseCardProps) {
           )}
         </div>
         <button
-          onClick={onRemove}
-          className="p-2 -m-2 text-gray-400 hover:text-red-500 transition-colors"
-          aria-label="Remove exercise"
+          onClick={onOpenMenu || onRemove}
+          className="p-2 -m-2 text-gray-400 hover:text-gray-600 transition-colors"
+          aria-label="Exercise options"
         >
-          <Trash2 size={18} />
+          <MoreVertical size={20} />
         </button>
       </div>
 

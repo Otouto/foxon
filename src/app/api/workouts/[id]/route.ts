@@ -66,7 +66,7 @@ export async function PUT(
   } catch (error) {
     console.error('Failed to update workout:', error);
     return NextResponse.json(
-      { error: 'Failed to update workout' },
+      { error: error instanceof Error ? error.message : 'Failed to update workout' },
       { status: 500 }
     );
   }

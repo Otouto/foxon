@@ -38,6 +38,8 @@ export interface WorkoutItem {
   id: string;
   order: number;
   notes: string | null;
+  blockId?: string | null;
+  blockOrder?: number | null;
   exercise: WorkoutExercise;
   sets: WorkoutSet[];
 }
@@ -62,6 +64,8 @@ export interface CreateWorkoutRequest {
     exerciseId: string;
     order: number;
     notes?: string;
+    blockId?: string;
+    blockOrder?: number;
     sets: Array<{
       type: 'WARMUP' | 'NORMAL';
       targetLoad: number;
@@ -80,6 +84,8 @@ export interface UpdateWorkoutRequest {
     exerciseId: string;
     order: number;
     notes?: string;
+    blockId?: string;
+    blockOrder?: number;
     sets: Array<{
       id?: string; // existing set ID for updates
       type: 'WARMUP' | 'NORMAL';

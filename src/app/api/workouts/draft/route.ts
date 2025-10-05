@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Failed to create draft workout:', error);
     return NextResponse.json(
-      { error: 'Failed to create draft workout' },
+      { error: error instanceof Error ? error.message : 'Failed to create draft workout' },
       { status: 500 }
     );
   }

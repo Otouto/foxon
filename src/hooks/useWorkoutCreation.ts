@@ -16,6 +16,8 @@ export interface WorkoutExerciseItem {
   exercise: ExerciseListItem;
   sets: WorkoutSet[];
   notes?: string;
+  blockId?: string;
+  blockOrder?: number;
 }
 
 export interface UseWorkoutCreationState {
@@ -151,6 +153,100 @@ export function useWorkoutCreation() {
     });
   }, []);
 
+  const createBlock = useCallback((exerciseId: string) => {
+    setState(prev => {
+      // Find the next available block number
+      const existingBlocks = prev.exercises
+        .filter(ex => ex.blockId)
+        .map(ex => ex.blockId as string);
+      const blockNumbers = existingBlocks
+        .map(id => parseInt(id.replace('block-', '')))
+        .filter(num => !isNaN(num));
+      const nextBlockNumber = blockNumbers.length > 0 ? Math.max(...blockNumbers) + 1 : 1;
+      const newBlockId = `block-${nextBlockNumber}`;
+
+      return {
+        ...prev,
+        exercises: prev.exercises.map(ex =>
+          ex.id === exerciseId
+            ? { ...ex, blockId: newBlockId, blockOrder: 1 }
+            : ex
+        ),
+      };
+    });
+  }, []);
+
+  const addToBlock = useCallback((exerciseId: string, blockId: string) => {
+    setState(prev => {
+      // Find the highest blockOrder in the target block
+      const blockExercises = prev.exercises.filter(ex => ex.blockId === blockId);
+      const maxOrder = blockExercises.length > 0
+        ? Math.max(...blockExercises.map(ex => ex.blockOrder || 0))
+        : 0;
+
+      return {
+        ...prev,
+        exercises: prev.exercises.map(ex =>
+          ex.id === exerciseId
+            ? { ...ex, blockId, blockOrder: maxOrder + 1 }
+            : ex
+        ),
+      };
+    });
+  }, []);
+
+  const removeFromBlock = useCallback((exerciseId: string) => {
+    setState(prev => ({
+      ...prev,
+      exercises: prev.exercises.map(ex =>
+        ex.id === exerciseId
+          ? { ...ex, blockId: undefined, blockOrder: undefined }
+          : ex
+      ),
+    }));
+  }, []);
+
+  const moveToBlock = useCallback((exerciseId: string, targetBlockId: string) => {
+    setState(prev => {
+      // Find the highest blockOrder in the target block
+      const blockExercises = prev.exercises.filter(ex => ex.blockId === targetBlockId);
+      const maxOrder = blockExercises.length > 0
+        ? Math.max(...blockExercises.map(ex => ex.blockOrder || 0))
+        : 0;
+
+      return {
+        ...prev,
+        exercises: prev.exercises.map(ex =>
+          ex.id === exerciseId
+            ? { ...ex, blockId: targetBlockId, blockOrder: maxOrder + 1 }
+            : ex
+        ),
+      };
+    });
+  }, []);
+
+  const dissolveBlock = useCallback((blockId: string) => {
+    setState(prev => ({
+      ...prev,
+      exercises: prev.exercises.map(ex =>
+        ex.blockId === blockId
+          ? { ...ex, blockId: undefined, blockOrder: undefined }
+          : ex
+      ),
+    }));
+  }, []);
+
+  const getAvailableBlocks = useCallback(() => {
+    const blocks = new Map<string, string>();
+    state.exercises.forEach(ex => {
+      if (ex.blockId) {
+        const blockNumber = ex.blockId.replace('block-', '');
+        blocks.set(ex.blockId, `Block ${blockNumber}`);
+      }
+    });
+    return Array.from(blocks.entries()).map(([id, label]) => ({ id, label }));
+  }, [state.exercises]);
+
   const loadWorkoutForEditing = useCallback((workoutData: WorkoutDetails) => {
     const exerciseItems: WorkoutExerciseItem[] = workoutData.items.map(item => ({
       id: `temp-${item.id}`, // Use temp prefix to distinguish from actual DB IDs
@@ -169,6 +265,8 @@ export function useWorkoutCreation() {
         order: set.order,
       })),
       notes: item.notes || undefined,
+      blockId: item.blockId || undefined,
+      blockOrder: item.blockOrder || undefined,
     }));
 
     setState(prev => ({
@@ -193,6 +291,8 @@ export function useWorkoutCreation() {
           exerciseId: ex.exercise.id,
           order: index + 1,
           notes: ex.notes || null,
+          blockId: ex.blockId ?? null,
+          blockOrder: ex.blockOrder ?? null,
           sets: ex.sets.map(set => ({
             type: set.type,
             targetLoad: set.targetLoad,
@@ -269,5 +369,11 @@ export function useWorkoutCreation() {
     saveWorkout,
     loadWorkoutForEditing,
     canSave,
+    createBlock,
+    addToBlock,
+    removeFromBlock,
+    moveToBlock,
+    dissolveBlock,
+    getAvailableBlocks,
   };
 }
