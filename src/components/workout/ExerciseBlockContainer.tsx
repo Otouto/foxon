@@ -7,7 +7,8 @@ interface ExerciseBlockContainerProps {
   blockId: string;
   blockLabel: string;
   children: ReactNode;
-  onDissolveBlock: () => void;
+  onDissolveBlock?: () => void;
+  readonly?: boolean;
 }
 
 export function ExerciseBlockContainer({
@@ -15,6 +16,7 @@ export function ExerciseBlockContainer({
   blockLabel,
   children,
   onDissolveBlock,
+  readonly = false,
 }: ExerciseBlockContainerProps) {
   return (
     <div className="border-2 border-cyan-200 bg-cyan-50/30 rounded-3xl p-4 relative">
@@ -26,14 +28,16 @@ export function ExerciseBlockContainer({
             {blockLabel}
           </h3>
         </div>
-        <button
-          onClick={onDissolveBlock}
-          className="p-1.5 hover:bg-cyan-100 rounded-full transition-colors"
-          aria-label="Dissolve block"
-          title="Dissolve block - exercises will become standalone"
-        >
-          <X size={18} className="text-gray-600" />
-        </button>
+        {!readonly && onDissolveBlock && (
+          <button
+            onClick={onDissolveBlock}
+            className="p-1.5 hover:bg-cyan-100 rounded-full transition-colors"
+            aria-label="Dissolve block"
+            title="Dissolve block - exercises will become standalone"
+          >
+            <X size={18} className="text-gray-600" />
+          </button>
+        )}
       </div>
 
       {/* Exercise Cards */}

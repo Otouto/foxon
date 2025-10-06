@@ -1,15 +1,68 @@
+'use client';
+
 import Link from 'next/link';
 import { ArrowLeft, Play, Edit, Target, Archive, FileText } from 'lucide-react';
-import { WorkoutService } from '@/services/WorkoutService';
+import { useState, useEffect, type ReactElement } from 'react';
 import { WorkoutDetailExerciseCard } from '@/components/workout/WorkoutDetailExerciseCard';
+import { ExerciseBlockContainer } from '@/components/workout/ExerciseBlockContainer';
+import type { WorkoutDetails, WorkoutItem } from '@/lib/types/workout';
 
-export default async function WorkoutDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+interface WorkoutDetailPageProps {
+  params: Promise<{ id: string }>;
+}
 
-  // Fetch real workout from database
-  const workout = await WorkoutService.getWorkoutById(id);
+export default function WorkoutDetailPage({ params }: WorkoutDetailPageProps) {
+  const [id, setId] = useState<string>('');
+  const [workout, setWorkout] = useState<WorkoutDetails | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!workout) {
+  useEffect(() => {
+    params.then(p => setId(p.id));
+  }, [params]);
+
+  useEffect(() => {
+    if (!id) return;
+
+    async function loadWorkout() {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/api/workouts/${id}`);
+
+        if (!response.ok) {
+          throw new Error('Failed to load workout');
+        }
+
+        const data = await response.json();
+        setWorkout(data);
+      } catch (err) {
+        console.error('Failed to load workout:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load workout');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadWorkout();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="px-6 py-8 pb-above-nav">
+        <div className="flex items-center gap-4 mb-8">
+          <Link href="/workout" className="p-2 -ml-2">
+            <ArrowLeft size={24} className="text-gray-600" />
+          </Link>
+          <h1 className="text-2xl font-bold text-gray-900">Loading...</h1>
+        </div>
+        <div className="flex justify-center items-center py-12">
+          <div className="w-8 h-8 border-4 border-gray-200 border-t-cyan-400 rounded-full animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !workout) {
     return (
       <div className="px-6 py-8">
         <h1 className="text-2xl font-bold text-gray-900">Workout not found</h1>
@@ -92,9 +145,66 @@ export default async function WorkoutDetailPage({ params }: { params: Promise<{ 
       {/* Exercise List */}
       <div className="space-y-4 mb-8">
         <h3 className="font-semibold text-gray-900">Exercises</h3>
-        {workout.items.map((item) => (
-          <WorkoutDetailExerciseCard key={item.id} item={item} />
-        ))}
+        {(() => {
+          // Group exercises by blockId
+          const blocks = new Map<string, WorkoutItem[]>();
+          const standalone: WorkoutItem[] = [];
+
+          workout.items.forEach(item => {
+            if (item.blockId) {
+              if (!blocks.has(item.blockId)) {
+                blocks.set(item.blockId, []);
+              }
+              blocks.get(item.blockId)!.push(item);
+            } else {
+              standalone.push(item);
+            }
+          });
+
+          // Sort exercises within blocks by blockOrder
+          blocks.forEach(blockItems => {
+            blockItems.sort((a, b) => (a.blockOrder || 0) - (b.blockOrder || 0));
+          });
+
+          // Render exercises in order, grouping blocks together
+          const rendered: ReactElement[] = [];
+          const processedBlocks = new Set<string>();
+
+          workout.items.forEach((item) => {
+            if (item.blockId && !processedBlocks.has(item.blockId)) {
+              // Render entire block
+              processedBlocks.add(item.blockId);
+              const blockItems = blocks.get(item.blockId)!;
+              const blockNumber = item.blockId.replace('block-', '');
+
+              rendered.push(
+                <ExerciseBlockContainer
+                  key={item.blockId}
+                  blockId={item.blockId}
+                  blockLabel={`Block ${blockNumber}`}
+                  readonly={true}
+                >
+                  {blockItems.map(blockItem => (
+                    <WorkoutDetailExerciseCard
+                      key={blockItem.id}
+                      item={blockItem}
+                    />
+                  ))}
+                </ExerciseBlockContainer>
+              );
+            } else if (!item.blockId) {
+              // Render standalone exercise
+              rendered.push(
+                <WorkoutDetailExerciseCard
+                  key={item.id}
+                  item={item}
+                />
+              );
+            }
+          });
+
+          return rendered;
+        })()}
       </div>
 
       {/* Dynamic CTA Button */}
