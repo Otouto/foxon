@@ -330,6 +330,29 @@ export function useInMemorySession(workoutId: string, preloadedData?: PreloadedW
     return !!(currentExercise && currentExercise.blockId);
   }, [session]);
 
+  // Check if we're on the last exercise or block
+  const isLastExerciseOrBlock = useCallback((): boolean => {
+    if (!session) return false;
+
+    const currentExercise = session.exercises[session.currentExerciseIndex];
+    if (!currentExercise) return true;
+
+    // If current exercise is in a block, check if there are any exercises after this block
+    if (currentExercise.blockId) {
+      const currentBlockId = currentExercise.blockId;
+      // Find the index after the last exercise in the current block
+      let nextIndex = session.currentExerciseIndex + 1;
+      while (nextIndex < session.exercises.length && session.exercises[nextIndex]?.blockId === currentBlockId) {
+        nextIndex++;
+      }
+      // If nextIndex is beyond the array, we're on the last block
+      return nextIndex >= session.exercises.length;
+    }
+
+    // For non-block exercises, simply check if we're on the last exercise
+    return session.currentExerciseIndex >= session.exercises.length - 1;
+  }, [session]);
+
   const canFinishWorkout = useCallback((): boolean => {
     if (!session) return false;
     return session.exercises.some(exercise =>
@@ -366,6 +389,7 @@ export function useInMemorySession(workoutId: string, preloadedData?: PreloadedW
     getCurrentExercise,
     getCurrentBlock,
     isCurrentExerciseInBlock,
+    isLastExerciseOrBlock,
     updateSet,
     toggleSetCompletion,
     addSet,

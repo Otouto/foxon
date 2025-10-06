@@ -29,6 +29,7 @@ function SessionLogContent() {
     getCurrentExercise,
     getCurrentBlock,
     isCurrentExerciseInBlock,
+    isLastExerciseOrBlock,
     updateSet,
     toggleSetCompletion,
     addSet,
@@ -126,12 +127,7 @@ function SessionLogContent() {
 
   // Handle navigation to next exercise
   const handleCompleteExercise = () => {
-    if (session.currentExerciseIndex + 1 < session.exercises.length) {
-      navigateToNextExercise();
-    } else {
-      // Last exercise - redirect to finish
-      router.push(`/session/finish?workoutId=${workoutId}`);
-    }
+    navigateToNextExercise();
   };
 
   // Handle finish workout
@@ -232,8 +228,8 @@ function SessionLogContent() {
 
       {/* Bottom CTA - Always show either Next Exercise or Finish Workout */}
       <div className="session-finish-button">
-        {session.currentExerciseIndex + 1 >= session.exercises.length ? (
-          <button 
+        {isLastExerciseOrBlock() ? (
+          <button
             onClick={handleFinishWorkout}
             disabled={!canFinishWorkout()}
             className="w-full bg-lime-400 text-black font-semibold py-4 rounded-2xl text-center block cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed touch-target"
@@ -243,7 +239,7 @@ function SessionLogContent() {
             Finish Workout
           </button>
         ) : (
-          <button 
+          <button
             onClick={handleCompleteExercise}
             className="w-full bg-cyan-400 text-black font-semibold py-4 rounded-2xl text-center block cursor-pointer touch-target"
             aria-label="Complete current exercise and move to next"
