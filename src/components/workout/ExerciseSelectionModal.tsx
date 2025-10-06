@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Search, X, Dumbbell, Plus, ArrowLeft } from 'lucide-react';
+import { BottomSheet, BottomSheetTitle } from '@/components/ui/BottomSheet';
 import { ImageUploadField } from '@/components/exercise/ImageUploadField';
 import type { ExerciseListItem } from '@/lib/types/exercise';
 
@@ -212,14 +213,13 @@ export function ExerciseSelectionModal({
   const showCreateOption = debouncedSearchQuery.trim() && filteredExercises.length === 0 && !isLoading;
 
   return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-end justify-center z-[9999] sm:items-center sm:p-4"
-      onClick={!isCreating ? handleClose : undefined}
+    <BottomSheet
+      isOpen={isOpen}
+      onClose={!isCreating ? handleClose : () => {}}
+      dismissible={!isCreating}
+      maxHeight="h-[85vh] sm:h-[80vh]"
+      className="sm:rounded-3xl sm:max-w-lg sm:mx-auto sm:relative"
     >
-      <div
-        className="bg-white rounded-t-3xl sm:rounded-3xl w-full h-[85vh] sm:h-[80vh] sm:max-w-lg sm:max-h-[600px] shadow-2xl transform transition-all flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           {isCreating ? (
@@ -230,12 +230,12 @@ export function ExerciseSelectionModal({
               >
                 <ArrowLeft size={24} />
               </button>
-              <h2 className="text-xl font-semibold text-gray-900">Create Exercise</h2>
+              <BottomSheetTitle className="text-xl font-semibold text-gray-900">Create Exercise</BottomSheetTitle>
               <div className="w-10" /> {/* Spacer */}
             </>
           ) : (
             <>
-              <h2 className="text-xl font-semibold text-gray-900">Add Exercise</h2>
+              <BottomSheetTitle className="text-xl font-semibold text-gray-900">Add Exercise</BottomSheetTitle>
               <button
                 onClick={handleClose}
                 className="p-2 -m-2 text-gray-500 hover:text-gray-700 transition-colors"
@@ -444,7 +444,6 @@ export function ExerciseSelectionModal({
             </div>
           </>
         )}
-      </div>
-    </div>
+    </BottomSheet>
   );
 }

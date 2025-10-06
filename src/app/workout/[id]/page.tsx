@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Play, Edit, Target, Archive, FileText } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Play, MoreVertical, Target, Archive, FileText } from 'lucide-react';
 import { useState, useEffect, type ReactElement } from 'react';
 import { WorkoutDetailExerciseCard } from '@/components/workout/WorkoutDetailExerciseCard';
 import { ExerciseBlockContainer } from '@/components/workout/ExerciseBlockContainer';
+import { WorkoutContextMenu } from '@/components/workout/WorkoutContextMenu';
 import type { WorkoutDetails, WorkoutItem } from '@/lib/types/workout';
 
 interface WorkoutDetailPageProps {
@@ -12,10 +14,13 @@ interface WorkoutDetailPageProps {
 }
 
 export default function WorkoutDetailPage({ params }: WorkoutDetailPageProps) {
+  const router = useRouter();
   const [id, setId] = useState<string>('');
   const [workout, setWorkout] = useState<WorkoutDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
 
   useEffect(() => {
     params.then(p => setId(p.id));
@@ -100,6 +105,39 @@ export default function WorkoutDetailPage({ params }: WorkoutDetailPageProps) {
 
   const ctaConfig = getCTAConfig(workout.status);
 
+  const handleEdit = () => {
+    router.push(`/workout/create?edit=${id}`);
+  };
+
+  const handleArchive = async () => {
+    try {
+      setIsArchiving(true);
+      const response = await fetch(`/api/workouts/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'ARCHIVED' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to archive workout');
+      }
+
+      // Reload the workout data to reflect the new status
+      const workoutResponse = await fetch(`/api/workouts/${id}`);
+      if (workoutResponse.ok) {
+        const updatedWorkout = await workoutResponse.json();
+        setWorkout(updatedWorkout);
+      }
+    } catch (error) {
+      console.error('Failed to archive workout:', error);
+      setError(error instanceof Error ? error.message : 'Failed to archive workout');
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
   return (
     <div className="px-6 py-8 pb-above-nav">
       {/* Header */}
@@ -113,9 +151,13 @@ export default function WorkoutDetailPage({ params }: WorkoutDetailPageProps) {
             <p className="text-sm text-gray-500">{workout.exerciseCount} exercises • {workout.estimatedDuration} min</p>
           </div>
         </div>
-        <Link href={`/workout/create?edit=${id}`} className="p-2 text-gray-400 hover:text-gray-600">
-          <Edit size={20} />
-        </Link>
+        <button
+          onClick={() => setIsMenuOpen(true)}
+          className="p-2 text-gray-400 hover:text-gray-600"
+          disabled={isArchiving}
+        >
+          <MoreVertical size={20} />
+        </button>
       </div>
 
       {/* Workout Info */}
@@ -217,6 +259,16 @@ export default function WorkoutDetailPage({ params }: WorkoutDetailPageProps) {
           {ctaConfig.text}
         </Link>
       </div>
+
+      {/* Context Menu */}
+      <WorkoutContextMenu
+        isOpen={isMenuOpen}
+        onClose={() => setIsMenuOpen(false)}
+        workoutId={id}
+        workoutName={workout.title}
+        onEdit={handleEdit}
+        onArchive={handleArchive}
+      />
     </div>
   );
 }

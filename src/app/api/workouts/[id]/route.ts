@@ -72,6 +72,40 @@ export async function PUT(
   }
 }
 
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const body = await request.json();
+
+    if (!body.status || !['ACTIVE', 'DRAFT', 'ARCHIVED'].includes(body.status)) {
+      return NextResponse.json(
+        { error: 'Invalid status. Must be ACTIVE, DRAFT, or ARCHIVED' },
+        { status: 400 }
+      );
+    }
+
+    const success = await WorkoutService.updateWorkoutStatus(id, body.status);
+
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Workout not found or could not be updated' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ message: 'Workout status updated successfully', status: body.status });
+  } catch (error) {
+    console.error('Failed to update workout status:', error);
+    return NextResponse.json(
+      { error: 'Failed to update workout status' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
