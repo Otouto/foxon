@@ -27,6 +27,8 @@ function SessionLogContent() {
     isInitializing,
     error,
     getCurrentExercise,
+    getCurrentBlock,
+    isCurrentExerciseInBlock,
     updateSet,
     toggleSetCompletion,
     addSet,
@@ -90,7 +92,9 @@ function SessionLogContent() {
   }
 
   const currentExercise = getCurrentExercise();
-  
+  const currentBlock = getCurrentBlock();
+  const isInBlock = isCurrentExerciseInBlock();
+
   if (!currentExercise) {
     return (
       <div className="px-6 py-8">
@@ -101,20 +105,23 @@ function SessionLogContent() {
     );
   }
 
-  // Handle set completion toggle
-  const handleToggleSetCompletion = (setIndex: number) => {
-    toggleSetCompletion(session.currentExerciseIndex, setIndex);
+  // If we're in a block, use the block exercises; otherwise just use current exercise
+  const exercisesToDisplay = isInBlock && currentBlock ? currentBlock : [currentExercise];
+
+  // Handle set completion toggle - now needs exerciseIndex
+  const handleToggleSetCompletion = (exerciseIndex: number, setIndex: number) => {
+    toggleSetCompletion(exerciseIndex, setIndex);
   };
 
-  // Handle set value updates
-  const handleUpdateSetValue = (setIndex: number, field: 'weight' | 'reps', value: number) => {
+  // Handle set value updates - now needs exerciseIndex
+  const handleUpdateSetValue = (exerciseIndex: number, setIndex: number, field: 'weight' | 'reps', value: number) => {
     const updateField = field === 'weight' ? 'actualLoad' : 'actualReps';
-    updateSet(session.currentExerciseIndex, setIndex, { [updateField]: value });
+    updateSet(exerciseIndex, setIndex, { [updateField]: value });
   };
 
-  // Handle adding new set
-  const handleAddSet = () => {
-    addSet(session.currentExerciseIndex);
+  // Handle adding new set - now needs exerciseIndex
+  const handleAddSet = (exerciseIndex: number) => {
+    addSet(exerciseIndex);
   };
 
   // Handle navigation to next exercise
@@ -157,38 +164,22 @@ function SessionLogContent() {
     }
   };
 
-  // Check if this is a bodyweight exercise
-  const isBodyweightExercise = currentExercise.sets.every(set => set.targetLoad === 0);
-  
+  // Get block label if in block mode
+  const blockLabel = isInBlock && currentExercise.blockId
+    ? `Block ${currentExercise.blockId.replace('block-', '')}`
+    : null;
+
   // Convert session data to format expected by existing components
   const workoutForHeader = {
     name: session.workoutTitle,
-    exercises: session.exercises.length
+    exercises: session.exercises.length,
+    blockLabel: blockLabel
   };
-  
-  const exerciseForCard = {
-    name: currentExercise.exerciseName,
-    sets: currentExercise.sets.map(set => ({ 
-      weight: set.actualLoad, 
-      reps: set.actualReps 
-    })),
-    previousSession: currentExercise.previousSessionData?.map(set => ({ 
-      weight: set.load, 
-      reps: set.reps 
-    })) || null
-  };
-
-  // Convert sets to format expected by ExerciseCard
-  const completedSets = currentExercise.sets.map(set => set.completed);
-  const setValues = currentExercise.sets.map(set => ({ 
-    weight: set.actualLoad, 
-    reps: set.actualReps 
-  }));
 
   return (
     <div className="session-container">
       <div className="session-content">
-        <WorkoutHeader 
+        <WorkoutHeader
           workout={workoutForHeader}
           currentExerciseIndex={session.currentExerciseIndex}
           workoutId={workoutId}
@@ -197,18 +188,46 @@ function SessionLogContent() {
           onBackClick={handleBackClick}
         />
 
-        <ExerciseCard
-          currentExercise={exerciseForCard}
-          isBodyweightExercise={isBodyweightExercise}
-          completedSets={completedSets}
-          setValues={setValues}
-          toggleSetCompletion={handleToggleSetCompletion}
-          updateSetValue={handleUpdateSetValue}
-        />
+        {/* Render all exercises in block or single exercise */}
+        {exercisesToDisplay.map((exercise) => {
+          // Find the actual exercise index in the session
+          const exerciseIndex = session.exercises.findIndex(ex => ex.id === exercise.id);
 
-        <ActionButtons
-          onAddSet={handleAddSet}
-        />
+          const isBodyweightExercise = exercise.sets.every(set => set.targetLoad === 0);
+          const exerciseForCard = {
+            name: exercise.exerciseName,
+            sets: exercise.sets.map(set => ({
+              weight: set.actualLoad,
+              reps: set.actualReps
+            })),
+            previousSession: exercise.previousSessionData?.map(set => ({
+              weight: set.load,
+              reps: set.reps
+            })) || null
+          };
+          const completedSets = exercise.sets.map(set => set.completed);
+          const setValues = exercise.sets.map(set => ({
+            weight: set.actualLoad,
+            reps: set.actualReps
+          }));
+
+          return (
+            <div key={exercise.id}>
+              <ExerciseCard
+                currentExercise={exerciseForCard}
+                isBodyweightExercise={isBodyweightExercise}
+                completedSets={completedSets}
+                setValues={setValues}
+                toggleSetCompletion={(setIndex) => handleToggleSetCompletion(exerciseIndex, setIndex)}
+                updateSetValue={(setIndex, field, value) => handleUpdateSetValue(exerciseIndex, setIndex, field, value)}
+              />
+
+              <ActionButtons
+                onAddSet={() => handleAddSet(exerciseIndex)}
+              />
+            </div>
+          );
+        })}
       </div>
 
       {/* Bottom CTA - Always show either Next Exercise or Finish Workout */}

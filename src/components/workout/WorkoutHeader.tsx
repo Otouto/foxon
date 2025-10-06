@@ -7,6 +7,7 @@ interface WorkoutHeaderProps {
   workout: {
     name: string;
     exercises: number;
+    blockLabel?: string | null;
   };
   currentExerciseIndex: number;
   workoutId: string;
@@ -39,9 +40,15 @@ export function WorkoutHeader({
             </Link>
           )}
           <div>
-            <h1 className="text-lg font-semibold text-gray-900 leading-tight">{workout.name}</h1>
+            <h1 className="text-lg font-semibold text-gray-900 leading-tight">
+              {workout.blockLabel || workout.name}
+            </h1>
             <p className="text-sm text-gray-600 mt-0.5">
-              Exercise {currentExerciseIndex + 1} of {workout.exercises}
+              {workout.blockLabel ? (
+                <>{workout.blockLabel} • {workout.name}</>
+              ) : (
+                <>Exercise {currentExerciseIndex + 1} of {workout.exercises}</>
+              )}
             </p>
           </div>
         </div>
@@ -50,11 +57,11 @@ export function WorkoutHeader({
           <div className="text-xs text-gray-500 mt-0.5">Elapsed</div>
         </div>
       </div>
-      
+
       {/* Progress bar */}
       <div className="w-full bg-gray-200 rounded-full h-1.5 mb-4">
-        <div 
-          className="bg-lime-400 h-1.5 rounded-full transition-all duration-300 ease-out" 
+        <div
+          className="bg-lime-400 h-1.5 rounded-full transition-all duration-300 ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>

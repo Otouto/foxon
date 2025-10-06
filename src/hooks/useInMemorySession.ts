@@ -26,6 +26,8 @@ export interface InMemoryExercise {
   exerciseName: string;
   order: number;
   notes?: string;
+  blockId?: string | null;
+  blockOrder?: number | null;
   sets: InMemorySet[];
   previousSessionData?: { load: number; reps: number }[] | null;
 }
@@ -60,7 +62,7 @@ export function useInMemorySession(workoutId: string, preloadedData?: PreloadedW
   }, []);
 
   const createInMemorySession = useCallback((
-    workout: WorkoutDetails, 
+    workout: WorkoutDetails,
     previousData: Map<string, { load: number; reps: number }[]>
   ): InMemorySession => {
     const exercises: InMemoryExercise[] = workout.items.map((item: WorkoutItem) => ({
@@ -69,6 +71,8 @@ export function useInMemorySession(workoutId: string, preloadedData?: PreloadedW
       exerciseName: item.exercise.name,
       order: item.order,
       notes: item.notes || undefined,
+      blockId: item.blockId,
+      blockOrder: item.blockOrder,
       sets: item.sets.map((set) => ({
         id: generateTempId(),
         type: set.type as SetType,
@@ -246,7 +250,18 @@ export function useInMemorySession(workoutId: string, preloadedData?: PreloadedW
     setSession(prev => {
       if (!prev) return prev;
 
-      const nextIndex = prev.currentExerciseIndex + 1;
+      const currentExercise = prev.exercises[prev.currentExerciseIndex];
+      let nextIndex = prev.currentExerciseIndex + 1;
+
+      // If current exercise is in a block, skip to the first exercise after the block
+      if (currentExercise?.blockId) {
+        const currentBlockId = currentExercise.blockId;
+        // Find the first exercise that is not in this block
+        while (nextIndex < prev.exercises.length && prev.exercises[nextIndex]?.blockId === currentBlockId) {
+          nextIndex++;
+        }
+      }
+
       if (nextIndex >= prev.exercises.length) return prev;
 
       const updatedSession = { ...prev, currentExerciseIndex: nextIndex };
@@ -259,8 +274,29 @@ export function useInMemorySession(workoutId: string, preloadedData?: PreloadedW
     setSession(prev => {
       if (!prev) return prev;
 
-      const prevIndex = prev.currentExerciseIndex - 1;
+      const currentExercise = prev.exercises[prev.currentExerciseIndex];
+      let prevIndex = prev.currentExerciseIndex - 1;
+
+      // If current exercise is in a block, go to the first exercise of the block
+      if (currentExercise?.blockId) {
+        const currentBlockId = currentExercise.blockId;
+        // Find the first exercise in this block
+        while (prevIndex >= 0 && prev.exercises[prevIndex]?.blockId === currentBlockId) {
+          prevIndex--;
+        }
+      }
+
       if (prevIndex < 0) return prev;
+
+      // If the previous exercise is in a block, go to the first exercise of that block
+      const prevExercise = prev.exercises[prevIndex];
+      if (prevExercise?.blockId) {
+        const prevBlockId = prevExercise.blockId;
+        // Find the first exercise in the previous block
+        while (prevIndex > 0 && prev.exercises[prevIndex - 1]?.blockId === prevBlockId) {
+          prevIndex--;
+        }
+      }
 
       const updatedSession = { ...prev, currentExerciseIndex: prevIndex };
       saveSessionToStorage(updatedSession, true); // Immediate save for navigation
@@ -273,9 +309,30 @@ export function useInMemorySession(workoutId: string, preloadedData?: PreloadedW
     return session.exercises[session.currentExerciseIndex] || null;
   }, [session]);
 
+  // Get all exercises in the current block (if current exercise is in a block)
+  const getCurrentBlock = useCallback((): InMemoryExercise[] | null => {
+    if (!session) return null;
+    const currentExercise = session.exercises[session.currentExerciseIndex];
+    if (!currentExercise || !currentExercise.blockId) return null;
+
+    // Find all exercises in the same block and sort by blockOrder
+    const blockExercises = session.exercises
+      .filter(ex => ex.blockId === currentExercise.blockId)
+      .sort((a, b) => (a.blockOrder || 0) - (b.blockOrder || 0));
+
+    return blockExercises;
+  }, [session]);
+
+  // Check if current exercise is part of a block
+  const isCurrentExerciseInBlock = useCallback((): boolean => {
+    if (!session) return false;
+    const currentExercise = session.exercises[session.currentExerciseIndex];
+    return !!(currentExercise && currentExercise.blockId);
+  }, [session]);
+
   const canFinishWorkout = useCallback((): boolean => {
     if (!session) return false;
-    return session.exercises.some(exercise => 
+    return session.exercises.some(exercise =>
       exercise.sets.some(set => set.completed)
     );
   }, [session]);
@@ -307,6 +364,8 @@ export function useInMemorySession(workoutId: string, preloadedData?: PreloadedW
     isInitializing,
     error,
     getCurrentExercise,
+    getCurrentBlock,
+    isCurrentExerciseInBlock,
     updateSet,
     toggleSetCompletion,
     addSet,
