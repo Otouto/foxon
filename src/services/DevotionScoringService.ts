@@ -101,21 +101,42 @@ export class DevotionScoringService {
 
     // Aggregate scores using planned-set-weighted averages
     const totalWeight = exerciseScores.reduce((sum, ex) => sum + ex.weight, 0) || 1;
-    
+
     const SC = exerciseScores.reduce((sum, ex) => sum + ex.sc * ex.weight, 0) / totalWeight;
     const RF = exerciseScores.reduce((sum, ex) => sum + ex.rf * ex.weight, 0) / totalWeight;
-    
+
     // Load Fidelity is still calculated but not used in devotion score (focusing on process, not weight)
 
     // Final score calculation - focusing on devotion to process (EC, SC, RF only)
     const scoreParts = [EC, SC, RF];
     const SAC = gmean(scoreParts);
-    const CDS = Math.round(100 * SAC);
+    let CDS = Math.round(100 * SAC);
+
+    // Bonus for perfect execution + overperformance
+    // Check if all sets completed (SC = 1.0) and all reps met/exceeded (RF = 1.0)
+    const perfectExecution = SC >= 1.0 && RF >= 1.0 && EC >= 1.0;
+
+    if (perfectExecution) {
+      // Check if there was any overperformance (bonus reps)
+      const hasOverperformance = pairs.some(({ planned, actual }) => {
+        if (!actual) return false;
+        return planned.sets.some((plannedSet, index) => {
+          const actualSet = actual.sets[index];
+          return actualSet?.completed && actualSet.reps > plannedSet.targetReps;
+        });
+      });
+
+      if (hasOverperformance) {
+        // Give bonus points for overperformance, cap at 105
+        CDS = Math.min(105, CDS + 5);
+      }
+    }
 
     // Grade assignment
-    const grade = CDS >= 90 ? 'Dialed in' : 
-                  CDS >= 80 ? 'On plan' : 
-                  CDS >= 70 ? 'Loose' : 
+    const grade = CDS > 100 ? 'Perfect' :
+                  CDS >= 90 ? 'Dialed in' :
+                  CDS >= 80 ? 'On plan' :
+                  CDS >= 70 ? 'Loose' :
                   'Off plan';
 
     // Collect and rank deviations
@@ -161,18 +182,26 @@ export class DevotionScoringService {
     }
 
     // C) Rep Fidelity (RF)
+    // Only penalize underperformance, not overperformance
     const repScores = plannedSets.map((plannedSet, index) => {
       const actualReps = actualSets[index]?.reps || 0;
-      const repErr = Math.abs(actualReps - plannedSet.targetReps) / Math.max(1, plannedSet.targetReps);
+      const variance = actualReps - plannedSet.targetReps;
+
+      // If met or exceeded target, full score
+      if (variance >= 0) {
+        return 1.0;
+      }
+
+      // If under target, calculate penalty
+      const repErr = Math.abs(variance) / Math.max(1, plannedSet.targetReps);
       const rfSet = clamp(1 - repErr / 0.30, 0, 1);
 
-      // Track significant rep deviations (>15% error)
+      // Track significant rep shortfalls (>15% error and negative variance)
       if (repErr > 0.15 && actualSets[index]?.completed) {
-        const variance = actualReps - plannedSet.targetReps;
         deviations.push({
           type: 'rep_variance',
           exerciseName: planned.name,
-          description: `${variance > 0 ? '+' : ''}${variance} reps on ${planned.name}`,
+          description: `${variance} reps on ${planned.name}`,
           impact: repErr
         });
       }
@@ -269,6 +298,7 @@ export class DevotionScoringService {
    */
   static getGradeColor(grade: string): string {
     switch (grade) {
+      case 'Perfect': return 'text-purple-600';
       case 'Dialed in': return 'text-green-600';
       case 'On plan': return 'text-blue-600';
       case 'Loose': return 'text-yellow-600';

@@ -1,5 +1,6 @@
 import { SessionReviewData } from '@/hooks/useReviewData';
 import { CircularGauge } from '@/components/ui/CircularGauge';
+import { getDevotionGlowClass } from '@/lib/utils/devotionUtils';
 
 interface SessionCardContentProps {
   session: SessionReviewData;
@@ -7,14 +8,6 @@ interface SessionCardContentProps {
 }
 
 export function SessionCardContent({ session, className = '' }: SessionCardContentProps) {
-  // Helper function to get glow effect class for high-scoring sessions
-  const getGlowClass = (score: number | null | undefined): string => {
-    if (!score) return '';
-    if (score >= 95) return 'lavender-glow-intense';
-    if (score >= 90) return 'lavender-glow';
-    return '';
-  };
-  
   // Helper function for compact date formatting  
   const getCompactDateText = (date: Date): string => {
     const today = new Date();
@@ -57,7 +50,7 @@ export function SessionCardContent({ session, className = '' }: SessionCardConte
     return text.substring(0, maxLength - 3) + '...';
   };
   
-  const glowClass = getGlowClass(session.devotionScore);
+  const glowClass = getDevotionGlowClass(session.devotionScore);
   const baseClasses = 'bg-white rounded-2xl shadow-sm border border-gray-100 transition-all duration-200 ease-in-out min-h-[72px]';
   const containerClasses = glowClass ? `${baseClasses} ${glowClass}` : `${baseClasses}`;
   

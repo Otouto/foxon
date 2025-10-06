@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { formatDevotionScore } from '@/lib/utils/devotionUtils'
 import styles from './CircularGauge.module.css'
 
 interface CircularGaugeProps {
@@ -18,17 +19,23 @@ interface ScoreVisualProps {
 
 // Calculate visual properties based on score for devotion hierarchy
 function getScoreVisualProps(score: number): ScoreVisualProps {
+  // Perfect scores (100+) - always pulse with full opacity
+  if (score > 100) {
+    return { opacity: 1, shouldPulse: true }
+  }
+
+  // Excellent scores (90-100) - pulse with full opacity
   if (score >= 90) {
     return { opacity: 1, shouldPulse: true }
   }
-  
+
   // For scores 80 and below: opacity decreases by 20% for every 10 points drop
   if (score <= 80) {
     // 80 -> 0.8, 70 -> 0.6, 60 -> 0.4, 50 -> 0.2, etc.
     const opacity = Math.max(0.2, score / 100)
     return { opacity, shouldPulse: false }
   }
-  
+
   // Scores 81-89: full opacity, no pulse
   return { opacity: 1, shouldPulse: false }
 }
@@ -72,7 +79,9 @@ export function CircularGauge({
   const center = size / 2
 
   // Calculate stroke dash offset for progress (starts at top, goes clockwise)
-  const progress = Math.max(0, Math.min(100, animatedScore)) / 100
+  // Cap visual progress at 100% even for scores > 100
+  const cappedScore = Math.min(100, animatedScore)
+  const progress = Math.max(0, Math.min(100, cappedScore)) / 100
   const strokeDashoffset = circumference - (progress * circumference)
 
   return (
@@ -132,7 +141,7 @@ export function CircularGauge({
         className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
         style={{ width: size, height: size }}
       >
-        <div 
+        <div
           className="font-bold text-[#0F172A]"
           style={{
             fontSize: fontSize ? `${fontSize}px` : '52px',
@@ -141,7 +150,7 @@ export function CircularGauge({
             lineHeight: 1
           }}
         >
-          {Math.round(animatedScore)}
+          {formatDevotionScore(Math.round(animatedScore))}
         </div>
       </div>
     </div>

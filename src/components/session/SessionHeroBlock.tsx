@@ -1,4 +1,5 @@
 import { CircularGauge } from '@/components/ui/CircularGauge';
+import { getDevotionGlowClass } from '@/lib/utils/devotionUtils';
 
 interface SessionHeroBlockProps {
   sessionNumber: number;
@@ -21,14 +22,6 @@ export function SessionHeroBlock({
   totalExercises,
   className = ''
 }: SessionHeroBlockProps) {
-  // Helper function to get glow effect class for high-scoring sessions
-  const getGlowClass = (score: number | null): string => {
-    if (!score) return '';
-    if (score >= 95) return 'lavender-glow-intense';
-    if (score >= 90) return 'lavender-glow';
-    return '';
-  };
-
   // Format duration to rounded minutes with "min" suffix
   const formatDurationToMinutes = (seconds: number): string => {
     const minutes = Math.round(seconds / 60);
@@ -44,7 +37,7 @@ export function SessionHeroBlock({
     });
   };
 
-  const glowClass = getGlowClass(devotionScore);
+  const glowClass = getDevotionGlowClass(devotionScore);
   const baseClasses = 'bg-white rounded-2xl p-6 shadow-sm border border-gray-100';
   const containerClasses = glowClass ? `${baseClasses} ${glowClass}` : baseClasses;
 

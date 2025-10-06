@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { X, HelpCircle } from 'lucide-react'
 import { BottomSheet, BottomSheetTitle, BottomSheetDescription } from '@/components/ui/BottomSheet'
 import type { DevotionDeviation } from '@/services/SessionService'
+import { formatDevotionScoreWithMax } from '@/lib/utils/devotionUtils'
 
 interface WhyScoreSheetProps {
   deviations: DevotionDeviation[]
@@ -39,7 +40,7 @@ export function WhyScoreSheet({ deviations, score, className = "" }: WhyScoreShe
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <div>
             <BottomSheetTitle className="text-xl font-bold text-gray-900">
-              Why {score}/100?
+              Why {formatDevotionScoreWithMax(score)}?
             </BottomSheetTitle>
             <BottomSheetDescription className="text-sm text-gray-500 mt-1">
               Top factors affecting your devotion score

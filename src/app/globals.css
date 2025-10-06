@@ -442,11 +442,11 @@
   }
 }
 
-/* Enhanced glow for exceptional scores */
+/* Enhanced glow for exceptional scores (95-100) */
 .lavender-glow-intense {
   position: relative;
   background: linear-gradient(145deg, #fefbff, #f5f3ff);
-  box-shadow: 
+  box-shadow:
     0 0 16px rgba(147, 51, 234, 0.18),
     0 0 32px rgba(147, 51, 234, 0.08),
     0 6px 14px rgba(0, 0, 0, 0.05);
@@ -456,17 +456,47 @@
 
 @keyframes lavender-pulse-intense {
   0%, 100% {
-    box-shadow: 
+    box-shadow:
       0 0 16px rgba(147, 51, 234, 0.18),
       0 0 32px rgba(147, 51, 234, 0.08),
       0 6px 14px rgba(0, 0, 0, 0.05);
     border-color: rgba(147, 51, 234, 0.2);
   }
   50% {
-    box-shadow: 
+    box-shadow:
       0 0 20px rgba(147, 51, 234, 0.25),
       0 0 36px rgba(147, 51, 234, 0.1),
       0 6px 14px rgba(0, 0, 0, 0.05);
     border-color: rgba(147, 51, 234, 0.25);
+  }
+}
+
+/* Perfect score glow for 100+ (purple-gold gradient) */
+.perfect-glow {
+  position: relative;
+  background: linear-gradient(145deg, #fffbf5, #fef5ff);
+  box-shadow:
+    0 0 20px rgba(168, 85, 247, 0.25),
+    0 0 40px rgba(251, 191, 36, 0.15),
+    0 8px 16px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  animation: perfect-pulse 2s ease-in-out infinite;
+}
+
+@keyframes perfect-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 20px rgba(168, 85, 247, 0.25),
+      0 0 40px rgba(251, 191, 36, 0.15),
+      0 8px 16px rgba(0, 0, 0, 0.06);
+    border-color: rgba(168, 85, 247, 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 28px rgba(168, 85, 247, 0.35),
+      0 0 48px rgba(251, 191, 36, 0.2),
+      0 0 60px rgba(168, 85, 247, 0.08),
+      0 8px 16px rgba(0, 0, 0, 0.06);
+    border-color: rgba(168, 85, 247, 0.4);
   }
 }

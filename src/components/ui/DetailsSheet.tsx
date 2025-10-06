@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { X, CheckSquare, Layers, Target } from 'lucide-react'
 import { BottomSheet, BottomSheetTitle, BottomSheetDescription } from '@/components/ui/BottomSheet'
 import type { DevotionPillars, DevotionDeviation } from '@/services/SessionService'
+import { formatDevotionScoreWithMax } from '@/lib/utils/devotionUtils'
 
 interface DetailsSheetProps {
   pillars: DevotionPillars
@@ -58,7 +59,7 @@ export function DetailsSheet({ pillars, deviations, score, className = "" }: Det
               How we scored this session
             </BottomSheetTitle>
             <BottomSheetDescription className="text-sm text-gray-500 mt-1">
-              Technical breakdown of your {score}/100
+              Technical breakdown of your {formatDevotionScoreWithMax(score)}
             </BottomSheetDescription>
           </div>
           <button

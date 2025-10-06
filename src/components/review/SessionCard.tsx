@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SessionReviewData } from '@/hooks/useReviewData';
 import { formatDate } from '@/lib/utils/dateUtils';
+import { formatDevotionScoreWithMax } from '@/lib/utils/devotionUtils';
 import { SwipeableCard } from './SwipeableCard';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 import { SessionCardContent } from './SessionCardContent';
@@ -56,7 +57,7 @@ export function SessionCard({ session, onDelete }: SessionCardProps) {
         isOpen={showConfirmDelete}
         isDeleting={isDeleting}
         title={session.workoutTitle || 'Custom Workout'}
-        subtitle={`${formatDate(session.date)} • ${session.devotionScore ? `${session.devotionScore}/100` : 'No score'}`}
+        subtitle={`${formatDate(session.date)} • ${formatDevotionScoreWithMax(session.devotionScore)}`}
         onConfirm={handleDelete}
         onCancel={handleCancelDelete}
       />
