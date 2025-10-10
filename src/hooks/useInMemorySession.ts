@@ -28,6 +28,7 @@ export interface InMemoryExercise {
   notes?: string;
   blockId?: string | null;
   blockOrder?: number | null;
+  equipment?: string | null;
   sets: InMemorySet[];
   previousSessionData?: { load: number; reps: number }[] | null;
 }
@@ -73,6 +74,7 @@ export function useInMemorySession(workoutId: string, preloadedData?: PreloadedW
       notes: item.notes || undefined,
       blockId: item.blockId,
       blockOrder: item.blockOrder,
+      equipment: item.exercise.equipment?.name || null,
       sets: item.sets.map((set) => ({
         id: generateTempId(),
         type: set.type as SetType,

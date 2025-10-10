@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { CldImage } from 'next-cloudinary';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { isVideoUrl } from '@/lib/utils/mediaUtils';
+import { isBodyweightExercise, hasBodyweightSets } from '@/lib/utils/exerciseUtils';
 
 interface WorkoutSet {
   id: string;
@@ -18,6 +19,9 @@ interface Exercise {
   instructions?: string | null;
   imageUrl?: string | null;
   muscleGroup: {
+    name: string;
+  } | null;
+  equipment: {
     name: string;
   } | null;
 }
@@ -37,6 +41,9 @@ interface WorkoutDetailExerciseCardProps {
 export function WorkoutDetailExerciseCard({ item }: WorkoutDetailExerciseCardProps) {
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
   const isVideo = item.exercise.imageUrl ? isVideoUrl(item.exercise.imageUrl) : false;
+  
+  // Check if this is a bodyweight exercise using centralized logic
+  const isBodyweight = isBodyweightExercise(item.exercise) || hasBodyweightSets(item.sets);
   
   // Check if there's anything to show in the details section
   const hasDetails = !!(item.exercise.instructions || item.exercise.imageUrl);
@@ -71,7 +78,7 @@ export function WorkoutDetailExerciseCard({ item }: WorkoutDetailExerciseCardPro
               )}
             </div>
             <span className="text-gray-900 font-medium">
-              {set.targetReps} reps × {set.targetLoad > 0 ? `${set.targetLoad}kg` : 'Bodyweight'}
+              {set.targetReps} reps × {isBodyweight ? 'Bodyweight' : `${set.targetLoad}kg`}
             </span>
           </div>
         ))}

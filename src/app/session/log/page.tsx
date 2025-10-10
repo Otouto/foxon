@@ -10,6 +10,7 @@ import { WorkoutHeader } from '@/components/workout/WorkoutHeader';
 import { ExerciseCard } from '@/components/workout/ExerciseCard';
 import { ActionButtons } from '@/components/workout/ActionButtons';
 import { formatDuration } from '@/lib/utils';
+import { isBodyweightExercise, hasBodyweightSets } from '@/lib/utils/exerciseUtils';
 
 function SessionLogContent() {
   const router = useRouter();
@@ -189,7 +190,8 @@ function SessionLogContent() {
           // Find the actual exercise index in the session
           const exerciseIndex = session.exercises.findIndex(ex => ex.id === exercise.id);
 
-          const isBodyweightExercise = exercise.sets.every(set => set.targetLoad === 0);
+          // Use centralized bodyweight detection logic
+          const isBodyweight = isBodyweightExercise({ equipment: exercise.equipment || null }) || hasBodyweightSets(exercise.sets);
           const exerciseForCard = {
             name: exercise.exerciseName,
             sets: exercise.sets.map(set => ({
@@ -211,7 +213,7 @@ function SessionLogContent() {
             <div key={exercise.id}>
               <ExerciseCard
                 currentExercise={exerciseForCard}
-                isBodyweightExercise={isBodyweightExercise}
+                isBodyweightExercise={isBodyweight}
                 completedSets={completedSets}
                 setValues={setValues}
                 toggleSetCompletion={(setIndex) => handleToggleSetCompletion(exerciseIndex, setIndex)}
