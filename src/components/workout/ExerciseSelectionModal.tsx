@@ -221,7 +221,7 @@ export function ExerciseSelectionModal({
       className="sm:rounded-3xl sm:max-w-lg sm:mx-auto sm:relative"
     >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+        <div className="flex flex-shrink-0 items-center justify-between p-6 border-b border-gray-100">
           {isCreating ? (
             <>
               <button
@@ -248,7 +248,7 @@ export function ExerciseSelectionModal({
 
         {isCreating ? (
           /* Exercise Creation Form */
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 min-h-0 overflow-y-auto p-6">
             <div className="space-y-6">
               {/* Exercise Name */}
               <div>
@@ -379,7 +379,7 @@ export function ExerciseSelectionModal({
             </div>
 
             {/* Exercise List */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4">
               {isLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>

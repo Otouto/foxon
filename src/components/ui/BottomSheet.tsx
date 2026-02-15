@@ -25,9 +25,9 @@ export function BottomSheet({
   return (
     <Drawer.Root open={isOpen} onOpenChange={onClose} shouldScaleBackground={false} dismissible={dismissible}>
       <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 bg-black/40 z-50" />
+        <Drawer.Overlay className="fixed inset-0 bg-black/40 z-[60]" />
         <Drawer.Content
-          className={`bg-white flex flex-col rounded-t-3xl fixed bottom-0 left-0 right-0 z-50 outline-none ${maxHeight} ${className}`}
+          className={`bg-white flex flex-col overflow-hidden rounded-t-3xl fixed bottom-0 left-0 right-0 z-[60] outline-none ${maxHeight} ${className}`}
           aria-describedby={undefined}
         >
           {showHandle && (
