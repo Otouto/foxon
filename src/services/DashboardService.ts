@@ -151,11 +151,12 @@ export class DashboardService {
     const weeklyGoal = user.weeklyGoal;
     const isWeekComplete = completedThisWeek >= weeklyGoal;
 
-    // Get next workout (first active workout)
+    // Get next workout: first active not done this week (ordered by createdAt asc)
+    // If all done or none exist, show first active (repeat allowed)
     let nextWorkout: DashboardData['nextWorkout'] = null;
 
     if (!isWeekComplete) {
-      const workout = await prisma.workout.findFirst({
+      const activeWorkouts = await prisma.workout.findMany({
         where: {
           userId,
           status: WorkoutStatus.ACTIVE
@@ -167,8 +168,18 @@ export class DashboardService {
             }
           }
         },
-        orderBy: { updatedAt: 'desc' }
+        orderBy: { createdAt: 'asc' }
       });
+
+      const doneThisWeek = new Set(
+        thisWeekSessions
+          .map((s) => s.workoutId)
+          .filter((id): id is string => id !== null)
+      );
+
+      const workout =
+        activeWorkouts.find((w) => !doneThisWeek.has(w.id)) ??
+        activeWorkouts[0];
 
       if (workout) {
         const exerciseCount = workout.workoutItems.length;

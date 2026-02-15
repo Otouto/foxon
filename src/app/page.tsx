@@ -37,9 +37,10 @@ export default async function Home() {
         />
 
         {/* Next Workout or Completion Card */}
-        <NextWorkoutCard 
+        <NextWorkoutCard
           workout={dashboardData.nextWorkout}
           isWeekComplete={dashboardData.weekProgress.isComplete}
+          completedThisWeek={dashboardData.weekProgress.completed}
         />
       </div>
     </div>

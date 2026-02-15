@@ -2,6 +2,19 @@
 
 import Link from 'next/link';
 
+const WHIMSICAL_ENCOURAGEMENT_PHRASES = [
+  'You crushed it this week. Fox is proud.',
+  'All done. Time to rest (or do more if you\'re feeling wild).',
+  'Weekly goal: achieved. You\'re on fire.',
+  'Another week in the books. Well done.',
+  'Fox approves. You showed up.',
+];
+
+function getEncouragementPhrase(completed: number): string {
+  const index = completed % WHIMSICAL_ENCOURAGEMENT_PHRASES.length;
+  return WHIMSICAL_ENCOURAGEMENT_PHRASES[index];
+}
+
 interface NextWorkoutCardProps {
   workout: {
     id: string;
@@ -10,26 +23,32 @@ interface NextWorkoutCardProps {
     estimatedDuration: number;
   } | null;
   isWeekComplete: boolean;
+  completedThisWeek?: number;
 }
 
-export function NextWorkoutCard({ workout, isWeekComplete }: NextWorkoutCardProps) {
-  // If week is complete, show celebration card
+export function NextWorkoutCard({
+  workout,
+  isWeekComplete,
+  completedThisWeek = 0,
+}: NextWorkoutCardProps) {
+  // If week is complete, show whimsical encouragement
   if (isWeekComplete) {
+    const phrase = getEncouragementPhrase(completedThisWeek);
     return (
       <div className="bg-gradient-to-br from-lime-400 to-lime-500 rounded-2xl p-8 shadow-sm">
         <div className="text-center">
           <div className="text-6xl mb-4">🦊</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            All workouts complete this week!
+            {phrase}
           </h2>
           <p className="text-gray-800 mb-6">
-            Great job! You&apos;ve hit your weekly goal. 🎉
+            Want to do more? Browse your workouts below.
           </p>
-          <Link 
+          <Link
             href="/workout"
             className="inline-block px-6 py-3 bg-white text-gray-900 font-semibold rounded-xl hover:bg-gray-50 transition-colors"
           >
-            Want to do more? Browse your workouts →
+            Browse workouts →
           </Link>
         </div>
       </div>
