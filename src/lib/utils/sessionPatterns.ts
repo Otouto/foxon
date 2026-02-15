@@ -43,14 +43,10 @@ export function isStrengthWorkout(workoutTitle: string | null): boolean {
 
 
 /**
- * Check if a group should show connectors (has at least 2 strength workouts)
+ * Check if a group should show connectors (has at least 2 sessions)
  */
 export function shouldShowConnectors(sessions: SessionReviewData[]): boolean {
-  const strengthCount = sessions.filter(session => 
-    isStrengthWorkout(session.workoutTitle)
-  ).length;
-  
-  return strengthCount >= 2;
+  return sessions.length >= 2;
 }
 
 /**
