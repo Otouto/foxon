@@ -38,6 +38,7 @@ function setStoredCollapsedState(state: Record<string, boolean>) {
 
 export function SessionGroup({ group, onDeleteSession }: SessionGroupProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showOverflow, setShowOverflow] = useState(false);
 
   useEffect(() => {
     const storedState = getStoredCollapsedState();
@@ -48,6 +49,16 @@ export function SessionGroup({ group, onDeleteSession }: SessionGroupProps) {
     const expanded = storedState[group.key] !== undefined ? !storedState[group.key] : defaultExpanded;
     setIsExpanded(expanded);
   }, [group.key]);
+
+  useEffect(() => {
+    if (isExpanded) {
+      // After animation completes, allow overflow for glow effects
+      const timer = setTimeout(() => setShowOverflow(true), 300);
+      return () => clearTimeout(timer);
+    } else {
+      setShowOverflow(false);
+    }
+  }, [isExpanded]);
 
   const handleToggle = () => {
     const newExpanded = !isExpanded;
@@ -69,7 +80,9 @@ export function SessionGroup({ group, onDeleteSession }: SessionGroupProps) {
       />
       
       <div
-        className={`transition-all duration-300 ease-in-out overflow-hidden ${
+        className={`transition-all duration-300 ease-in-out ${
+          showOverflow ? 'overflow-visible' : 'overflow-hidden'
+        } ${
           isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
         }`}
       >
