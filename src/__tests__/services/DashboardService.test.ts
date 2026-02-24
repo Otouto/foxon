@@ -52,12 +52,6 @@ const SessionStatus = {
   FINISHED: 'FINISHED' as const,
 }
 
-const WorkoutStatus = {
-  DRAFT: 'DRAFT' as const,
-  ACTIVE: 'ACTIVE' as const,
-  ARCHIVED: 'ARCHIVED' as const,
-}
-
 describe('DashboardService', () => {
   describe('calculateFoxState (via getDashboardData)', () => {
     const mockUser = {

@@ -1,4 +1,4 @@
-import { User, Workout, Session, WorkoutExercise, SessionExercise, SessionSet } from '@prisma/client'
+import { User, Session, WorkoutExercise, SessionExercise, SessionSet } from '@prisma/client'
 
 // Mock User
 export const mockUser: User = {

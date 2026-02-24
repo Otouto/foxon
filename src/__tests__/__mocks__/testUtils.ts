@@ -50,16 +50,16 @@ export function createMockDate(dateString: string) {
 
   beforeAll(() => {
     global.Date = class extends originalDate {
-      constructor(...args: any[]) {
+      constructor(...args: ConstructorParameters<typeof Date>) {
         if (args.length === 0) {
           return mockDate
         }
-        return new originalDate(...args)
+        super(...args)
       }
       static now() {
         return mockDate.getTime()
       }
-    } as any
+    } as unknown as typeof Date
   })
 
   afterAll(() => {
@@ -88,7 +88,7 @@ export async function flushPromises() {
  */
 export function createDeferred<T>() {
   let resolve: (value: T) => void
-  let reject: (error: any) => void
+  let reject: (error: unknown) => void
 
   const promise = new Promise<T>((res, rej) => {
     resolve = res
