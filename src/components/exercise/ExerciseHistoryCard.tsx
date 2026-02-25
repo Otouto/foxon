@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { formatDate } from '@/lib/utils/dateUtils';
+import { isBodyweightExercise } from '@/lib/utils/exerciseUtils';
 
 interface ExerciseHistoryEntry {
   id: string;
@@ -16,6 +17,9 @@ interface ExerciseHistoryEntry {
     exercise: {
       name: string;
       muscleGroup: {
+        name: string;
+      } | null;
+      equipment: {
         name: string;
       } | null;
     };
@@ -39,16 +43,14 @@ interface ExerciseHistoryCardProps {
 export function ExerciseHistoryCard({ historyEntry, exerciseId }: ExerciseHistoryCardProps) {
   const { sessionExercise, date, workoutTitle } = historyEntry;
   const completedSets = sessionExercise.sessionSets.filter(set => set.completed);
+  const isBodyweight = isBodyweightExercise(sessionExercise.exercise);
 
   const formatSetDisplay = (set: typeof sessionExercise.sessionSets[0]) => {
-    const load = set.load;
-    const isBodyweight = load === 0;
-    
     if (!set.completed) {
       return '— not completed —';
     }
 
-    return `${set.reps} reps × ${isBodyweight ? 'Bodyweight' : `${load}kg`}`;
+    return `${set.reps} reps × ${isBodyweight ? 'Bodyweight' : `${set.load}kg`}`;
   };
 
   const formatSessionDate = (date: Date) => {

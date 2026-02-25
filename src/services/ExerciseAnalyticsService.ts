@@ -162,6 +162,11 @@ export class ExerciseAnalyticsService {
                   select: {
                     name: true
                   }
+                },
+                equipment: {
+                  select: {
+                    name: true
+                  }
                 }
               }
             },

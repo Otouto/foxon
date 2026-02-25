@@ -27,6 +27,13 @@ export interface UseWorkoutCreationState {
   isSaving: boolean;
 }
 
+export function getNextSetDefaults(lastSet?: Pick<WorkoutSet, 'targetLoad' | 'targetReps'>) {
+  return {
+    targetLoad: lastSet?.targetLoad ?? 20,
+    targetReps: lastSet?.targetReps ?? 10,
+  };
+}
+
 export function useWorkoutCreation() {
   const [state, setState] = useState<UseWorkoutCreationState>({
     workoutName: '',
@@ -94,10 +101,11 @@ export function useWorkoutCreation() {
       exercises: prev.exercises.map(ex => {
         if (ex.id === exerciseId) {
           const lastSet = ex.sets[ex.sets.length - 1];
+          const defaults = getNextSetDefaults(lastSet);
           const newSet: WorkoutSet = {
             type: 'NORMAL',
-            targetLoad: lastSet?.targetLoad || 20,
-            targetReps: lastSet?.targetReps || 10,
+            targetLoad: defaults.targetLoad,
+            targetReps: defaults.targetReps,
             order: ex.sets.length + 1,
           };
           return { ...ex, sets: [...ex.sets, newSet] };
