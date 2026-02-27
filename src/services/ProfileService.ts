@@ -6,6 +6,7 @@ export interface UserProfile {
   id: string;
   clerkUserId: string;
   displayName: string | null;
+  email: string | null;
   avatarUrl: string | null;
   weeklyGoal: number;
   progressionState: ProgressionState;
@@ -49,6 +50,7 @@ export class ProfileService {
           id: user.id,
           clerkUserId: user.clerkUserId,
           displayName: user.displayName,
+          email: user.email,
           avatarUrl: user.avatarUrl,
           weeklyGoal: user.weeklyGoal,
           progressionState: user.progressionState,
@@ -150,6 +152,7 @@ export class ProfileService {
    */
   static async updateUserProfile(updates: {
     displayName?: string;
+    email?: string | null;
     avatarUrl?: string;
     weeklyGoal?: number;
   }): Promise<UserProfile | null> {
@@ -160,6 +163,7 @@ export class ProfileService {
         where: { id: userId },
         data: {
           ...(updates.displayName !== undefined && { displayName: updates.displayName }),
+          ...(updates.email !== undefined && { email: updates.email }),
           ...(updates.avatarUrl !== undefined && { avatarUrl: updates.avatarUrl }),
           ...(updates.weeklyGoal !== undefined && { weeklyGoal: updates.weeklyGoal }),
         }
@@ -169,6 +173,7 @@ export class ProfileService {
         id: updatedUser.id,
         clerkUserId: updatedUser.clerkUserId,
         displayName: updatedUser.displayName,
+        email: updatedUser.email,
         avatarUrl: updatedUser.avatarUrl,
         weeklyGoal: updatedUser.weeklyGoal,
         progressionState: updatedUser.progressionState,

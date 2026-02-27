@@ -1,11 +1,13 @@
-import { User, LogOut } from 'lucide-react';
+import { User, LogOut, BookOpen } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { ProfileService } from '@/services/ProfileService';
 import WeeklyGoalEditor from '@/components/profile/WeeklyGoalEditor';
+import EmailEditor from '@/components/profile/EmailEditor';
 
 export default async function ProfilePage() {
   const profileData = await ProfileService.getUserProfile();
-  
+
   if (!profileData) {
     return (
       <div className="px-6 py-8 pb-24">
@@ -18,8 +20,6 @@ export default async function ProfilePage() {
 
   const { user, stats } = profileData;
   const progressionInfo = ProfileService.getProgressionInfo(user.progressionState);
-  
-  // Removed formatVolume function - no longer needed with devotion scoring
 
   // Get user initials for avatar
   const getUserInitials = (name: string | null) => {
@@ -36,9 +36,9 @@ export default async function ProfilePage() {
         <div className="flex items-center gap-4 mb-4">
           <div className="w-16 h-16 bg-lime-400 rounded-full flex items-center justify-center">
             {user.avatarUrl ? (
-              <Image 
-                src={user.avatarUrl} 
-                alt={user.displayName || 'User'} 
+              <Image
+                src={user.avatarUrl}
+                alt={user.displayName || 'User'}
                 width={64}
                 height={64}
                 className="w-full h-full rounded-full object-cover"
@@ -55,7 +55,7 @@ export default async function ProfilePage() {
             </h2>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
             <p className="text-2xl font-bold text-gray-900">{stats.completedSessions}</p>
@@ -82,13 +82,13 @@ export default async function ProfilePage() {
           <div className="text-3xl">{progressionInfo.emoji}</div>
         </div>
         <div className="w-full bg-white/20 rounded-full h-2">
-          <div 
-            className="bg-white h-2 rounded-full" 
+          <div
+            className="bg-white h-2 rounded-full"
             style={{ width: `${progressionInfo.progress}%` }}
           ></div>
         </div>
         <p className="text-sm mt-2 opacity-90">
-          {progressionInfo.nextLevel 
+          {progressionInfo.nextLevel
             ? `Keep training to reach ${progressionInfo.nextLevel}!`
             : `You've reached the highest level! 🔥`
           }
@@ -97,7 +97,24 @@ export default async function ProfilePage() {
 
       {/* Settings Menu */}
       <div className="space-y-3">
+        {/* Fox Chronicle */}
+        <Link
+          href="/chronicle"
+          className="w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4 text-left"
+        >
+          <div className="w-10 h-10 bg-amber-50 rounded-full flex items-center justify-center">
+            <BookOpen size={20} className="text-amber-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-medium text-gray-900">Fox Chronicle</h3>
+            <p className="text-sm text-gray-500">Monthly story of your journey</p>
+          </div>
+          <span className="text-gray-300 text-lg">&rsaquo;</span>
+        </Link>
+
         <WeeklyGoalEditor initialGoal={user.weeklyGoal} />
+
+        <EmailEditor initialEmail={user.email} />
 
         <button className="w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4 text-left">
           <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
