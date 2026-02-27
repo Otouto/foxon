@@ -51,8 +51,8 @@ const PILLAR_NAMES: Record<keyof DevotionPillars, string> = {
   LF: 'Weight'
 }
 
-// Fixed order for pillar display: Exercises · Sets · Reps (Weight excluded from devotion focus)
-const PILLAR_ORDER: (keyof DevotionPillars)[] = ['EC', 'SC', 'RF']
+// Fixed order for pillar display: Exercises · Sets · Reps · Weight (LF shown only when available)
+const PILLAR_ORDER: (keyof DevotionPillars)[] = ['EC', 'SC', 'RF', 'LF']
 
 export function Summary({ data, showTitle = true }: SummaryProps) {
   const router = useRouter()

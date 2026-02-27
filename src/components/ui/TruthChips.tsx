@@ -1,6 +1,6 @@
 'use client'
 
-import { CheckSquare, Layers, Target } from 'lucide-react'
+import { CheckSquare, Layers, Target, Dumbbell } from 'lucide-react'
 import type { DevotionPillars } from '@/services/SessionService'
 
 interface TruthChipsProps {
@@ -47,6 +47,17 @@ const chipConfig: ChipData[] = [
       if (percentage >= 90) return 'Reps on target'
       if (percentage >= 75) return 'Reps drifted a bit'
       return 'Reps off target'
+    }
+  },
+  {
+    key: 'LF',
+    icon: Dumbbell,
+    label: 'Weight',
+    getDisplayText: (score: number) => {
+      const percentage = Math.round(score * 100)
+      if (percentage >= 90) return 'Weight on target'
+      if (percentage >= 75) return 'Weight drifted a bit'
+      return 'Weight off target'
     }
   }
 ]
