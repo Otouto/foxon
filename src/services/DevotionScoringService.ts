@@ -6,6 +6,10 @@ const clamp = (n: number, min = 0, max = 1) => Math.max(min, Math.min(max, n));
 const gmean = (xs: number[]) => Math.pow(xs.reduce((a, b) => a * b, 1), 1 / xs.length);
 const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
 
+// LF dampening factor: LF can only hurt the score by this fraction of its deviation from perfect
+// dampened_LF = 1.0 - LF_DAMPEN * (1.0 - raw_LF)  →  range [1 - LF_DAMPEN, 1.0]
+const LF_DAMPEN = 0.30;
+
 // Planned exercise data structure
 interface PlannedExercise {
   name: string;
@@ -105,10 +109,19 @@ export class DevotionScoringService {
     const SC = exerciseScores.reduce((sum, ex) => sum + ex.sc * ex.weight, 0) / totalWeight;
     const RF = exerciseScores.reduce((sum, ex) => sum + ex.rf * ex.weight, 0) / totalWeight;
 
-    // Load Fidelity is still calculated but not used in devotion score (focusing on process, not weight)
+    // Aggregate Load Fidelity - weighted average across exercises that have loaded sets
+    const loadedScores = exerciseScores.filter(ex => ex.lf !== null);
+    const rawLF = loadedScores.length > 0
+      ? loadedScores.reduce((sum, ex) => sum + ex.lf! * ex.weight, 0) / loadedScores.reduce((sum, ex) => sum + ex.weight, 0)
+      : null;
 
-    // Final score calculation - focusing on devotion to process (EC, SC, RF only)
-    const scoreParts = [EC, SC, RF];
+    // Dampen LF so it can only hurt the score by LF_DAMPEN fraction of its deviation
+    // dampened_LF = 1.0 - LF_DAMPEN * (1.0 - raw_LF)  →  range [1 - LF_DAMPEN, 1.0]
+    // For bodyweight-only sessions (rawLF === null), LF is excluded from the geometric mean
+    const dampenedLF = rawLF !== null ? 1.0 - LF_DAMPEN * (1.0 - rawLF) : null;
+
+    // Final score: geometric mean of EC, SC, RF + dampened LF (when available)
+    const scoreParts = dampenedLF !== null ? [EC, SC, RF, dampenedLF] : [EC, SC, RF];
     const SAC = gmean(scoreParts);
     let CDS = Math.round(100 * SAC);
 
@@ -149,9 +162,10 @@ export class DevotionScoringService {
       pillars: {
         EC: Math.round(EC * 100) / 100,
         SC: Math.round(SC * 100) / 100,
-        RF: Math.round(RF * 100) / 100
+        RF: Math.round(RF * 100) / 100,
+        ...(rawLF !== null ? { LF: Math.round(rawLF * 100) / 100 } : {})
       },
-      deviations: topDeviations.filter(d => d.type !== 'load_variance')
+      deviations: topDeviations
     };
   }
 
@@ -211,6 +225,8 @@ export class DevotionScoringService {
     const rf = avg(repScores);
 
     // D) Load Fidelity (LF) - only for sets with planned weight > 0
+    // Asymmetric: no penalty for going OVER target (stronger / tuning load)
+    // Only penalizes going UNDER target weight
     const loadedPlannedSets = plannedSets.filter(set => set.targetLoad > 0);
     let lf: number | null = null;
 
@@ -219,17 +235,24 @@ export class DevotionScoringService {
         // Find corresponding actual set by order
         const actualSet = actualSets.find(as => as.order === plannedSet.order);
         const actualWeight = actualSet?.load || 0;
-        const baseWeight = Math.max(plannedSet.targetLoad, 5);
-        const loadErr = Math.abs(actualWeight - plannedSet.targetLoad) / baseWeight;
-        const lfSet = Math.min(1.05, clamp(1 - loadErr / 0.15, 0, 1));
 
-        // Track significant load deviations (>15% error)
+        // If met or exceeded target, full score (no penalty for going heavier)
+        if (actualWeight >= plannedSet.targetLoad) {
+          return 1.0;
+        }
+
+        // If under target, calculate penalty
+        const baseWeight = Math.max(plannedSet.targetLoad, 5);
+        const loadErr = (plannedSet.targetLoad - actualWeight) / baseWeight;
+        const lfSet = clamp(1 - loadErr / 0.30, 0, 1);
+
+        // Track significant load shortfalls (>15% under target and set completed)
         if (loadErr > 0.15 && actualSet?.completed) {
           const variance = ((actualWeight - plannedSet.targetLoad) / plannedSet.targetLoad) * 100;
           deviations.push({
             type: 'load_variance',
             exerciseName: planned.name,
-            description: `${variance > 0 ? '+' : ''}${Math.round(variance)}% load on ${planned.name}`,
+            description: `${Math.round(variance)}% load on ${planned.name}`,
             impact: loadErr
           });
         }
@@ -363,7 +386,7 @@ export class DevotionScoringService {
     const perfectResult = this.computeDevotionScoreFromData(perfectPlanned, perfectActual);
     console.log('✅ Perfect Execution Test:');
     console.log(`   Score: ${perfectResult.CDS}/100 (${perfectResult.grade})`);
-    console.log(`   Pillars: EC=${perfectResult.pillars.EC}, SC=${perfectResult.pillars.SC}, RF=${perfectResult.pillars.RF}`);
+    console.log(`   Pillars: EC=${perfectResult.pillars.EC}, SC=${perfectResult.pillars.SC}, RF=${perfectResult.pillars.RF}, LF=${perfectResult.pillars.LF ?? '-'}`);
     console.log(`   Deviations: ${perfectResult.deviations.length}\n`);
 
     // Test 2: Missed sets and load variance
@@ -388,7 +411,7 @@ export class DevotionScoringService {
     const imperfectResult = this.computeDevotionScoreFromData(perfectPlanned, imperfectActual);
     console.log('⚠️  Imperfect Execution Test:');
     console.log(`   Score: ${imperfectResult.CDS}/100 (${imperfectResult.grade})`);
-    console.log(`   Pillars: EC=${imperfectResult.pillars.EC}, SC=${imperfectResult.pillars.SC}, RF=${imperfectResult.pillars.RF}`);
+    console.log(`   Pillars: EC=${imperfectResult.pillars.EC}, SC=${imperfectResult.pillars.SC}, RF=${imperfectResult.pillars.RF}, LF=${imperfectResult.pillars.LF ?? '-'}`);
     console.log(`   Deviations: ${imperfectResult.deviations.length}`);
     imperfectResult.deviations.forEach(dev => console.log(`     - ${dev.description}`));
     console.log('');
@@ -417,7 +440,7 @@ export class DevotionScoringService {
     const bodyweightResult = this.computeDevotionScoreFromData(bodyweightPlanned, bodyweightActual);
     console.log('💪 Bodyweight Exercise Test:');
     console.log(`   Score: ${bodyweightResult.CDS}/100 (${bodyweightResult.grade})`);
-    console.log(`   Pillars: EC=${bodyweightResult.pillars.EC}, SC=${bodyweightResult.pillars.SC}, RF=${bodyweightResult.pillars.RF}`);
+    console.log(`   Pillars: EC=${bodyweightResult.pillars.EC}, SC=${bodyweightResult.pillars.SC}, RF=${bodyweightResult.pillars.RF}, LF=${bodyweightResult.pillars.LF ?? '-'}`);
 
     console.log('🎯 All tests completed!');
   }

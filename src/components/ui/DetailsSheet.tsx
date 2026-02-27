@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, CheckSquare, Layers, Target } from 'lucide-react'
+import { X, CheckSquare, Layers, Target, Dumbbell } from 'lucide-react'
 import { BottomSheet, BottomSheetTitle, BottomSheetDescription } from '@/components/ui/BottomSheet'
 import type { DevotionPillars, DevotionDeviation } from '@/services/SessionService'
 import { formatDevotionScoreWithMax } from '@/lib/utils/devotionUtils'
@@ -17,24 +17,34 @@ const conceptExplanations = [
   {
     icon: CheckSquare,
     title: 'Exercises',
+    pillarKey: 'EC' as keyof DevotionPillars,
     description: 'Coverage of planned exercises - did you do all the exercises?'
   },
   {
     icon: Layers,
     title: 'Sets',
+    pillarKey: 'SC' as keyof DevotionPillars,
     description: 'Completion of planned sets - how much work did you actually do?'
   },
   {
     icon: Target,
     title: 'Reps',
+    pillarKey: 'RF' as keyof DevotionPillars,
     description: 'Closeness to target reps - did you hit your rep targets?'
+  },
+  {
+    icon: Dumbbell,
+    title: 'Weight',
+    pillarKey: 'LF' as keyof DevotionPillars,
+    description: 'Closeness to target weight - going heavier is never penalized.'
   }
 ]
 
 export function DetailsSheet({ pillars, deviations, score, className = "" }: DetailsSheetProps) {
   const [isOpen, setIsOpen] = useState(false)
 
-  const visibleConcepts = conceptExplanations
+  // Only show concepts for pillars that exist in this session's data
+  const visibleConcepts = conceptExplanations.filter(c => pillars[c.pillarKey] !== undefined)
 
   return (
     <>
@@ -78,7 +88,7 @@ export function DetailsSheet({ pillars, deviations, score, className = "" }: Det
               What we measure
             </h4>
             <div className="space-y-3">
-              {visibleConcepts.map(({ icon: Icon, title, description }) => (
+              {visibleConcepts.map(({ icon: Icon, title, pillarKey, description }) => (
                 <div key={title} className="flex items-start gap-3">
                   <div className="flex-shrink-0 p-2 bg-gray-100 rounded-lg">
                     <Icon size={16} className="text-gray-600" />
@@ -92,9 +102,7 @@ export function DetailsSheet({ pillars, deviations, score, className = "" }: Det
                     </p>
                   </div>
                   <div className="text-sm font-medium text-gray-700">
-                    {title === 'Exercises' && `${Math.round((pillars.EC || 0) * 100)}%`}
-                    {title === 'Sets' && `${Math.round((pillars.SC || 0) * 100)}%`}
-                    {title === 'Reps' && `${Math.round((pillars.RF || 0) * 100)}%`}
+                    {`${Math.round((pillars[pillarKey] || 0) * 100)}%`}
                   </div>
                 </div>
               ))}

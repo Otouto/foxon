@@ -17,7 +17,8 @@ interface PillarData {
 const pillarConfig: PillarData[] = [
   { key: 'EC', label: 'EC', description: 'Exercise Coverage' },
   { key: 'SC', label: 'SC', description: 'Set Completion' },
-  { key: 'RF', label: 'RF', description: 'Rep Fidelity' }
+  { key: 'RF', label: 'RF', description: 'Rep Fidelity' },
+  { key: 'LF', label: 'LF', description: 'Load Fidelity' }
 ]
 
 export function PillarIndicators({ pillars, className = "" }: PillarIndicatorsProps) {
@@ -25,7 +26,10 @@ export function PillarIndicators({ pillars, className = "" }: PillarIndicatorsPr
     <div className={`flex justify-center gap-6 ${className}`}>
       {pillarConfig.map(({ key, label, description }) => {
         const score = pillars[key]
-        
+
+        // Skip pillars that don't exist in this session (e.g. LF for bodyweight)
+        if (score === undefined) return null
+
         // Convert score to percentage for display
         const percentage = score ? Math.round(score * 100) : 0
         const height = score ? Math.max(4, score * 32) : 4 // Min 4px, max 32px height

@@ -69,6 +69,7 @@ describe('DevotionScoringService', () => {
         expect(result.pillars.EC).toBe(1.0)
         expect(result.pillars.SC).toBe(1.0)
         expect(result.pillars.RF).toBe(1.0)
+        expect(result.pillars.LF).toBe(1.0) // Load matched perfectly
         expect(result.deviations).toHaveLength(0)
       })
 
@@ -100,6 +101,7 @@ describe('DevotionScoringService', () => {
         expect(result.pillars.EC).toBe(1.0)
         expect(result.pillars.SC).toBe(1.0)
         expect(result.pillars.RF).toBe(1.0)
+        expect(result.pillars.LF).toBe(1.0)
       })
 
       it('should NOT give bonus for overperformance without perfect execution', () => {
@@ -361,7 +363,7 @@ describe('DevotionScoringService', () => {
         expect(result.pillars.EC).toBe(1.0)
         expect(result.pillars.SC).toBe(1.0)
         expect(result.pillars.RF).toBe(1.0)
-        // Load fidelity not in pillars (not used in score)
+        expect(result.pillars.LF).toBeUndefined() // Bodyweight = no LF
       })
     })
 
@@ -465,14 +467,16 @@ describe('DevotionScoringService', () => {
             name: 'Test',
             sets: [
               { load: 100, reps: 10, completed: true, order: 0 },
-              { load: 100, reps: 8, completed: true, order: 1 }, // -2 reps (less penalty)
-              { load: 100, reps: 7, completed: true, order: 2 }, // -3 reps
+              { load: 100, reps: 7, completed: true, order: 1 }, // -3 reps (30% miss → rf=0)
+              { load: 100, reps: 7, completed: true, order: 2 }, // -3 reps (30% miss → rf=0)
             ],
           },
         ]
 
         const result = DevotionScoringService.computeDevotionScoreFromData(planned, actual)
 
+        // RF = avg(1.0, 0, 0) = 0.333, LF=1.0 dampened=1.0
+        // gmean([1, 1, 0.333, 1])^(1/4) = 0.333^0.25 ≈ 0.76 → 76
         expect(result.CDS).toBeGreaterThanOrEqual(70)
         expect(result.CDS).toBeLessThan(80)
         expect(result.grade).toBe('Loose')
@@ -626,7 +630,7 @@ describe('DevotionScoringService', () => {
         expect(repDeviations.length).toBe(1)
       })
 
-      it('should NOT include load_variance deviations in final result', () => {
+      it('should include load_variance deviations when under target weight', () => {
         const planned: PlannedExercise[] = [
           {
             name: 'Squats',
@@ -643,9 +647,17 @@ describe('DevotionScoringService', () => {
 
         const result = DevotionScoringService.computeDevotionScoreFromData(planned, actual)
 
-        // Load variance should be filtered out
+        // Load variance should now be included in deviations
         const loadDeviations = result.deviations.filter(d => d.type === 'load_variance')
-        expect(loadDeviations.length).toBe(0)
+        expect(loadDeviations.length).toBe(1)
+        expect(loadDeviations[0].description).toContain('load')
+
+        // LF should be penalized
+        expect(result.pillars.LF).toBeLessThan(1.0)
+
+        // Score should be less than perfect but dampened (LF has mild impact)
+        expect(result.CDS).toBeGreaterThan(85) // Dampened LF keeps score high
+        expect(result.CDS).toBeLessThan(100)
       })
     })
 
@@ -751,6 +763,173 @@ describe('DevotionScoringService', () => {
         // Should not crash, should give full credit (any reps >= 0)
         expect(result.CDS).toBeGreaterThanOrEqual(0)
         expect(result.CDS).toBeLessThanOrEqual(105)
+      })
+    })
+
+    describe('Load Fidelity (LF)', () => {
+      it('should NOT penalize for lifting heavier than target', () => {
+        const planned: PlannedExercise[] = [
+          {
+            name: 'Squats',
+            sets: [
+              { targetLoad: 100, targetReps: 10, order: 0 },
+              { targetLoad: 100, targetReps: 10, order: 1 },
+            ],
+          },
+        ]
+
+        const actual: ActualExercise[] = [
+          {
+            name: 'Squats',
+            sets: [
+              { load: 120, reps: 10, completed: true, order: 0 }, // +20% heavier
+              { load: 110, reps: 10, completed: true, order: 1 }, // +10% heavier
+            ],
+          },
+        ]
+
+        const result = DevotionScoringService.computeDevotionScoreFromData(planned, actual)
+
+        expect(result.pillars.LF).toBe(1.0) // No penalty for going heavier
+        expect(result.CDS).toBe(100)
+        expect(result.deviations).toHaveLength(0)
+      })
+
+      it('should penalize for lifting lighter than target', () => {
+        const planned: PlannedExercise[] = [
+          {
+            name: 'Bench Press',
+            sets: [
+              { targetLoad: 100, targetReps: 8, order: 0 },
+              { targetLoad: 100, targetReps: 8, order: 1 },
+            ],
+          },
+        ]
+
+        const actual: ActualExercise[] = [
+          {
+            name: 'Bench Press',
+            sets: [
+              { load: 100, reps: 8, completed: true, order: 0 }, // On target
+              { load: 80, reps: 8, completed: true, order: 1 },  // -20% lighter
+            ],
+          },
+        ]
+
+        const result = DevotionScoringService.computeDevotionScoreFromData(planned, actual)
+
+        expect(result.pillars.LF).toBeLessThan(1.0)
+        expect(result.pillars.LF).toBeGreaterThan(0) // Partial credit
+        expect(result.CDS).toBeLessThan(100) // Dampened LF reduces score
+        expect(result.CDS).toBeGreaterThan(90) // But dampening keeps it high
+      })
+
+      it('should apply dampening so LF has mild impact on final score', () => {
+        const planned: PlannedExercise[] = [
+          {
+            name: 'Squats',
+            sets: [{ targetLoad: 100, targetReps: 10, order: 0 }],
+          },
+        ]
+
+        // Scenario: Everything perfect except used half the weight
+        const actual: ActualExercise[] = [
+          {
+            name: 'Squats',
+            sets: [{ load: 50, reps: 10, completed: true, order: 0 }], // 50% load
+          },
+        ]
+
+        const result = DevotionScoringService.computeDevotionScoreFromData(planned, actual)
+
+        // Raw LF: loadErr = 50/100 = 0.5 → lfSet = 1 - 0.5/0.3 = clamped to 0
+        // Dampened LF: 1.0 - 0.30 * 1.0 = 0.70
+        // gmean([1, 1, 1, 0.70])^(1/4) = 0.70^0.25 ≈ 0.915 → CDS ≈ 92
+        expect(result.pillars.LF).toBe(0) // Raw LF is 0 (huge underload)
+        expect(result.CDS).toBeGreaterThanOrEqual(90) // But dampened score is still decent
+        expect(result.CDS).toBeLessThan(100)
+      })
+
+      it('should exclude LF from calculation for bodyweight-only workouts', () => {
+        const planned: PlannedExercise[] = [
+          {
+            name: 'Push-ups',
+            sets: [{ targetLoad: 0, targetReps: 20, order: 0 }],
+          },
+          {
+            name: 'Pull-ups',
+            sets: [{ targetLoad: 0, targetReps: 10, order: 0 }],
+          },
+        ]
+
+        const actual: ActualExercise[] = [
+          {
+            name: 'Push-ups',
+            sets: [{ load: 0, reps: 20, completed: true, order: 0 }],
+          },
+          {
+            name: 'Pull-ups',
+            sets: [{ load: 0, reps: 10, completed: true, order: 0 }],
+          },
+        ]
+
+        const result = DevotionScoringService.computeDevotionScoreFromData(planned, actual)
+
+        expect(result.pillars.LF).toBeUndefined()
+        expect(result.CDS).toBe(100) // Uses 3-pillar gmean (EC, SC, RF)
+      })
+
+      it('should handle mixed loaded and bodyweight exercises', () => {
+        const planned: PlannedExercise[] = [
+          {
+            name: 'Bench Press',
+            sets: [{ targetLoad: 100, targetReps: 8, order: 0 }],
+          },
+          {
+            name: 'Push-ups',
+            sets: [{ targetLoad: 0, targetReps: 15, order: 0 }],
+          },
+        ]
+
+        const actual: ActualExercise[] = [
+          {
+            name: 'Bench Press',
+            sets: [{ load: 100, reps: 8, completed: true, order: 0 }],
+          },
+          {
+            name: 'Push-ups',
+            sets: [{ load: 0, reps: 15, completed: true, order: 0 }],
+          },
+        ]
+
+        const result = DevotionScoringService.computeDevotionScoreFromData(planned, actual)
+
+        // LF should only consider the loaded exercise (Bench Press)
+        expect(result.pillars.LF).toBe(1.0)
+        expect(result.CDS).toBe(100)
+      })
+
+      it('should NOT generate load_variance deviation for going heavier', () => {
+        const planned: PlannedExercise[] = [
+          {
+            name: 'Squats',
+            sets: [{ targetLoad: 100, targetReps: 10, order: 0 }],
+          },
+        ]
+
+        const actual: ActualExercise[] = [
+          {
+            name: 'Squats',
+            sets: [{ load: 130, reps: 10, completed: true, order: 0 }], // +30% heavier
+          },
+        ]
+
+        const result = DevotionScoringService.computeDevotionScoreFromData(planned, actual)
+
+        // No load_variance deviation for going heavier
+        const loadDeviations = result.deviations.filter(d => d.type === 'load_variance')
+        expect(loadDeviations.length).toBe(0)
+        expect(result.pillars.LF).toBe(1.0)
       })
     })
 
