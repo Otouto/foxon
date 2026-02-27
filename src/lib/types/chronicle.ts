@@ -134,6 +134,7 @@ export interface ChronicleRhythm {
   effortDistribution: Record<string, number>;
   hardOrAbovePercent: number;
   sessionsWithVibeLines: number;
+  calendar: string; // Pre-rendered rhythm calendar grid
 }
 
 export interface ChronicleMilestone {
@@ -150,8 +151,8 @@ export interface ChronicleNarrativeInputs {
   trajectoryDirection: 'rising' | 'steady' | 'dipped-recovered' | 'falling';
   emotionalArc: string;
   closingEdge: string;
-  loadNarrative: string;
-  volumeStoryBeat: string;
+  presenceNarrative: string; // How they showed up — pattern of returning
+  innerShift: string; // The emotional/psychological movement across the month
 }
 
 export interface ChronicleDataPayload {

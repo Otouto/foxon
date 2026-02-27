@@ -632,6 +632,7 @@ export class ChronicleDataService {
         effortDistribution: {},
         hardOrAbovePercent: 0,
         sessionsWithVibeLines: 0,
+        calendar: '',
       };
     }
 
@@ -706,6 +707,9 @@ export class ChronicleDataService {
 
     const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
+    // Build rhythm calendar grid
+    const calendar = this.buildRhythmCalendar(sessions);
+
     return {
       longestStreak: `${maxStreak} session${maxStreak > 1 ? 's' : ''} in ${maxStreakDays + 1} days`,
       longestGap: maxGap > 0 ? `${maxGap} days` : 'N/A',
@@ -718,7 +722,75 @@ export class ChronicleDataService {
         ? Math.round((hardCount / sessions.length) * 100)
         : 0,
       sessionsWithVibeLines: vibeLineCount,
+      calendar,
     };
+  }
+
+  /**
+   * Build a rhythm calendar like:
+   *          Mon  Tue  Wed  Thu  Fri  Sat  Sun
+   * Week 1    ●              ●                     2 of 2 ✓
+   * Week 2         ●         ●         ●           3 of 2 ✓✓
+   */
+  private static buildRhythmCalendar(sessions: RawSession[]): string {
+    if (sessions.length === 0) return '';
+
+    // Get month boundaries from first session
+    const firstDate = sessions[0].date;
+    const month = firstDate.getMonth();
+    const year = firstDate.getFullYear();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+
+    // Build set of session dates (day-of-month)
+    const sessionDates = new Set<number>();
+    sessions.forEach(s => {
+      if (s.date.getMonth() === month && s.date.getFullYear() === year) {
+        sessionDates.add(s.date.getDate());
+      }
+    });
+
+    // Build week rows (Mon-Sun)
+    const weekRows: Array<{ daySlots: (boolean | null)[]; count: number }> = [];
+    let currentWeek: (boolean | null)[] = [null, null, null, null, null, null, null];
+    let weekSessionCount = 0;
+
+    for (let d = 1; d <= totalDays; d++) {
+      const date = new Date(year, month, d);
+      const dayOfWeek = (date.getDay() + 6) % 7; // Mon=0, Sun=6
+
+      // Start new week row if we're on Monday and not day 1
+      if (dayOfWeek === 0 && d > 1) {
+        weekRows.push({ daySlots: currentWeek, count: weekSessionCount });
+        currentWeek = [null, null, null, null, null, null, null];
+        weekSessionCount = 0;
+      }
+
+      const hasSession = sessionDates.has(d);
+      currentWeek[dayOfWeek] = hasSession;
+      if (hasSession) weekSessionCount++;
+    }
+    // Push final week
+    weekRows.push({ daySlots: currentWeek, count: weekSessionCount });
+
+    // Get weekly goal from first session's user (we'll use it from the context)
+    // For now we pass it through — but actually we need the weeklyGoal here
+    // We'll get it from the caller. For now, compute without goal reference.
+
+    // Render
+    const header = '         Mon  Tue  Wed  Thu  Fri  Sat  Sun';
+    const lines = [header];
+
+    weekRows.forEach((week, idx) => {
+      const weekLabel = `Week ${idx + 1}`.padEnd(9);
+      const slots = week.daySlots.map(slot => {
+        if (slot === null) return '    '; // Day not in this month
+        return slot ? '  ● ' : '    ';
+      }).join('');
+      const countStr = `${week.count}`;
+      lines.push(`${weekLabel}${slots}   ${countStr} session${week.count !== 1 ? 's' : ''}`);
+    });
+
+    return lines.join('\n');
   }
 
   // ─── Section 9: Milestones ────────────────────────────────────
@@ -936,26 +1008,34 @@ export class ChronicleDataService {
       closingEdge = "Don't skip exercises. Coverage is the foundation of a balanced session.";
     }
 
-    // Load narrative
-    const loadPRs = milestones.filter(m => m.type === 'loadPR');
-    const volumeMilestone = milestones.find(m => m.type === 'totalVolumeVsPrev');
-    let loadNarrative = 'Holding weight';
-    if (loadPRs.length > 0 && volumeMilestone) {
-      loadNarrative = 'Getting stronger — PRs and volume both climbing';
-    } else if (loadPRs.length > 0) {
-      loadNarrative = 'Getting stronger — new personal records';
-    } else if (volumeMilestone && volumeMilestone.detail.startsWith('+')) {
-      loadNarrative = 'Volume climbing — more work capacity';
-    } else if (volumeMilestone && volumeMilestone.detail.startsWith('-')) {
-      loadNarrative = 'Rebuilding load — lighter but present';
+    // Presence narrative — how they showed up, pattern of returning
+    let presenceNarrative = 'Showed up and did the work';
+    const weekHitCount = weeks.filter(w => w.hitGoal).length;
+    if (weekHitCount === weeks.length && weeks.length >= 3) {
+      presenceNarrative = 'Never missed a week. The rhythm became reliable.';
+    } else if (rhythm.cameBackFromGap) {
+      presenceNarrative = 'Took a break, then came back. The return matters more than the gap.';
+    } else if (current.sessionCount > (prev?.sessionCount || 0) * 1.5) {
+      presenceNarrative = 'Showed up more than before. Something shifted in the commitment.';
+    } else if (current.sessionCount >= 8) {
+      presenceNarrative = 'Consistent presence. The practice is becoming a habit.';
     }
 
-    // Volume story beat
-    let volumeStoryBeat = `${current.totalVolumeFormatted} moved this month`;
-    if (prev && prev.totalVolume > 0) {
-      const ratio = current.totalVolume / prev.totalVolume;
-      if (ratio > 1.5) volumeStoryBeat = `${current.totalVolumeFormatted} moved — ${Math.round(ratio)}× ${MONTH_NAMES[((current as unknown as { month?: number }).month || 1) - 1] || 'last month'}`;
-      else if (ratio > 1.1) volumeStoryBeat = `${current.totalVolumeFormatted} moved — up from ${this.formatVolume(prev.totalVolume)}`;
+    // Inner shift — the emotional/psychological movement through vibe lines
+    let innerShift = 'Steady presence through the month';
+    if (vibes.length >= 3) {
+      const earlyVibes = vibes.slice(0, Math.ceil(vibes.length / 3));
+      const lateVibes = vibes.slice(-Math.ceil(vibes.length / 3));
+      // Check for signs of growth in language
+      const earlyHasStruggle = earlyVibes.some(v => /rusty|tired|hard|rough|slow|meh/i.test(v));
+      const lateHasConfidence = lateVibes.some(v => /click|strong|best|great|solid|flow|good|alive/i.test(v));
+      if (earlyHasStruggle && lateHasConfidence) {
+        innerShift = 'Started uncertain, ended with confidence. The body remembered.';
+      } else if (lateHasConfidence) {
+        innerShift = 'Finished the month feeling strong. Internal compass pointing up.';
+      } else if (earlyHasStruggle) {
+        innerShift = 'Worked through resistance. Not every session felt great, but you stayed.';
+      }
     }
 
     // Chapter title
@@ -978,8 +1058,8 @@ export class ChronicleDataService {
       trajectoryDirection,
       emotionalArc,
       closingEdge,
-      loadNarrative,
-      volumeStoryBeat,
+      presenceNarrative,
+      innerShift,
     };
   }
 
