@@ -51,7 +51,7 @@ export default function GenerateChronicleButton({
       <button
         onClick={handleGenerate}
         disabled={isGenerating}
-        className="w-full bg-amber-500 text-white rounded-2xl p-4 font-medium flex items-center justify-center gap-2 hover:bg-amber-600 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+        className="w-full bg-lime-400 text-black rounded-2xl p-4 font-medium flex items-center justify-center gap-2 hover:bg-lime-500 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
       >
         {isGenerating ? (
           <>

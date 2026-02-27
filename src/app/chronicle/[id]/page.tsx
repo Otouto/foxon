@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChronicleService } from '@/services/ChronicleService';
 import ChronicleContent from '@/components/chronicle/ChronicleContent';
+import ChronicleActions from '@/components/chronicle/ChronicleActions';
 
 const MONTH_NAMES = [
   '', 'January', 'February', 'March', 'April', 'May', 'June',
@@ -32,7 +33,7 @@ export default async function ChronicleDetailPage({
           <ArrowLeft size={20} className="text-gray-600" />
         </Link>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-amber-600 uppercase tracking-wider">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
             Chapter {chronicle.chapterNumber}
           </p>
           <h1 className="text-xl font-bold text-gray-900 truncate">
@@ -63,6 +64,13 @@ export default async function ChronicleDetailPage({
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
         <ChronicleContent contentMd={chronicle.contentMd} />
       </div>
+
+      {/* Actions: regenerate, send email, delete */}
+      <ChronicleActions
+        id={chronicle.id}
+        month={chronicle.month}
+        year={chronicle.year}
+      />
     </div>
   );
 }

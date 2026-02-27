@@ -45,14 +45,15 @@ export default function ChronicleContent({ contentMd }: ChronicleContentProps) {
           border-radius: 0 0.5rem 0.5rem 0;
         }
         .chronicle-content :global(pre) {
-          background: #1f2937;
-          color: #d1d5db;
-          border-radius: 0.5rem;
-          padding: 1rem;
+          background: #f8fafc;
+          color: #1e293b;
+          border: 1px solid #e2e8f0;
+          border-radius: 0.625rem;
+          padding: 1rem 1.25rem;
           font-size: 0.8125rem;
           font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
           overflow-x: auto;
-          line-height: 1.5;
+          line-height: 1.6;
           white-space: pre;
           margin: 0.75rem 0;
         }
@@ -67,24 +68,99 @@ export default function ChronicleContent({ contentMd }: ChronicleContentProps) {
           background: none;
           padding: 0;
         }
+        .chronicle-content :global(.rhythm-cal) {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 0.75rem;
+          padding: 1rem 1.25rem;
+          margin: 0.75rem 0;
+          overflow-x: auto;
+        }
+        .chronicle-content :global(.rhythm-cal-row) {
+          display: flex;
+          align-items: center;
+          padding: 0.1875rem 0;
+        }
+        .chronicle-content :global(.rhythm-cal-head) {
+          padding-bottom: 0.5rem;
+          border-bottom: 1px solid #e2e8f0;
+          margin-bottom: 0.1875rem;
+        }
+        .chronicle-content :global(.rhythm-cal-label) {
+          width: 4.5rem;
+          flex-shrink: 0;
+          font-size: 0.6875rem;
+          font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+          color: #64748b;
+        }
+        .chronicle-content :global(.rhythm-cal-day-hdr) {
+          width: 2.75rem;
+          flex-shrink: 0;
+          text-align: center;
+          font-size: 0.625rem;
+          font-weight: 700;
+          color: #94a3b8;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+        }
+        .chronicle-content :global(.rhythm-cal-cell) {
+          width: 2.75rem;
+          flex-shrink: 0;
+          height: 1.75rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .chronicle-content :global(.rhythm-cal-dot) {
+          width: 0.5rem;
+          height: 0.5rem;
+          border-radius: 50%;
+          background: #334155;
+          display: block;
+        }
+        .chronicle-content :global(.rhythm-cal-count) {
+          margin-left: 0.5rem;
+          font-size: 0.6875rem;
+          color: #94a3b8;
+          white-space: nowrap;
+          font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+        }
+        .chronicle-content :global(.table-wrapper) {
+          width: 100%;
+          overflow-x: auto;
+          margin: 1rem 0;
+          border-radius: 0.5rem;
+          border: 1px solid #e5e7eb;
+        }
         .chronicle-content :global(table) {
           width: 100%;
           border-collapse: collapse;
-          margin: 1rem 0;
           font-size: 0.8125rem;
         }
         .chronicle-content :global(th) {
           text-align: left;
-          padding: 0.5rem 0.75rem;
-          background: #f9fafb;
+          padding: 0.5rem 0.875rem;
+          background: #f3f4f6;
           border-bottom: 2px solid #e5e7eb;
           font-weight: 600;
-          color: #374151;
+          color: #111827;
+          white-space: nowrap;
+        }
+        .chronicle-content :global(th:first-child) {
+          width: 30%;
         }
         .chronicle-content :global(td) {
-          padding: 0.5rem 0.75rem;
+          padding: 0.5rem 0.875rem;
           border-bottom: 1px solid #f3f4f6;
           color: #4b5563;
+        }
+        .chronicle-content :global(tr:last-child td) {
+          border-bottom: none;
+        }
+        .chronicle-content :global(td.row-label) {
+          font-weight: 600;
+          color: #374151;
+          white-space: nowrap;
         }
         .chronicle-content :global(strong) {
           color: #111827;
@@ -114,6 +190,9 @@ function markdownToHtml(md: string): string {
   // Code blocks
   html = html.replace(/```[\s\S]*?```/g, (match) => {
     const code = match.replace(/```\w*\n?/, '').replace(/\n?```$/, '');
+    if (/Mon\s+Tue\s+Wed/.test(code)) {
+      return renderRhythmCalendar(code);
+    }
     return `<pre><code>${escapeHtml(code)}</code></pre>`;
   });
 
@@ -132,16 +211,17 @@ function markdownToHtml(md: string): string {
     let table = '<table>';
     rows.forEach((row, idx) => {
       if (/^\|[\s\-:|]+\|$/.test(row)) return;
-      const cells = row.split('|').filter(c => c.trim() !== '');
+      const cells = row.split('|').slice(1, -1).map(c => c.trim());
       const tag = idx === 0 ? 'th' : 'td';
       table += '<tr>';
-      cells.forEach(cell => {
-        table += `<${tag}>${cell.trim()}</${tag}>`;
+      cells.forEach((cell, cellIdx) => {
+        const labelClass = tag === 'td' && cellIdx === 0 ? ' class="row-label"' : '';
+        table += `<${tag}${labelClass}>${cell}</${tag}>`;
       });
       table += '</tr>';
     });
     table += '</table>';
-    return table;
+    return `<div class="table-wrapper">${table}</div>`;
   });
 
   // Bold
@@ -167,6 +247,50 @@ function markdownToHtml(md: string): string {
   html = html.replace(/^(?!<[a-z])((?!<\/)[^\n]+)$/gm, '<p>$1</p>');
   html = html.replace(/<p>\s*<\/p>/g, '');
 
+  return html;
+}
+
+function renderRhythmCalendar(text: string): string {
+  const lines = text.split('\n').filter(l => l.length > 0);
+  const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  let html = '<div class="rhythm-cal">';
+
+  // Header row
+  html += '<div class="rhythm-cal-row rhythm-cal-head">';
+  html += '<span class="rhythm-cal-label"></span>';
+  DAYS.forEach(d => {
+    html += `<span class="rhythm-cal-day-hdr">${d}</span>`;
+  });
+  html += '<span class="rhythm-cal-count"></span>';
+  html += '</div>';
+
+  // Week rows — skip the first line (header with Mon/Tue/Wed…)
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line.trim()) continue;
+
+    // Week label is the first 9 chars, slots are 4 chars each (7 slots = 28 chars)
+    const label = line.substring(0, 9).trim();
+    const slots: boolean[] = [];
+    for (let j = 0; j < 7; j++) {
+      const slot = line.substring(9 + j * 4, 13 + j * 4);
+      // Any non-whitespace character counts as a session marker
+      slots.push(slot.trim() !== '');
+    }
+    // Session count text sits after the 37 chars (9 + 28)
+    const countText = line.substring(37).trim();
+
+    html += '<div class="rhythm-cal-row">';
+    html += `<span class="rhythm-cal-label">${escapeHtml(label)}</span>`;
+    slots.forEach(active => {
+      html += `<span class="rhythm-cal-cell">${active ? '<span class="rhythm-cal-dot"></span>' : ''}</span>`;
+    });
+    html += `<span class="rhythm-cal-count">${escapeHtml(countText)}</span>`;
+    html += '</div>';
+  }
+
+  html += '</div>';
   return html;
 }
 

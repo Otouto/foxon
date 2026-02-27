@@ -15,11 +15,6 @@ export default async function ChroniclePage() {
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
 
-  // Check if current month chronicle already exists
-  const hasCurrentMonth = chronicles.some(
-    c => c.month === currentMonth && c.year === currentYear
-  );
-
   return (
     <div className="px-6 py-8 pb-24">
       {/* Header */}
@@ -36,15 +31,16 @@ export default async function ChroniclePage() {
         </div>
       </div>
 
-      {/* Generate current month */}
-      <div className="mb-6 space-y-3">
-        <GenerateChronicleButton
-          month={currentMonth}
-          year={currentYear}
-          label={hasCurrentMonth ? `Regenerate ${monthName(currentMonth)} Chronicle` : undefined}
-        />
-        <SendTestEmailButton />
-      </div>
+      {/* Generate current month — only shown when no chapters exist yet */}
+      {chronicles.length === 0 && (
+        <div className="mb-6 space-y-3">
+          <GenerateChronicleButton
+            month={currentMonth}
+            year={currentYear}
+          />
+          <SendTestEmailButton />
+        </div>
+      )}
 
       {/* Chronicle list */}
       {chronicles.length > 0 ? (

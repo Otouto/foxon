@@ -25,3 +25,37 @@ export async function GET(
     );
   }
 }
+
+export async function POST(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    await ChronicleService.sendChronicleEmail(id);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error('Failed to send chronicle email:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to send email' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    await ChronicleService.deleteChronicle(id);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error('Failed to delete chronicle:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete chronicle' },
+      { status: 500 }
+    );
+  }
+}

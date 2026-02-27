@@ -129,6 +129,13 @@ export class ChronicleService {
   }
 
   /**
+   * Delete a chronicle by ID
+   */
+  static async deleteChronicle(id: string): Promise<void> {
+    await prisma.foxChronicle.delete({ where: { id } });
+  }
+
+  /**
    * Generate chronicles for all users with email (for cron job)
    */
   static async generateMonthlyChronicles(): Promise<{

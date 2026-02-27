@@ -24,14 +24,14 @@ export default function ChronicleCard({
   return (
     <Link
       href={`/chronicle/${id}`}
-      className="block bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:border-amber-200 transition-colors"
+      className="block bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:border-gray-200 transition-colors"
     >
       <div className="flex items-start gap-4">
-        <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center flex-shrink-0">
-          <BookOpen size={22} className="text-amber-600" />
+        <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0">
+          <BookOpen size={22} className="text-gray-500" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-amber-600 uppercase tracking-wider mb-1">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
             Chapter {chapterNumber}
           </p>
           <h3 className="font-semibold text-gray-900 truncate">{title}</h3>

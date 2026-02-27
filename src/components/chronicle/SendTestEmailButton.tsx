@@ -36,7 +36,7 @@ export default function SendTestEmailButton() {
         className={`w-full rounded-2xl p-4 font-medium flex items-center justify-center gap-2 transition-colors ${
           status === 'sent'
             ? 'bg-emerald-500 text-white'
-            : 'bg-white border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-60'
+            : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-60'
         }`}
       >
         {status === 'sending' ? (
