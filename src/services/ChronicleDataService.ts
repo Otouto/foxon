@@ -784,8 +784,16 @@ export class ChronicleDataService {
     const header = '         Mon  Tue  Wed  Thu  Fri  Sat  Sun';
     const lines = [header];
 
-    weekRows.forEach((week, idx) => {
-      const weekLabel = `Week ${idx + 1}`.padEnd(9);
+    // Rows with fewer than 4 in-month days are partial boundary weeks (e.g. a
+    // month that starts on Sunday gives a 1-day first row). These get a blank
+    // label so week numbering stays consistent with the narrative.
+    const MIN_DAYS_FOR_WEEK_LABEL = 4;
+    let weekNumber = 0;
+    weekRows.forEach((week) => {
+      const inMonthDays = week.daySlots.filter(s => s !== null).length;
+      const isPartial = inMonthDays < MIN_DAYS_FOR_WEEK_LABEL;
+      if (!isPartial) weekNumber++;
+      const weekLabel = isPartial ? '         ' : `Week ${weekNumber}`.padEnd(9);
       const slots = week.daySlots.map(slot => {
         if (slot === null) return '    '; // Day not in this month
         return slot ? '  ● ' : '    ';

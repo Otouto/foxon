@@ -52,7 +52,7 @@ Continue the thread. Each week should feel like a new paragraph in the same stor
 (Repeat for each week that has sessions. Skip empty weeks with a single line like "Week 3 was quiet. Sometimes the body asks for stillness.")
 
 ### 4. Rhythm
-Include the pre-computed rhythm calendar EXACTLY as provided in the data (inside a code block). Introduce it with one line observing their pattern — what days they gravitate to, whether a rhythm is forming.
+Include the pre-computed rhythm calendar EXACTLY as provided in the data (inside a code block). Rows without a "Week N" label are partial boundary days (< 4 days in the month) — do not count them as a week in the narrative. Introduce it with one line observing their pattern — what days they gravitate to, whether a rhythm is forming.
 
 ### 5. The Month (Markdown table)
 Clean month-over-month comparison. ONLY these rows — no volume, no tonnage:
