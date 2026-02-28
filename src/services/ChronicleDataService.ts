@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { SessionStatus } from '@prisma/client';
-import { getPracticeTimeInfo, getDevotionScoreLabel, getWeekBounds } from '@/lib/utils/dateUtils';
+import { getPracticeTimeInfo, getDevotionScoreLabel, getWeekBounds, mergePartialBoundaryWeeks } from '@/lib/utils/dateUtils';
 import type {
   ChronicleDataPayload,
   ChronicleTimeFrame,
@@ -395,7 +395,11 @@ export class ChronicleDataService {
       }
     }
 
-    return weekBounds.map((wb, idx) => {
+    // 4-day rule: merge boundary weeks with < 4 days in the month into their
+    // adjacent week (see mergePartialBoundaryWeeks in dateUtils for details).
+    const mergedBounds = mergePartialBoundaryWeeks(weekBounds, monthStart, monthEnd);
+
+    return mergedBounds.map((wb, idx) => {
       const weekSessions = sessions.filter(
         s => s.date >= wb.start && s.date <= wb.end
       );

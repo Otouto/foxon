@@ -87,6 +87,45 @@ export function getCurrentWeekBounds(): WeekBounds {
   return getWeekBounds(new Date());
 }
 
+/**
+ * Applies the 4-day rule (ISO 8601-inspired) to a list of Mon–Sun week bounds
+ * computed for a given month. If the first or last boundary week has fewer than
+ * `minDays` days overlapping the month it is merged into its adjacent week,
+ * preventing ghost "Week 1" entries caused by a month that starts on e.g. Sunday.
+ *
+ * Returns a new array — does not mutate the input.
+ */
+export function mergePartialBoundaryWeeks(
+  weekBounds: Array<WeekBounds>,
+  monthStart: Date,
+  monthEnd: Date,
+  minDays = 4
+): Array<WeekBounds> {
+  const bounds = weekBounds.map(wb => ({ ...wb }));
+
+  const monthOverlapDays = (wb: WeekBounds) => {
+    const s = wb.start < monthStart ? monthStart : wb.start;
+    const e = wb.end > monthEnd ? monthEnd : wb.end;
+    // Math.floor is correct here: wb.end always has time 23:59:59.999, so
+    // (end - start) is always fractionally less than a whole number of days.
+    // floor gives the exact calendar-day count; round would inflate it by 1.
+    return Math.floor((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  };
+
+  if (bounds.length >= 2 && monthOverlapDays(bounds[0]) < minDays) {
+    bounds[1] = { start: bounds[0].start, end: bounds[1].end };
+    bounds.shift();
+  }
+
+  if (bounds.length >= 2 && monthOverlapDays(bounds[bounds.length - 1]) < minDays) {
+    const last = bounds.length - 1;
+    bounds[last - 1] = { start: bounds[last - 1].start, end: bounds[last].end };
+    bounds.pop();
+  }
+
+  return bounds;
+}
+
 export function getLastWeekBounds(): WeekBounds {
   const lastWeek = new Date();
   lastWeek.setDate(lastWeek.getDate() - 7);
