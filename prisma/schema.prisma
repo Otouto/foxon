@@ -56,6 +56,7 @@ model User {
   id               String          @id @default(cuid())
   clerkUserId      String          @unique @map("clerk_user_id")
   displayName      String?         @map("display_name")
+  email            String?
   avatarUrl        String?         @map("avatar_url")
   weeklyGoal       Int             @default(2) @map("weekly_goal")
   progressionState ProgressionState @default(SLIM) @map("progression_state")
@@ -63,8 +64,9 @@ model User {
   updatedAt        DateTime        @updatedAt @map("updated_at")
 
   // Relations
-  workouts Workout[]
-  sessions Session[]
+  workouts   Workout[]
+  sessions   Session[]
+  chronicles FoxChronicle[]
 
   @@map("users")
 }
@@ -240,4 +242,25 @@ model SessionSeal {
   session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@map("session_seals")
+}
+
+// Fox Chronicle — Monthly narrative summaries
+model FoxChronicle {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  month         Int       // 1-12
+  year          Int
+  chapterNumber Int       @map("chapter_number")
+  title         String    // "The Month Things Clicked"
+  contentMd     String    @map("content_md")   @db.Text
+  contentHtml   String    @map("content_html") @db.Text
+  dataPayload   Json      @map("data_payload") // All computed data points
+  emailSentAt   DateTime? @map("email_sent_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month, year])
+  @@map("fox_chronicles")
 }
