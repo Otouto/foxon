@@ -8,7 +8,7 @@ jest.mock('@/lib/prisma', () => ({
       findMany: jest.fn(),
     },
     workout: {
-      findFirst: jest.fn(),
+      findMany: jest.fn(),
     },
   },
 }))
@@ -63,7 +63,7 @@ describe('DashboardService', () => {
     beforeEach(() => {
       jest.clearAllMocks()
       ;(prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser)
-      ;(prisma.workout.findFirst as jest.Mock).mockResolvedValue(null)
+      ;(prisma.workout.findMany as jest.Mock).mockResolvedValue([])
     })
 
     describe('Zero completions', () => {
@@ -369,7 +369,7 @@ describe('DashboardService', () => {
           .mockResolvedValueOnce([]) // 8-week sessions
           .mockResolvedValueOnce([]) // This week: 0 sessions
 
-        ;(prisma.workout.findFirst as jest.Mock).mockResolvedValue(mockWorkout)
+        ;(prisma.workout.findMany as jest.Mock).mockResolvedValue([mockWorkout])
 
         const result = await DashboardService.getDashboardData()
 
@@ -396,7 +396,7 @@ describe('DashboardService', () => {
         expect(result.nextWorkout).toBeNull()
         expect(result.weekProgress.isComplete).toBe(true)
         // Workout lookup should be skipped when week is complete
-        expect(prisma.workout.findFirst).not.toHaveBeenCalled()
+        expect(prisma.workout.findMany).not.toHaveBeenCalled()
       })
 
       it('should return null if no active workouts exist', async () => {
@@ -404,7 +404,7 @@ describe('DashboardService', () => {
           .mockResolvedValueOnce([]) // 8-week sessions
           .mockResolvedValueOnce([]) // This week: 0 sessions
 
-        ;(prisma.workout.findFirst as jest.Mock).mockResolvedValue(null)
+        ;(prisma.workout.findMany as jest.Mock).mockResolvedValue([])
 
         const result = await DashboardService.getDashboardData()
 

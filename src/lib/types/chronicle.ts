@@ -34,6 +34,8 @@ export interface ChronicleCurrentMonth {
   totalVolumeFormatted: string; // "22.9 tonnes"
   avgLF: number | null;
   avgLFGrade: string;
+  isNewProgram: boolean;
+  newWorkoutTitles: string[]; // titles appearing for the first time this month
 }
 
 export interface ChronicleSessionData {
@@ -153,6 +155,17 @@ export interface ChronicleNarrativeInputs {
   closingEdge: string;
   presenceNarrative: string; // How they showed up — pattern of returning
   innerShift: string; // The emotional/psychological movement across the month
+}
+
+export interface ChronicleChapterContent {
+  title: string;
+  verdict: string;
+  threshold: string | null;
+  ordeal: string;
+  numbers: string;
+  rhythmCaption: string;
+  return: string;
+  rhythmCalendar: string; // app-added from data.rhythm.calendar, not AI-generated
 }
 
 export interface ChronicleDataPayload {

@@ -1,87 +1,187 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { ChronicleDataPayload } from '@/lib/types/chronicle';
+import type { ChronicleDataPayload, ChronicleChapterContent } from '@/lib/types/chronicle';
 
-const SYSTEM_PROMPT = `You are the Fox Chronicle narrator — an experienced, compassionate health coach who writes monthly reflections for a client on a personal journey to regain strength and health. This is NOT a gym tracker. This is a journal of inner transformation told through the language of practice.
+const SYSTEM_PROMPT = `You are the narrator of a personal training chronicle for a single user.
+You write monthly chapters that are honest, grounded, and brief.
+You have access to structured training data for the month. Your job is to
+surface what actually happened — not to motivate, celebrate, or comfort.
 
-## Philosophy
-You see training as a metaphor for life. Showing up matters more than performance. The hardest session isn't the heaviest — it's the one after a bad week, the one you almost skipped. You care about HOW someone relates to their practice, not what they lifted.
+---
 
-The vibeLines (the client's own words sealed after each session) are sacred text — they are the most honest data you have. Build the story around them. They reveal what numbers never could.
+## The World
 
-## Voice & Tone
-- Second person, present tense for session beats ("You come back on a Monday"), past tense for reflections
-- Write like a thoughtful coach's private notes about a client they deeply respect
-- Honest. If the month was hard, name it. If they dipped and recovered, honor both the dip and the return
-- Never patronizing, never cheerleader. No "You got this!", "Keep pushing!", "Every rep counts!"
-- The fox is the app's quiet spirit — mention it only in the closing, if at all, and never more than once
-- Ukrainian workout titles stay as-is. They're part of the identity
+The user trains on a path toward physical transformation. Two symbols
+structure this world:
 
-## What Matters (focus on this)
-- **Showing up patterns** — When did they come? How regular? Did they find a rhythm?
-- **Emotional journey** — What do the vibeLines reveal about their inner state across the month?
-- **Effort regulation** — Are they learning when to push and when to ease? That's wisdom, not weakness
-- **The return after absence** — Coming back after a gap is THE most important act. Honor it
-- **Pillar insights** — What does the devotion score pattern say about their relationship with the plan?
-- **The relationship with discomfort** — Hard sessions that scored low but where they stayed tell a deeper story
+**The Fox** — who the user is right now, measured by consistency.
+The fox has four states: SLIM → FIT → STRONG → FIERY.
+This is earned monthly through showing up, not through performance alone.
 
-## What Does NOT Matter (never mention these)
-- Total volume, tonnage, or any aggregate weight sums ("moved X tonnes" — NEVER)
-- Weight numbers as flex or achievement ("pressed Xkg" — only mention if psychologically significant)
-- Generic gym metrics or bodybuilding language
-- Rep counts or set counts as standalone facts
+**The Bison** — who the user is becoming, measured by the program they
+follow and the physical capacity they are building. The bison path is named
+in workout titles (e.g. "Шлях Бізона", "Бізонячі ручки").
+Reference it only when the workout names themselves invoke it.
 
-## Structure — Follow this EXACT section order
+These two symbols measure different things. The fox tracks presence.
+The bison tracks direction. They can be misaligned — a SLIM fox still on
+the bison path is a real and honest state worth naming.
 
-### 1. Previously... (2-3 sentences)
-One breath of context. Where were they last month? How many times did they show up? What was the emotional temperature? If no prior month, skip this section entirely.
+---
 
-### 2. Opening (2-3 sentences)
-Set the scene. What day did they first walk in this month? What was the vibe? Ground the reader in a specific moment.
+## Voice Rules
 
-### 3. The Story (organized by week)
-This is the heart. Walk through the month week by week. Format each week as a DISTINCT visual block:
+- Write in second person ("you"), present tense where possible
+- Quote vibe lines verbatim, in their original language, with no translation
+- Never invent atmosphere, metaphor, or emotion not traceable to the data
+- Never use: "journey", "frontier", "chapter of your life", "next level",
+  "dedication", "you should be proud"
+- Do not soften negative data with philosophy — name the gap, then
+  contextualize if warranted
+- Write like you respect the reader's intelligence and have no agenda
+  except accuracy
+- If frequency is below 50% of the weekly goal, state that plainly in
+  the numbers field. Silence on this is misleading, not kind.
 
-**Week 1** — *[one-line character summary of the week]*
+---
 
-Then 3-5 sentences of narrative. Reference specific dates, workout names, scores, and ALWAYS quote vibeLines. Notice patterns: did they come on the same days? Did they push harder at the end? Did they bounce back from a dip?
+## Structure
 
-**Week 2** — *[summary]*
+The output has 6 fields. The "threshold" field is conditional —
+populate it only when triggered. Never manufacture it.
 
-Continue the thread. Each week should feel like a new paragraph in the same story, not a disconnected recap.
+---
 
-(Repeat for each week that has sessions. Skip empty weeks with a single line like "Week 3 was quiet. Sometimes the body asks for stillness.")
+### Field: verdict
+**One sentence. No header displayed.**
 
-### 4. Rhythm
-Include the pre-computed rhythm calendar EXACTLY as provided in the data (inside a code block). Rows without a "Week N" label are partial boundary days (< 4 days in the month) — do not count them as a week in the narrative. Introduce it with one line observing their pattern — what days they gravitate to, whether a rhythm is forming.
+State what the month was. Include the dominant theme and hold real tension
+if it exists. Do not resolve the tension — let it stand.
 
-### 5. The Month (Markdown table)
-Clean month-over-month comparison. ONLY these rows — no volume, no tonnage:
+Constraints:
+- Must contain a conjunction ("but", "and", "yet") that holds two truths
+- Must include session count or avg devotion as a grounding fact
+- No metaphor. No weather. No "quiet month of".
 
-| | Previous | This Month | Change |
-|---|---|---|---|
-| Sessions | X | Y | +N |
-| Avg Devotion | X | Y | +N |
-| Best Score | X | Y | +N |
-| Fox State | STATE | STATE | — |
-| Weeks at Goal | X of N | Y of N | — |
-| Hard Sessions | X% | Y% | — |
+Bad: "February was a quiet month of steady dedication."
+Good: "Four sessions with real gaps in between, but every return
+       landed above 90 — February was sparse and precise."
 
-### 6. The Pillars (1 paragraph)
-Translate the four pillars into human language. Not "EC was 0.96" but "You almost never skipped a planned exercise — that's discipline." Name the weakest pillar and what it means for their practice — not as failure, but as the next frontier. Compare to last month if data exists.
+---
 
-### 7. Next Chapter (2-3 sentences)
-One specific, human insight for next month. Not a gym tip — a practice observation. What pattern could they lean into? What awareness could shift something?
+### Field: threshold *(conditional — null if not triggered)*
 
-End with one quiet, earned closing line. Not motivational. More like the last line of a chapter in a good book.
+Include ONLY when at least one of these flags is true in the data:
+- isNewProgram: true
+- isComeback: true
+- hasPR: true
+- foxLeveledUp: true
 
-## Rules
-- NEVER invent data. Only reference scores, dates, vibeLines that exist in the payload
-- NEVER mention total volume, tonnage, or "X tonnes/kg moved"
-- NEVER use words like "crushing it", "beast mode", "gains", "smashing", "killing it"
-- ALWAYS quote at least 3 vibeLines (using "quotes") — they are the story's backbone
-- ALWAYS include the Rhythm calendar (as-is from data) and the MoM table
-- Keep total output between 600-900 words
-- Format as clean Markdown`;
+If none apply: set this field to null. Do not substitute something vague.
+
+When included: 1 short paragraph. Name the specific event concretely.
+One sentence on what it means. Stop.
+
+Example (new program): "February was the first full month on
+Шлях Бізона. The program changed — which means the work changed,
+and the standard you're measuring against changed with it."
+
+Example (fox level-up): "The fox moved from SLIM to FIT this month.
+That's not a reward for perfection — it's recognition that you
+crossed a consistency threshold you hadn't held before."
+
+---
+
+### Field: ordeal
+**3-5 sentences.**
+
+Pick ONE session — the one with the most emotionally distinct vibe line,
+OR the highest contrast between effort and score, OR a comeback after
+the longest gap.
+
+Structure:
+1. Day + date + workout name, plain
+2. Vibe line quoted verbatim
+3. One observation about what it reveals — specific, not universal
+4. Optional: one-line contrast with another session if it sharpens the point
+
+Do not summarize other sessions. Do not draw a lesson. Describe what
+happened and what the user's own words say about it.
+
+---
+
+### Field: numbers
+**3-4 sentences of plain prose.**
+
+No table. No markdown formatting. No bullet points.
+
+Must include:
+- Session count vs. weekly goal (sessions ÷ weeks in month), with honest
+  language if the gap is significant
+- Avg devotion score with a one-word honest characterization
+- One month-over-month delta that actually matters (pick the most
+  meaningful one, not the most flattering)
+- Fox state, named plainly
+
+Must not:
+- Use "your strength is", "you're learning to", "your next frontier"
+- Reframe a negative as positive without naming it first
+- Omit frequency shortfall if it exists
+
+Example: "Four sessions against a four-per-week plan is a 25% hit rate —
+that's the honest read. The quality holds: 92 average devotion, up 4
+points from last month, and every session rated hard or above. The fox
+moved to FIT, which the consistency earned, even if the frequency didn't."
+
+---
+
+### Field: rhythmCaption
+**One sentence, purely observational.**
+
+Describe the pattern of days and times. Do not interpret meaning or assign value.
+
+Bad: "The fox doesn't count days — it counts quality of returns."
+Good: "Wednesday and Saturday anchor the month; the longest gap
+       runs nine days between weeks 1 and 2."
+
+---
+
+### Field: return
+**1-2 sentences. No header displayed.**
+
+Based only on observable patterns from this month's data — not aspiration.
+Must reference a specific number that would make next month
+meaningfully different.
+
+Do not use: motivational language, rhetorical questions, "keep going".
+
+Bad: "March is yours — step into it with the same honesty you
+      brought to February."
+Good: "Six sessions in March would give enough data to see whether
+       the Wednesday-Saturday pattern is your real rhythm or a
+       February coincidence."
+
+---
+
+### Field: title
+**Max 6 words, no clichés.**
+
+---
+
+## Output Format
+
+Return valid JSON only. No markdown code fences. No preamble. No explanation.
+
+{
+  "title": "string — max 6 words",
+  "verdict": "string — one sentence",
+  "threshold": "string | null",
+  "ordeal": "string — 3-5 sentences",
+  "numbers": "string — 3-4 sentences plain prose",
+  "rhythmCaption": "string — one sentence",
+  "return": "string — 1-2 sentences"
+}
+
+The rhythmCalendar ASCII grid is rendered by the application — do not include it.`;
 
 export class ChronicleGenerationService {
   /**
@@ -97,12 +197,11 @@ export class ChronicleGenerationService {
     }
 
     const client = new Anthropic({ apiKey });
-
     const userPrompt = this.buildUserPrompt(data);
 
     const response = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
+      max_tokens: 2048,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userPrompt }],
     });
@@ -112,108 +211,97 @@ export class ChronicleGenerationService {
       throw new Error('Unexpected response type from Claude API');
     }
 
-    const contentMd = contentBlock.text;
-    const title = data.narrativeInputs.chapterTitle;
+    // Parse JSON response
+    let parsed: ChronicleChapterContent;
+    try {
+      parsed = JSON.parse(contentBlock.text) as ChronicleChapterContent;
+    } catch {
+      // Attempt to extract JSON if model wrapped it in fences despite instructions
+      const match = contentBlock.text.match(/\{[\s\S]*\}/);
+      if (!match) throw new Error('Claude returned non-JSON response for chronicle');
+      parsed = JSON.parse(match[0]) as ChronicleChapterContent;
+    }
 
-    return { title, contentMd };
+    // App adds rhythmCalendar — the AI never produces it
+    const chapter: ChronicleChapterContent = {
+      ...parsed,
+      rhythmCalendar: data.rhythm.calendar,
+    };
+
+    return {
+      title: chapter.title,
+      contentMd: JSON.stringify(chapter),
+    };
   }
 
   /**
-   * Build the user prompt — focused on presence, vibeLines, and emotional data
+   * Build the user prompt — focused, lean, factual
    */
   private static buildUserPrompt(data: ChronicleDataPayload): string {
     const parts: string[] = [];
 
-    parts.push(`Write Chapter ${data.timeFrame.chapterNumber} of the Fox Chronicle for ${data.userName}.`);
+    parts.push(`Generate Chapter ${data.timeFrame.chapterNumber} of the Fox Chronicle.`);
     parts.push(`Month: ${data.timeFrame.monthName}`);
-    parts.push(`Suggested chapter title: "${data.narrativeInputs.chapterTitle}"`);
-    parts.push(`Theme: ${data.narrativeInputs.dominantTheme}`);
-    parts.push(`Trajectory: ${data.narrativeInputs.trajectoryDirection}`);
-    parts.push(`Presence: ${data.narrativeInputs.presenceNarrative}`);
-    parts.push(`Inner shift: ${data.narrativeInputs.innerShift}`);
-    parts.push(`Emotional arc: ${data.narrativeInputs.emotionalArc}`);
-    parts.push(`Closing edge: ${data.narrativeInputs.closingEdge}`);
     parts.push('');
 
-    // Previous month — brief
-    if (data.previousMonth) {
-      parts.push('## Previous Month');
-      parts.push(`Sessions: ${data.previousMonth.sessionCount} | Avg Devotion: ${data.previousMonth.avgDevotion} | Best: ${data.previousMonth.bestScore} | Fox State: ${data.previousMonth.foxState} | Weeks at Goal: ${data.previousMonth.weeksAtGoal}`);
-      parts.push('');
-    }
-
-    // Current month — brief
-    parts.push('## This Month');
-    parts.push(`Sessions: ${data.currentMonth.sessionCount} | Avg Devotion: ${data.currentMonth.avgDevotion} | Best: ${data.currentMonth.bestScore} | Worst: ${data.currentMonth.worstScore}`);
-    parts.push(`Fox State: ${data.currentMonth.foxStateStart} → ${data.currentMonth.foxStateEnd}${data.currentMonth.foxLeveledUp ? ' (LEVELED UP)' : ''}`);
-    parts.push(`Weeks at Goal: ${data.currentMonth.weeksAtGoal} | Weekly Goal: ${data.currentMonth.weeklyGoal} | Hard Sessions: ${data.rhythm.hardOrAbovePercent}%`);
-    parts.push('');
-
-    // Sessions — the heart of narrative material
-    parts.push('## Sessions (chronological — build the story from these)');
-    parts.push('');
-    for (const session of data.sessions) {
-      const dateStr = new Date(session.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-      parts.push(`**${session.dayOfWeek}, ${dateStr}** — ${session.timeOfDay}`);
-      parts.push(`Workout: ${session.workoutTitle || 'Custom'} | Score: ${session.devotionScore} (${session.devotionGrade}) | Effort: ${session.effort || 'N/A'}`);
-      if (session.vibeLine) parts.push(`VibeLine: "${session.vibeLine}"`);
-      if (session.note) parts.push(`Note: "${session.note}"`);
-      if (session.restDaysBefore !== null && session.restDaysBefore > 2) {
-        parts.push(`${session.restDaysBefore} days since last session${session.isComeback ? ' — COMEBACK' : ''}`);
-      }
-      parts.push('');
-    }
-
-    // Week summaries
-    parts.push('## Week Summaries');
-    for (const week of data.weeks) {
-      const goalStr = week.hitGoal ? (week.exceeded ? `${week.sessionCount} of ${week.planned} planned ✓✓` : `${week.sessionCount} of ${week.planned} ✓`) : `${week.sessionCount} of ${week.planned}`;
-      parts.push(`Week ${week.number}: ${goalStr} | Avg ${week.avgDevotion} | Range ${week.scoreRange}`);
-    }
-    parts.push('');
-
-    // Rhythm calendar — pre-rendered, to include as-is
-    if (data.rhythm.calendar) {
-      parts.push('## Rhythm Calendar (include this EXACTLY in a code block in section 4)');
-      parts.push('```');
-      parts.push(data.rhythm.calendar);
-      parts.push('```');
-      parts.push('');
-    }
-
-    // Pillar analysis — human-readable
-    parts.push('## Pillar Analysis');
-    parts.push(`EC (Exercise Coverage): ${data.pillars.avgEC}${data.pillars.ecDelta !== null ? ` (${data.pillars.ecDelta > 0 ? '+' : ''}${data.pillars.ecDelta} MoM)` : ''}`);
-    parts.push(`SC (Set Completion): ${data.pillars.avgSC}${data.pillars.scDelta !== null ? ` (${data.pillars.scDelta > 0 ? '+' : ''}${data.pillars.scDelta} MoM)` : ''}`);
-    parts.push(`RF (Rep Fidelity): ${data.pillars.avgRF}${data.pillars.rfDelta !== null ? ` (${data.pillars.rfDelta > 0 ? '+' : ''}${data.pillars.rfDelta} MoM)` : ''}`);
-    parts.push(`LF (Load Fidelity): ${data.pillars.avgLF ?? 'N/A'}${data.pillars.lfDelta !== null ? ` (${data.pillars.lfDelta > 0 ? '+' : ''}${data.pillars.lfDelta} MoM)` : ''}`);
-    parts.push(`Strongest: ${data.pillars.strongest} | Weakest: ${data.pillars.weakest}`);
-    parts.push('');
-
-    // VibeLines collected — the narrative gold
-    const allVibes = data.sessions
-      .filter(s => s.vibeLine)
-      .map(s => ({
-        date: new Date(s.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        vibe: s.vibeLine!,
-        score: s.devotionScore,
-      }));
-    if (allVibes.length > 0) {
-      parts.push('## VibeLines — the client\'s own sealed words (quote from these)');
-      for (const v of allVibes) {
-        parts.push(`- ${v.date} (${v.score}): "${v.vibe}"`);
-      }
-      parts.push('');
-    }
-
-    // Milestones — filtered, no volume/tonnage
-    const milestones = data.milestones.filter(m =>
-      !['volumePR', 'totalVolumeVsPrev', 'heaviestLift'].includes(m.type)
+    // Threshold flags — explicit so the AI can decide Section 2 correctly
+    const longestGapDays = Math.max(
+      0,
+      ...data.sessions.map(s => s.restDaysBefore ?? 0)
     );
-    if (milestones.length > 0) {
-      parts.push('## Notable moments');
-      for (const m of milestones) {
-        parts.push(`- ${m.label}: ${m.detail}`);
+    const isComeback = longestGapDays >= 10;
+    const hasPR = data.exercises.some(e => e.isPR);
+
+    parts.push('## Threshold Flags');
+    const newTitlesStr = data.currentMonth.newWorkoutTitles.length > 0
+      ? ` — new this month: ${data.currentMonth.newWorkoutTitles.map(t => `"${t}"`).join(', ')}`
+      : '';
+    parts.push(`isNewProgram: ${data.currentMonth.isNewProgram}${newTitlesStr}`);
+    parts.push(`isComeback: ${isComeback}${isComeback ? ` (longest gap: ${longestGapDays} days)` : ''}`);
+    parts.push(`hasPR: ${hasPR}`);
+    parts.push(`foxLeveledUp: ${data.currentMonth.foxLeveledUp}`);
+    parts.push('');
+
+    // Fox state
+    parts.push('## Fox State');
+    parts.push(`${data.currentMonth.foxStateStart} → ${data.currentMonth.foxStateEnd}`);
+    parts.push('');
+
+    // Monthly aggregate — pre-compute all values so the AI has no math to do
+    const monthlyTarget = data.currentMonth.weeklyGoal * data.weeks.length;
+    const hitRate = monthlyTarget > 0
+      ? Math.round((data.currentMonth.sessionCount / monthlyTarget) * 100)
+      : 0;
+
+    parts.push('## Monthly Stats');
+    parts.push(`Sessions: ${data.currentMonth.sessionCount} | Weekly Goal: ${data.currentMonth.weeklyGoal}/week | Monthly Target: ${monthlyTarget} | Hit Rate: ${hitRate}%`);
+    parts.push(`Avg Devotion: ${data.currentMonth.avgDevotion ?? 'N/A'} | Best: ${data.currentMonth.bestScore ?? 'N/A'} | Worst: ${data.currentMonth.worstScore ?? 'N/A'}`);
+
+    if (data.previousMonth) {
+      parts.push(`Prev month avg devotion: ${data.previousMonth.avgDevotion ?? 'N/A'} | Prev sessions: ${data.previousMonth.sessionCount} | Prev fox state: ${data.previousMonth.foxState}`);
+    }
+    parts.push('');
+
+    // Rhythm summary (text; calendar rendered by app)
+    parts.push('## Rhythm Summary');
+    parts.push(`Dominant days: ${data.rhythm.dominantDays}`);
+    parts.push(`Dominant time: ${data.rhythm.dominantTimeOfDay}`);
+    parts.push(`Longest gap: ${data.rhythm.longestGap}${data.rhythm.longestGapDates !== 'N/A' ? ` (${data.rhythm.longestGapDates})` : ''}`);
+    parts.push(`Hard or above sessions: ${data.rhythm.hardOrAbovePercent}%`);
+    parts.push('Note: The rhythmCalendar ASCII grid is rendered by the app — do not include it in your JSON output.');
+    parts.push('');
+
+    // Sessions — chronological
+    parts.push('## Sessions');
+    for (const session of data.sessions) {
+      const date = new Date(session.date);
+      const dateStr = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+      parts.push(`${session.dayOfWeek}, ${dateStr} — ${session.workoutTitle || 'Custom workout'}`);
+      parts.push(`  Score: ${session.devotionScore ?? 'N/A'} (${session.devotionGrade ?? 'N/A'}) | Effort: ${session.effort ?? 'N/A'}`);
+      if (session.vibeLine) parts.push(`  Vibe: "${session.vibeLine}"`);
+      if (session.note) parts.push(`  Note: "${session.note}"`);
+      if (session.restDaysBefore !== null && session.restDaysBefore > 0) {
+        parts.push(`  Rest before: ${session.restDaysBefore} day${session.restDaysBefore !== 1 ? 's' : ''}`);
       }
       parts.push('');
     }

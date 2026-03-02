@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { SessionStatus } from '@prisma/client';
 import { getPracticeTimeInfo, getDevotionScoreLabel, getWeekBounds, mergePartialBoundaryWeeks } from '@/lib/utils/dateUtils';
+import { computeFoxState } from '@/lib/utils/foxState';
 import type {
   ChronicleDataPayload,
   ChronicleTimeFrame,
@@ -98,7 +99,7 @@ export class ChronicleDataService {
       : null;
     const sessions = this.computeSessionData(currentSessions, monthStart);
     const weeks = this.computeWeekData(currentSessions, monthStart, monthEnd, weeklyGoal);
-    const currentMonth = this.computeCurrentMonth(currentSessions, weeks, weeklyGoal, previousMonth);
+    const currentMonth = this.computeCurrentMonth(currentSessions, weeks, weeklyGoal, previousMonth, allTimeSessions);
     const pillars = this.computePillarAnalysis(currentSessions, prevSessions);
     const exercises = this.computeExerciseInsights(currentSessions, prevSessions, allTimeSessions);
     const rhythm = this.computeRhythm(currentSessions);
@@ -267,8 +268,8 @@ export class ChronicleDataService {
       if (weekSessions.length >= weeklyGoal) weeksHit++;
     }
 
-    // Determine fox state at end of prev month using DashboardService logic
-    const foxState = this.inferFoxState(sessions, weeklyGoal);
+    // Determine fox state at end of prev month using monthly week count
+    const foxState = this.inferFoxState(sessions, weeklyGoal, weekBounds.length);
 
     return {
       sessionCount: sessions.length,
@@ -287,7 +288,8 @@ export class ChronicleDataService {
     sessions: RawSession[],
     weeks: ChronicleWeekData[],
     weeklyGoal: number,
-    prev: ChroniclePreviousMonth | null
+    prev: ChroniclePreviousMonth | null,
+    priorSessions: RawSession[]
   ): ChronicleCurrentMonth {
     const scores = sessions.map(s => s.devotionScore).filter((s): s is number => s !== null);
     const volume = this.computeTotalVolume(sessions);
@@ -296,11 +298,24 @@ export class ChronicleDataService {
       .filter((v): v is number => v !== undefined && v !== null);
 
     const weeksHit = weeks.filter(w => w.hitGoal).length;
-    const foxStateEnd = this.inferFoxState(sessions, weeklyGoal);
+    const foxStateEnd = this.inferFoxState(sessions, weeklyGoal, weeks.length);
     const foxStateStart = prev?.foxState || 'SLIM';
     const stateOrder = ['SLIM', 'FIT', 'STRONG', 'FIERY'];
 
     const avgLFValue = lfValues.length > 0 ? round2(avg(lfValues)) : null;
+
+    // Detect new workout titles: appear this month but never in prior sessions
+    const priorTitles = new Set(
+      priorSessions.map(s => s.workout?.title).filter((t): t is string => !!t)
+    );
+    const newWorkoutTitles = [
+      ...new Set(
+        sessions
+          .map(s => s.workout?.title)
+          .filter((t): t is string => !!t && !priorTitles.has(t))
+      ),
+    ];
+    const isNewProgram = newWorkoutTitles.length > 0;
 
     return {
       sessionCount: sessions.length,
@@ -316,6 +331,8 @@ export class ChronicleDataService {
       totalVolumeFormatted: this.formatVolume(volume),
       avgLF: avgLFValue,
       avgLFGrade: this.gradeValue(avgLFValue),
+      isNewProgram,
+      newWorkoutTitles,
     };
   }
 
@@ -848,7 +865,7 @@ export class ChronicleDataService {
     // Fox level up
     if (prev) {
       const stateOrder = ['SLIM', 'FIT', 'STRONG', 'FIERY'];
-      const currentState = this.inferFoxState(sessions, weeks[0]?.planned || 2);
+      const currentState = this.inferFoxState(sessions, weeks[0]?.planned || 2, weeks.length);
       if (stateOrder.indexOf(currentState) > stateOrder.indexOf(prev.foxState)) {
         milestones.push({
           type: 'foxLevelUp',
@@ -1140,27 +1157,10 @@ export class ChronicleDataService {
     return 'Weak spot';
   }
 
-  private static inferFoxState(sessions: RawSession[], weeklyGoal: number): string {
-    const count = sessions.length;
-    const totalPlanned = weeklyGoal * 8;
-    if (count === 0) return 'SLIM';
+  private static inferFoxState(sessions: RawSession[], weeklyGoal: number, weekCount: number = 4): string {
     const scores = sessions.map(s => s.devotionScore).filter((s): s is number => s !== null);
     const avgScore = scores.length > 0 ? avg(scores) : null;
-
-    let base: string;
-    if (count >= totalPlanned) base = 'FIERY';
-    else if (count >= totalPlanned * 0.75) base = 'STRONG';
-    else if (count >= totalPlanned * 0.5) base = 'FIT';
-    else base = 'SLIM';
-
-    // Devotion modifiers
-    if (count >= 4 && avgScore !== null) {
-      const states = ['SLIM', 'FIT', 'STRONG', 'FIERY'];
-      const idx = states.indexOf(base);
-      if (avgScore >= 90 && idx < 3) return states[idx + 1];
-      if (avgScore < 80 && idx > 0) return states[idx - 1];
-    }
-    return base;
+    return computeFoxState(sessions.length, weeklyGoal * weekCount, avgScore);
   }
 
   private static generateMiniArc(sessions: RawSession[], _weeklyGoal: number): string {

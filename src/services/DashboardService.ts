@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/auth';
 import { ProgressionState, SessionStatus, WorkoutStatus } from '@prisma/client';
+import { computeFoxState } from '@/lib/utils/foxState';
 
 export interface DashboardData {
   foxState: {
@@ -30,56 +31,8 @@ export class DashboardService {
     plannedPerWeek: number,
     avgDevotionScore: number | null
   ): ProgressionState {
-    const totalPlanned = plannedPerWeek * 8; // 8 weeks
-
-    // Special case: Zero workouts = always SLIM
-    if (completedWorkouts === 0) {
-      return ProgressionState.SLIM;
-    }
-
-    // Special case: Perfect consistency = always FIERY
-    if (completedWorkouts >= totalPlanned) {
-      return ProgressionState.FIERY;
-    }
-
-    // Calculate base state based on completion percentage
-    let baseState: ProgressionState;
-    if (completedWorkouts < totalPlanned * 0.5) {
-      baseState = ProgressionState.SLIM;        // 0-7 workouts (for goal of 2/week)
-    } else if (completedWorkouts < totalPlanned * 0.75) {
-      baseState = ProgressionState.FIT;         // 8-11 workouts
-    } else if (completedWorkouts < totalPlanned) {
-      baseState = ProgressionState.STRONG;      // 12-15 workouts
-    } else {
-      baseState = ProgressionState.FIERY;       // 16+ workouts
-    }
-
-    // Apply devotion score modifiers (only if enough data)
-    if (completedWorkouts >= 4 && avgDevotionScore !== null) {
-      // PROMOTION: High devotion score bumps up one level
-      if (avgDevotionScore >= 90 && baseState !== ProgressionState.FIERY) {
-        const promotionMap = {
-          [ProgressionState.SLIM]: ProgressionState.FIT,
-          [ProgressionState.FIT]: ProgressionState.STRONG,
-          [ProgressionState.STRONG]: ProgressionState.FIERY,
-          [ProgressionState.FIERY]: ProgressionState.FIERY,
-        };
-        return promotionMap[baseState];
-      }
-      
-      // DEMOTION: Low devotion score drops down one level
-      if (avgDevotionScore < 80 && baseState !== ProgressionState.SLIM) {
-        const demotionMap = {
-          [ProgressionState.SLIM]: ProgressionState.SLIM,
-          [ProgressionState.FIT]: ProgressionState.SLIM,
-          [ProgressionState.STRONG]: ProgressionState.FIT,
-          [ProgressionState.FIERY]: ProgressionState.STRONG,
-        };
-        return demotionMap[baseState];
-      }
-    }
-
-    return baseState;
+    const result = computeFoxState(completedWorkouts, plannedPerWeek * 8, avgDevotionScore);
+    return ProgressionState[result as keyof typeof ProgressionState];
   }
   /**
    * Get all dashboard data
