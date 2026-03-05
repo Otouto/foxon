@@ -180,4 +180,5 @@ export interface ChronicleDataPayload {
   milestones: ChronicleMilestone[];
   narrativeInputs: ChronicleNarrativeInputs;
   userName: string;
+  previousChapterReturn?: string;
 }

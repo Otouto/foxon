@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { ChronicleDataService } from './ChronicleDataService';
 import { ChronicleGenerationService } from './ChronicleGenerationService';
 import { ChronicleEmailService } from './ChronicleEmailService';
+import type { ChronicleChapterContent } from '@/lib/types/chronicle';
 
 export interface ChronicleListItem {
   id: string;
@@ -30,6 +31,22 @@ export class ChronicleService {
 
     // Step 1: Compute data
     const dataPayload = await ChronicleDataService.computeChronicleData(userId, month, year);
+
+    // Step 1b: Fetch previous chapter's "return" for narrative continuity
+    const prevMonth = month === 1 ? 12 : month - 1;
+    const prevYear = month === 1 ? year - 1 : year;
+    const prevChronicle = await prisma.foxChronicle.findFirst({
+      where: { userId, month: prevMonth, year: prevYear },
+      select: { contentMd: true },
+    });
+    if (prevChronicle) {
+      try {
+        const parsed = JSON.parse(prevChronicle.contentMd) as ChronicleChapterContent;
+        if (parsed.return) {
+          dataPayload.previousChapterReturn = parsed.return;
+        }
+      } catch { /* legacy format — no return to extract */ }
+    }
 
     // Step 2: Generate narrative via Claude (keep old record alive during this)
     const { title, contentMd } = await ChronicleGenerationService.generateChronicle(dataPayload);

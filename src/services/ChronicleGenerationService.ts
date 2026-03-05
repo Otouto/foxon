@@ -65,6 +65,9 @@ Constraints:
 - Must contain a conjunction ("but", "and", "yet") that holds two truths
 - Must include session count or avg devotion as a grounding fact
 - No metaphor. No weather. No "quiet month of".
+- If the previous chapter set a benchmark (provided as "Previous Chapter
+  Callback"), you may reference whether it was met — but only if the
+  data supports it.
 
 Bad: "February was a quiet month of steady dedication."
 Good: "Four sessions with real gaps in between, but every return
@@ -302,6 +305,14 @@ export class ChronicleGenerationService {
       parts.push(`Prev month avg devotion: ${data.previousMonth.avgDevotion ?? 'N/A'} | Prev sessions: ${data.previousMonth.sessionCount} | Prev fox state: ${data.previousMonth.foxState}`);
     }
     parts.push('');
+
+    // Previous chapter callback — narrative thread
+    if (data.previousChapterReturn) {
+      parts.push('## Previous Chapter Callback');
+      parts.push(`Last month's chapter ended with: "${data.previousChapterReturn}"`);
+      parts.push('If this month\'s data speaks to that prediction, acknowledge it briefly in the verdict or ordeal. If not, ignore it.');
+      parts.push('');
+    }
 
     // Rhythm summary (text; calendar rendered by app)
     parts.push('## Rhythm Summary');
