@@ -1,6 +1,7 @@
 'use client';
 
 import type { ChronicleChapterContent } from '@/lib/types/chronicle';
+import { renderInlineMarkdown, renderMarkdown } from '@/lib/chronicle-markdown';
 
 interface ChronicleContentProps {
   contentMd: string;
@@ -44,40 +45,58 @@ function NewFormatContent({ chapter }: { chapter: ChronicleChapterContent }) {
       {/* Verdict */}
       <section className="mb-6 pb-5 border-b border-gray-100">
         <p className={SECTION_LABEL}>Verdict</p>
-        <p className="text-base font-medium text-gray-900 leading-[1.7] m-0">{chapter.verdict}</p>
+        <p
+          className="text-base font-medium text-gray-900 leading-[1.7] m-0"
+          dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(chapter.verdict) }}
+        />
       </section>
 
       {/* Threshold — conditional */}
       {chapter.threshold && (
-        <section className="mb-6">
+        <section className="mb-6 chronicle-fields">
           <p className={SECTION_LABEL}>The Threshold</p>
-          <p className={`${SECTION_TEXT} m-0`}>{chapter.threshold}</p>
+          <div
+            className={`${SECTION_TEXT}`}
+            dangerouslySetInnerHTML={{ __html: renderMarkdown(chapter.threshold) }}
+          />
         </section>
       )}
 
       {/* Ordeal */}
-      <section className="mb-6">
+      <section className="mb-6 chronicle-fields">
         <p className={SECTION_LABEL}>The Ordeal</p>
-        <p className={`${SECTION_TEXT} m-0`}>{chapter.ordeal}</p>
+        <div
+          className={SECTION_TEXT}
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(chapter.ordeal) }}
+        />
       </section>
 
       {/* Numbers */}
-      <section className="mb-6">
+      <section className="mb-6 chronicle-fields">
         <p className={SECTION_LABEL}>The Numbers</p>
-        <p className={`${SECTION_TEXT} m-0`}>{chapter.numbers}</p>
+        <div
+          className={SECTION_TEXT}
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(chapter.numbers) }}
+        />
       </section>
 
       {/* Rhythm */}
       <section className="mb-6">
         <p className={SECTION_LABEL}>Rhythm</p>
         {chapter.rhythmCalendar && <RhythmCalendarGrid text={chapter.rhythmCalendar} />}
-        <p className="text-sm text-gray-500 italic mt-2 m-0">{chapter.rhythmCaption}</p>
+        <p
+          className="text-sm text-gray-500 italic mt-2 m-0"
+          dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(chapter.rhythmCaption) }}
+        />
       </section>
 
       {/* Return */}
       <section className="pt-5 border-t border-gray-100">
         <p className={SECTION_LABEL}>The Return</p>
-        <p className={`${SECTION_TEXT} m-0`}>{chapter.return}</p>
+        <p
+          className={`${SECTION_TEXT} m-0`}
+          dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(chapter.return) }}
+        />
       </section>
 
     </div>

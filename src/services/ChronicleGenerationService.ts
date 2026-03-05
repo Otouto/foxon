@@ -41,6 +41,10 @@ the bison path is a real and honest state worth naming.
   except accuracy
 - If frequency is below 50% of the weekly goal, state that plainly in
   the numbers field. Silence on this is misleading, not kind.
+- Vibe lines must always be formatted as blockquotes: > [vibe line text]
+- Workout names within prose must be italicised: *Шлях Бізона*
+- Do not bold random words for emphasis — bold is reserved for
+  metric values inside the numbers table only
 
 ---
 
@@ -89,6 +93,13 @@ Example (fox level-up): "The fox moved from SLIM to FIT this month.
 That's not a reward for perfection — it's recognition that you
 crossed a consistency threshold you hadn't held before."
 
+When foxStateTransition triggers this section, include this line
+on its own, after the paragraph:
+
+**🦊 [PREV STATE] → [NEW STATE]**
+
+No other bold or emphasis in this section.
+
 ---
 
 ### Field: ordeal
@@ -107,30 +118,28 @@ Structure:
 Do not summarize other sessions. Do not draw a lesson. Describe what
 happened and what the user's own words say about it.
 
+Vibe lines must appear as blockquotes, never inline:
+
+Bad:  You wrote "так не хотілось йти" — someone who went anyway.
+Good: > так не хотілось йти з ранку ще й той сніг, але зараз кайф що порухався
+      Someone who went anyway — through reluctance, through snow.
+
 ---
 
 ### Field: numbers
-**3-4 sentences of plain prose.**
+**Markdown table. No prose.**
 
-No table. No markdown formatting. No bullet points.
+Must show exactly three rows: Sessions, Avg Devotion, Fox State.
+Columns: row label | This Month (bold value) | Prev Month | Δ.
 
-Must include:
-- Session count vs. weekly goal (sessions ÷ weeks in month), with honest
-  language if the gap is significant
-- Avg devotion score with a one-word honest characterization
-- One month-over-month delta that actually matters (pick the most
-  meaningful one, not the most flattering)
-- Fox state, named plainly
+Sessions row: show actual vs monthly target (e.g. **4** of 16). If the
+hit rate is below 50%, the delta cell must reflect that honestly — do
+not soften it.
 
 Must not:
-- Use "your strength is", "you're learning to", "your next frontier"
-- Reframe a negative as positive without naming it first
-- Omit frequency shortfall if it exists
-
-Example: "Four sessions against a four-per-week plan is a 25% hit rate —
-that's the honest read. The quality holds: 92 average devotion, up 4
-points from last month, and every session rated hard or above. The fox
-moved to FIT, which the consistency earned, even if the frequency didn't."
+- Include any prose before or after the table
+- Omit the Δ column
+- Add extra rows or columns
 
 ---
 
@@ -169,19 +178,31 @@ Good: "Six sessions in March would give enough data to see whether
 
 ## Output Format
 
-Return valid JSON only. No markdown code fences. No preamble. No explanation.
+Return valid JSON only. No markdown code fences. No preamble.
 
 {
-  "title": "string — max 6 words",
-  "verdict": "string — one sentence",
-  "threshold": "string | null",
+  "title": "string — max 6 words, no clichés",
+  "verdict": "string — one sentence, wrapped in *italic markdown*",
+  "threshold": "string | null — paragraph if triggered, null if not",
   "ordeal": "string — 3-5 sentences",
-  "numbers": "string — 3-4 sentences plain prose",
-  "rhythmCaption": "string — one sentence",
+  "numbers": "string — markdown table only, see format below",
+  "rhythmCaption": "string — one observational sentence, wrapped in *italic markdown*",
   "return": "string — 1-2 sentences"
 }
 
-The rhythmCalendar ASCII grid is rendered by the application — do not include it.`;
+Numbers field must be a markdown table in exactly this format:
+| | [This Month] | [Prev Month] | Δ |
+|---|---|---|---|
+| Sessions | **X** of Y | Z | +/− |
+| Avg Devotion | **X** | Z | +/− |
+| Fox State | **STATE** | STATE | ↑/↓/— |
+
+No prose in the numbers field. The table is the entire content of that field.
+
+The rhythmCalendar ASCII grid is rendered by the application separately —
+do not include it in the JSON output.
+
+If threshold is null, the section is omitted entirely from rendering.`;
 
 export class ChronicleGenerationService {
   /**

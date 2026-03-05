@@ -500,3 +500,64 @@
     border-color: rgba(168, 85, 247, 0.4);
   }
 }
+
+/* ── Chronicle field markdown styles ─────────────────────────────────────────
+   Applied to .chronicle-fields sections in ChronicleContent.tsx.
+   Must live here (not in <style jsx>) because dangerouslySetInnerHTML elements
+   never receive the styled-jsx scope hash, so scoped selectors won't match.
+──────────────────────────────────────────────────────────────────────────── */
+.chronicle-fields p {
+  font-size: 0.9375rem;
+  line-height: 1.75;
+  color: #4b5563;
+  margin: 0 0 0.75rem;
+}
+.chronicle-fields p:last-child { margin-bottom: 0; }
+.chronicle-fields blockquote {
+  border-left: 4px solid #a3e635;
+  margin: 0.75rem 0;
+  padding: 0.5rem 1rem;
+  color: #374151;
+  font-style: italic;
+  background: #f7fee7;
+  border-radius: 0 0.5rem 0.5rem 0;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+.chronicle-fields blockquote:last-child { margin-bottom: 0; }
+.chronicle-fields .chronicle-table-wrapper {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+.chronicle-fields table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+.chronicle-fields th {
+  text-align: left;
+  padding: 0.5rem 0.875rem;
+  background: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+  font-weight: 600;
+  color: #6b7280;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.chronicle-fields th:first-child { width: 30%; }
+.chronicle-fields td {
+  padding: 0.5rem 0.875rem;
+  border-bottom: 1px solid #f3f4f6;
+  color: #4b5563;
+}
+.chronicle-fields tr:last-child td { border-bottom: none; }
+.chronicle-fields td.row-label {
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+}
+.chronicle-fields strong { color: #111827; font-weight: 700; }
+.chronicle-fields em { font-style: italic; }

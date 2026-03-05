@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import type { ChronicleChapterContent } from '@/lib/types/chronicle';
+import { renderInlineMarkdown, renderMarkdown } from '@/lib/chronicle-markdown';
 
 interface ChronicleEmailData {
   to: string;
@@ -140,6 +141,51 @@ export class ChronicleEmailService {
       font-style: italic;
       margin: 10px 0 0;
     }
+    .section p { margin: 0 0 12px; }
+    .section p:last-child { margin-bottom: 0; }
+    .section blockquote {
+      border-left: 4px solid #a3e635;
+      margin: 10px 0;
+      padding: 8px 14px;
+      color: #374151;
+      font-style: italic;
+      background: #f7fee7;
+      border-radius: 0 8px 8px 0;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+    .section .chronicle-table-wrapper {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 0;
+    }
+    .section table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .section th {
+      text-align: left;
+      padding: 8px 12px;
+      background: #f9fafb;
+      border-bottom: 2px solid #e5e7eb;
+      font-weight: 600;
+      color: #6b7280;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .section td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #f3f4f6;
+      color: #4b5563;
+    }
+    .section tr:last-child td { border-bottom: none; }
+    .section td.row-label { font-weight: 600; color: #374151; white-space: nowrap; }
+    .section strong { color: #111827; font-weight: 700; }
+    .section em { font-style: italic; }
     .rhythm-cal-email {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
@@ -267,37 +313,37 @@ export class ChronicleEmailService {
     const parts: string[] = [];
 
     // Verdict — prominent, no header
-    parts.push(`<p class="verdict">${this.escapeHtml(chapter.verdict)}</p>`);
+    parts.push(`<p class="verdict">${renderInlineMarkdown(chapter.verdict)}</p>`);
 
     // Threshold — conditional
     if (chapter.threshold) {
       parts.push(`<div class="section">
   <div class="section-title">The Threshold</div>
-  <p>${this.escapeHtml(chapter.threshold)}</p>
+  ${renderMarkdown(chapter.threshold)}
 </div>`);
     }
 
     // Ordeal
     parts.push(`<div class="section">
   <div class="section-title">The Ordeal</div>
-  <p>${this.escapeHtml(chapter.ordeal)}</p>
+  ${renderMarkdown(chapter.ordeal)}
 </div>`);
 
-    // Numbers
+    // Numbers — markdown table
     parts.push(`<div class="section">
   <div class="section-title">The Numbers</div>
-  <p>${this.escapeHtml(chapter.numbers)}</p>
+  ${renderMarkdown(chapter.numbers)}
 </div>`);
 
     // Rhythm — calendar as monospace pre + caption
     parts.push(`<div class="section">
   <div class="section-title">Rhythm</div>${chapter.rhythmCalendar ? `
   <pre class="rhythm-cal-email">${this.escapeHtml(chapter.rhythmCalendar)}</pre>` : ''}
-  <p class="rhythm-caption">${this.escapeHtml(chapter.rhythmCaption)}</p>
+  <p class="rhythm-caption">${renderInlineMarkdown(chapter.rhythmCaption)}</p>
 </div>`);
 
     // Return — no header
-    parts.push(`<p class="return-text">${this.escapeHtml(chapter.return)}</p>`);
+    parts.push(`<p class="return-text">${renderInlineMarkdown(chapter.return)}</p>`);
 
     return parts.join('\n');
   }
