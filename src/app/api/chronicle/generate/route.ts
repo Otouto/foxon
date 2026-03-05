@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { getCurrentUserId } from '@/lib/auth';
 import { ChronicleService } from '@/services/ChronicleService';
 
@@ -19,6 +20,7 @@ export async function POST(request: NextRequest) {
       sendEmail: sendEmail === true,
     });
 
+    revalidatePath('/chronicle');
     return NextResponse.json(result);
   } catch (error) {
     console.error('Failed to generate chronicle:', error);

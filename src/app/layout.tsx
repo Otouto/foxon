@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ConditionalBottomNav } from "@/components/navigation/ConditionalBottomNav";
 import { StorageHealthChecker } from "@/components/StorageHealthChecker";
+import { Toaster } from "sonner";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -96,6 +97,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} font-sans antialiased bg-gray-50 min-h-screen`}>
         <StorageHealthChecker />
+        <Toaster position="top-center" />
         <div className="flex flex-col min-h-screen">
           <main className="flex-1 pb-20">
             {children}

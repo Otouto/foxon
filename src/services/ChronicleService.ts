@@ -23,19 +23,15 @@ export class ChronicleService {
     year: number,
     options?: { sendEmail?: boolean }
   ): Promise<{ id: string; title: string }> {
-    // Check if chronicle already exists
+    // Check if chronicle already exists (for regeneration case)
     const existing = await prisma.foxChronicle.findUnique({
       where: { userId_month_year: { userId, month, year } },
     });
-    if (existing) {
-      // Regenerate — delete and recreate
-      await prisma.foxChronicle.delete({ where: { id: existing.id } });
-    }
 
     // Step 1: Compute data
     const dataPayload = await ChronicleDataService.computeChronicleData(userId, month, year);
 
-    // Step 2: Generate narrative via Claude
+    // Step 2: Generate narrative via Claude (keep old record alive during this)
     const { title, contentMd } = await ChronicleGenerationService.generateChronicle(dataPayload);
 
     // Step 3: Render HTML for email
@@ -48,7 +44,12 @@ export class ChronicleService {
       userName: dataPayload.userName,
     });
 
-    // Step 4: Store in database
+    // Step 4: Delete old record only after generation succeeds, right before creating the new one
+    if (existing) {
+      await prisma.foxChronicle.delete({ where: { id: existing.id } });
+    }
+
+    // Step 5: Store in database
     const chronicle = await prisma.foxChronicle.create({
       data: {
         userId,
@@ -62,7 +63,7 @@ export class ChronicleService {
       },
     });
 
-    // Step 5: Optionally send email
+    // Step 6: Optionally send email
     if (options?.sendEmail) {
       const user = await prisma.user.findUnique({ where: { id: userId } });
       if (user?.email) {

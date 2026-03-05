@@ -1,13 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Sparkles, Mail, Trash2, Loader2, Check, AlertTriangle } from 'lucide-react';
+import { Mail, Trash2, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-
-const MONTH_NAMES = [
-  '', 'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+import { toast } from 'sonner';
+import { BottomSheet, BottomSheetTitle, BottomSheetDescription } from '@/components/ui/BottomSheet';
 
 interface ChronicleActionsProps {
   id: string;
@@ -19,14 +16,12 @@ export default function ChronicleActions({ id, month, year }: ChronicleActionsPr
   const router = useRouter();
 
   const [regenerating, setRegenerating] = useState(false);
-  const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [emailSending, setEmailSending] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [deleteSheetOpen, setDeleteSheetOpen] = useState(false);
 
   const handleRegenerate = async () => {
     setRegenerating(true);
-    setError(null);
     try {
       const res = await fetch('/api/chronicle/generate', {
         method: 'POST',
@@ -40,34 +35,29 @@ export default function ChronicleActions({ id, month, year }: ChronicleActionsPr
       const result = await res.json();
       router.push(`/chronicle/${result.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
       setRegenerating(false);
     }
   };
 
   const handleSendEmail = async () => {
-    setEmailStatus('sending');
-    setError(null);
+    setEmailSending(true);
     try {
       const res = await fetch(`/api/chronicle/${id}`, { method: 'POST' });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Failed to send email');
       }
-      setEmailStatus('sent');
+      toast.success('Email sent!');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
-      setEmailStatus('error');
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setEmailSending(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!confirmDelete) {
-      setConfirmDelete(true);
-      return;
-    }
     setDeleting(true);
-    setError(null);
     try {
       const res = await fetch(`/api/chronicle/${id}`, { method: 'DELETE' });
       if (!res.ok) {
@@ -76,98 +66,93 @@ export default function ChronicleActions({ id, month, year }: ChronicleActionsPr
       }
       router.push('/chronicle');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
       setDeleting(false);
-      setConfirmDelete(false);
+      setDeleteSheetOpen(false);
     }
   };
 
   return (
     <div className="mt-6 space-y-2">
-        {error && (
-          <p className="text-sm text-red-500 text-center bg-red-50 rounded-xl px-4 py-2">{error}</p>
-        )}
-
-        {/* Regenerate */}
-        <button
-          onClick={handleRegenerate}
-          disabled={regenerating}
-          className="w-full bg-lime-400 text-black font-semibold rounded-2xl py-4 flex items-center justify-center gap-2 hover:bg-lime-500 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-        >
-          {regenerating ? (
-            <>
-              <Loader2 size={18} className="animate-spin" />
-              <span>Regenerating {MONTH_NAMES[month]} chapter…</span>
-            </>
-          ) : (
-            <>
-              <Sparkles size={18} />
-              <span>Regenerate {MONTH_NAMES[month]} {year} Chapter</span>
-            </>
-          )}
-        </button>
-
-        {/* Send to email */}
-        <button
-          onClick={handleSendEmail}
-          disabled={emailStatus === 'sending'}
-          className={`w-full font-medium rounded-2xl py-4 flex items-center justify-center gap-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
-            emailStatus === 'sent'
-              ? 'bg-emerald-500 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          {emailStatus === 'sending' ? (
-            <>
-              <Loader2 size={18} className="animate-spin" />
-              <span>Sending email…</span>
-            </>
-          ) : emailStatus === 'sent' ? (
-            <>
-              <Check size={18} />
-              <span>Email sent!</span>
-            </>
-          ) : (
-            <>
-              <Mail size={18} />
-              <span>Send to Email</span>
-            </>
-          )}
-        </button>
-
-        {/* Delete */}
-        {confirmDelete ? (
-          <div className="flex gap-2">
-            <button
-              onClick={() => setConfirmDelete(false)}
-              className="flex-1 bg-gray-100 text-gray-700 font-medium rounded-2xl py-3 hover:bg-gray-200 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleDelete}
-              disabled={deleting}
-              className="flex-1 bg-red-500 text-white font-medium rounded-2xl py-3 flex items-center justify-center gap-2 hover:bg-red-600 disabled:opacity-60 transition-colors"
-            >
-              {deleting ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <>
-                  <AlertTriangle size={16} />
-                  <span>Yes, delete</span>
-                </>
-              )}
-            </button>
-          </div>
+      {/* Regenerate */}
+      <button
+        onClick={handleRegenerate}
+        disabled={regenerating}
+        className="w-full bg-cyan-500 text-white font-semibold rounded-2xl py-4 flex items-center justify-center gap-2 hover:bg-cyan-600 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+      >
+        {regenerating ? (
+          <>
+            <Loader2 size={18} className="animate-spin" />
+            <span>Regenerating…</span>
+          </>
         ) : (
+          <span>Regenerate chapter</span>
+        )}
+      </button>
+
+      {/* Send to email */}
+      <button
+        onClick={handleSendEmail}
+        disabled={emailSending}
+        className="w-full bg-gray-100 text-gray-700 font-medium rounded-2xl py-4 flex items-center justify-center gap-2 hover:bg-gray-200 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+      >
+        {emailSending ? (
+          <>
+            <Loader2 size={18} className="animate-spin" />
+            <span>Sending email…</span>
+          </>
+        ) : (
+          <>
+            <Mail size={18} />
+            <span>Send to Email</span>
+          </>
+        )}
+      </button>
+
+      {/* Delete */}
+      <button
+        onClick={() => setDeleteSheetOpen(true)}
+        className="w-full border border-red-200 text-red-500 font-medium rounded-2xl py-3 flex items-center justify-center gap-2 hover:bg-red-50 transition-colors"
+      >
+        <Trash2 size={16} />
+        <span>Delete chapter</span>
+      </button>
+
+      {/* Delete confirmation bottom sheet */}
+      <BottomSheet isOpen={deleteSheetOpen} onClose={() => !deleting && setDeleteSheetOpen(false)} dismissible={!deleting}>
+        <div className="px-6 pb-2 pt-2">
+          <BottomSheetTitle className="text-lg font-semibold text-gray-900 mb-1">
+            Delete chapter?
+          </BottomSheetTitle>
+          <BottomSheetDescription className="text-sm text-gray-500 mb-6">
+            This chapter will be permanently deleted and cannot be recovered.
+          </BottomSheetDescription>
+
           <button
             onClick={handleDelete}
-            className="w-full border border-red-200 text-red-500 font-medium rounded-2xl py-3 flex items-center justify-center gap-2 hover:bg-red-50 transition-colors"
+            disabled={deleting}
+            className="w-full bg-red-500 text-white font-semibold rounded-2xl py-4 flex items-center justify-center gap-2 hover:bg-red-600 disabled:opacity-60 disabled:cursor-not-allowed transition-colors mb-3"
           >
-            <Trash2 size={16} />
-            <span>Delete chapter</span>
+            {deleting ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                <span>Deleting…</span>
+              </>
+            ) : (
+              <span>Delete</span>
+            )}
           </button>
-        )}
+
+          <button
+            onClick={() => setDeleteSheetOpen(false)}
+            disabled={deleting}
+            className="w-full bg-gray-100 text-gray-700 font-medium rounded-2xl py-4 hover:bg-gray-200 disabled:opacity-60 transition-colors mb-2"
+          >
+            Cancel
+          </button>
+        </div>
+        <div className="pb-safe h-4" />
+      </BottomSheet>
     </div>
   );
 }

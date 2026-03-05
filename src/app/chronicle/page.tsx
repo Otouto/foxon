@@ -4,16 +4,15 @@ import { getCurrentUserId } from '@/lib/auth';
 import { ChronicleService } from '@/services/ChronicleService';
 import ChronicleCard from '@/components/chronicle/ChronicleCard';
 import GenerateChronicleButton from '@/components/chronicle/GenerateChronicleButton';
-import SendTestEmailButton from '@/components/chronicle/SendTestEmailButton';
 
 export default async function ChroniclePage() {
   const userId = getCurrentUserId();
   const chronicles = await ChronicleService.listChronicles(userId);
 
-  // Current month for generate button
+  // Target the last fully completed month for generation
   const now = new Date();
-  const currentMonth = now.getMonth() + 1;
-  const currentYear = now.getFullYear();
+  const targetMonth = now.getMonth() === 0 ? 12 : now.getMonth();
+  const targetYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
 
   return (
     <div className="px-6 py-8 pb-24">
@@ -33,12 +32,11 @@ export default async function ChroniclePage() {
 
       {/* Generate current month — only shown when no chapters exist yet */}
       {chronicles.length === 0 && (
-        <div className="mb-6 space-y-3">
+        <div className="mb-6">
           <GenerateChronicleButton
-            month={currentMonth}
-            year={currentYear}
+            month={targetMonth}
+            year={targetYear}
           />
-          <SendTestEmailButton />
         </div>
       )}
 

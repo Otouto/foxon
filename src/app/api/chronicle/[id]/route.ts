@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { ChronicleService } from '@/services/ChronicleService';
 
 export async function GET(
@@ -50,6 +51,7 @@ export async function DELETE(
   try {
     const { id } = await params;
     await ChronicleService.deleteChronicle(id);
+    revalidatePath('/chronicle');
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('Failed to delete chronicle:', error);
