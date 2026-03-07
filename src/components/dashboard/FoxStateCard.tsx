@@ -5,6 +5,8 @@ import { ProgressionState } from '@prisma/client';
 interface FoxStateCardProps {
   state: ProgressionState;
   devotionScore: number | null;
+  isLastMonth?: boolean;
+  hasNoSessions?: boolean;
 }
 
 const FOX_STATE_STYLES = {
@@ -46,8 +48,39 @@ const FOX_STATE_STYLES = {
   }
 };
 
-export function FoxStateCard({ state, devotionScore }: FoxStateCardProps) {
+export function FoxStateCard({ state, devotionScore, isLastMonth, hasNoSessions }: FoxStateCardProps) {
   const style = FOX_STATE_STYLES[state];
+
+  const getScoreDisplay = () => {
+    if (hasNoSessions) {
+      return {
+        score: '\u2014',
+        scoreClass: 'text-3xl font-bold text-gray-400 mb-1',
+        label: 'Complete your first session',
+      };
+    }
+    if (devotionScore !== null && isLastMonth) {
+      return {
+        score: devotionScore,
+        scoreClass: 'text-4xl font-bold text-gray-400 mb-1',
+        label: 'devotion score \u00b7 last month',
+      };
+    }
+    if (devotionScore !== null) {
+      return {
+        score: devotionScore,
+        scoreClass: 'text-4xl font-bold text-gray-900 mb-1',
+        label: 'devotion score',
+      };
+    }
+    return {
+      score: '--',
+      scoreClass: 'text-3xl font-bold text-gray-400 mb-1',
+      label: 'devotion score',
+    };
+  };
+
+  const display = getScoreDisplay();
 
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
@@ -70,7 +103,7 @@ export function FoxStateCard({ state, devotionScore }: FoxStateCardProps) {
             🦊
           </div>
         </div>
-        
+
         {/* State Label */}
         <h3 className="text-xl font-bold text-gray-900 mb-1">
           {style.label}
@@ -79,25 +112,12 @@ export function FoxStateCard({ state, devotionScore }: FoxStateCardProps) {
 
       {/* Devotion Score */}
       <div className="text-center">
-        {devotionScore !== null ? (
-          <>
-            <div className="text-4xl font-bold text-gray-900 mb-1">
-              {devotionScore}
-            </div>
-            <div className="text-sm text-gray-600">
-              devotion score
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="text-3xl font-bold text-gray-400 mb-1">
-              --
-            </div>
-            <div className="text-sm text-gray-600">
-              devotion score
-            </div>
-          </>
-        )}
+        <div className={display.scoreClass}>
+          {display.score}
+        </div>
+        <div className="text-sm text-gray-600">
+          {display.label}
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { DashboardService } from '@/services/DashboardService';
-import { FoxStateCard, WeekProgressCard, NextWorkoutCard } from '@/components/dashboard';
+import { FoxStateCard, WeekProgressCard, NextWorkoutCard, LastSessionSnapshot } from '@/components/dashboard';
 
 export default async function Home() {
   const dashboardData = await DashboardService.getDashboardData();
@@ -10,7 +10,9 @@ export default async function Home() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Hey, Dmytro!</h1>
+          <h1 className="text-xl font-semibold text-gray-900">
+            Hey, {dashboardData.displayName || 'Athlete'}!
+          </h1>
           <p className="text-sm text-gray-500">Ready to train?</p>
         </div>
         <Link href="/profile" className="p-2 text-gray-400 hover:text-gray-600">
@@ -24,16 +26,20 @@ export default async function Home() {
       {/* Dashboard Components */}
       <div className="space-y-4">
         {/* Fox State + Devotion Score */}
-        <FoxStateCard 
+        <FoxStateCard
           state={dashboardData.foxState.state}
           devotionScore={dashboardData.foxState.devotionScore}
+          isLastMonth={dashboardData.foxState.isLastMonth}
+          hasNoSessions={dashboardData.foxState.hasNoSessions}
         />
 
         {/* This Week Progress */}
-        <WeekProgressCard 
+        <WeekProgressCard
           completed={dashboardData.weekProgress.completed}
           planned={dashboardData.weekProgress.planned}
           isComplete={dashboardData.weekProgress.isComplete}
+          isExceeded={dashboardData.weekProgress.isExceeded}
+          extra={dashboardData.weekProgress.extra}
         />
 
         {/* Next Workout or Completion Card */}
@@ -42,6 +48,11 @@ export default async function Home() {
           isWeekComplete={dashboardData.weekProgress.isComplete}
           completedThisWeek={dashboardData.weekProgress.completed}
         />
+
+        {/* Last Session Snapshot */}
+        {dashboardData.lastSession && (
+          <LastSessionSnapshot session={dashboardData.lastSession} />
+        )}
       </div>
     </div>
   );
