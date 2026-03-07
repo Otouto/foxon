@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, isAuthenticated } from '@/lib/auth';
 import { SessionStatus, SetType } from '@prisma/client';
@@ -118,8 +119,11 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    // Invalidate dashboard cache so it shows fresh data on next navigation
+    revalidatePath('/');
+
+    return NextResponse.json({
+      success: true,
       sessionId: session.id,
       message: 'Session saved successfully'
     });
