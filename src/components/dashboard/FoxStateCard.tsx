@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { ProgressionState } from '@prisma/client';
 
 interface FoxStateCardProps {

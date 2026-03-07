@@ -46,7 +46,6 @@ export default async function Home() {
         <NextWorkoutCard
           workout={dashboardData.nextWorkout}
           isWeekComplete={dashboardData.weekProgress.isComplete}
-          completedThisWeek={dashboardData.weekProgress.completed}
         />
 
         {/* Last Session Snapshot */}

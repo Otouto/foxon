@@ -206,47 +206,45 @@ export class DashboardService {
     // If all done or none exist, show first active (repeat allowed)
     let nextWorkout: DashboardData['nextWorkout'] = null;
 
-    if (!isWeekComplete) {
-      const activeWorkouts = await prisma.workout.findMany({
-        where: {
-          userId,
-          status: WorkoutStatus.ACTIVE
-        },
-        include: {
-          workoutItems: {
-            include: {
-              workoutItemSets: true
-            }
+    const activeWorkouts = await prisma.workout.findMany({
+      where: {
+        userId,
+        status: WorkoutStatus.ACTIVE
+      },
+      include: {
+        workoutItems: {
+          include: {
+            workoutItemSets: true
           }
-        },
-        orderBy: { createdAt: 'asc' }
-      });
+        }
+      },
+      orderBy: { createdAt: 'asc' }
+    });
 
-      const doneThisWeek = new Set(
-        thisWeekSessions
-          .map((s) => s.workoutId)
-          .filter((id): id is string => id !== null)
+    const doneThisWeek = new Set(
+      thisWeekSessions
+        .map((s) => s.workoutId)
+        .filter((id): id is string => id !== null)
+    );
+
+    const workout =
+      activeWorkouts.find((w) => !doneThisWeek.has(w.id)) ??
+      activeWorkouts[0];
+
+    if (workout) {
+      const exerciseCount = workout.workoutItems.length;
+      const totalSets = workout.workoutItems.reduce(
+        (total, item) => total + item.workoutItemSets.length,
+        0
       );
+      const estimatedDuration = totalSets * 3 + Math.max(0, exerciseCount - 1);
 
-      const workout =
-        activeWorkouts.find((w) => !doneThisWeek.has(w.id)) ??
-        activeWorkouts[0];
-
-      if (workout) {
-        const exerciseCount = workout.workoutItems.length;
-        const totalSets = workout.workoutItems.reduce(
-          (total, item) => total + item.workoutItemSets.length,
-          0
-        );
-        const estimatedDuration = totalSets * 3 + Math.max(0, exerciseCount - 1);
-
-        nextWorkout = {
-          id: workout.id,
-          title: workout.title,
-          exerciseCount,
-          estimatedDuration
-        };
-      }
+      nextWorkout = {
+        id: workout.id,
+        title: workout.title,
+        exerciseCount,
+        estimatedDuration
+      };
     }
 
     // Get last session within 7 days
