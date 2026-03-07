@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { Upload, X } from 'lucide-react';
+import { uploadToCloudinary } from '@/lib/utils/cloudinaryUpload';
 
 interface ImageUploadFieldProps {
   value: string | null;
@@ -44,43 +45,6 @@ export function ImageUploadField({ value, onChange, disabled = false }: ImageUpl
     }
 
     return null;
-  };
-
-  const uploadToCloudinary = async (file: File) => {
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-
-    if (!cloudName) {
-      throw new Error('Cloudinary cloud name not configured');
-    }
-
-    const isVideo = ALLOWED_VIDEO_FORMATS.includes(file.type);
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', 'foxon_exercises');
-
-    // Specify resource type for videos
-    if (isVideo) {
-      formData.append('resource_type', 'video');
-    }
-
-    // Use appropriate endpoint based on file type
-    const endpoint = isVideo
-      ? `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`
-      : `https://api.cloudinary.com/v1_1/${cloudName}/upload`;
-
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error?.message || 'Upload failed');
-    }
-
-    const data = await response.json();
-    return data.secure_url;
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {

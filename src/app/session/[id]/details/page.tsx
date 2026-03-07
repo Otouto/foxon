@@ -98,6 +98,21 @@ export default async function SessionDetailsPage({
           />
         </div>
 
+        {/* Session Photo */}
+        {session.sessionPhoto?.imageUrl && (
+          <div className="mb-6">
+            <h3 className="font-semibold text-gray-900 mb-3">Session Photo</h3>
+            <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={session.sessionPhoto.imageUrl}
+                alt="Session photo"
+                className="w-full object-cover rounded-2xl"
+              />
+            </div>
+          </div>
+        )}
+
         {/* Reflection Section */}
         {session.sessionSeal?.vibeLine && (
           <div className="mb-6">

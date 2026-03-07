@@ -251,7 +251,7 @@ function SessionFinishContent() {
         </div>
       );
     }
-    return <Summary data={summaryData} />;
+    return <Summary data={summaryData} sessionId={backgroundSave.sessionId} />;
   }
 
   // Show loading state only if session is still initializing

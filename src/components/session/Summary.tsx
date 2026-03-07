@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { CircularGauge } from '@/components/ui/CircularGauge'
 import { DetailsSheet } from '@/components/ui/DetailsSheet'
 import { getDevotionVerdict } from '@/lib/devotionVerdicts'
+import { SessionPhotoFAB } from './SessionPhotoFAB'
 import type { DevotionPillars, DevotionDeviation } from '@/services/SessionService'
 import styles from './Summary.module.css'
 
@@ -34,6 +35,7 @@ type SummaryData = DevotionSummaryData | LegacySummaryData
 
 interface SummaryProps {
   data: SummaryData
+  sessionId?: string | null
   showTitle?: boolean
 }
 
@@ -54,7 +56,7 @@ const PILLAR_NAMES: Record<keyof DevotionPillars, string> = {
 // Fixed order for pillar display: Exercises · Sets · Reps · Weight (LF shown only when available)
 const PILLAR_ORDER: (keyof DevotionPillars)[] = ['EC', 'SC', 'RF', 'LF']
 
-export function Summary({ data, showTitle = true }: SummaryProps) {
+export function Summary({ data, sessionId, showTitle = true }: SummaryProps) {
   const router = useRouter()
 
   // Check if we have devotion score data
@@ -169,7 +171,7 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
 
             {/* Ghost: Details - Sticky to bottom */}
             <div className="flex justify-center pb-2">
-              <DetailsSheet 
+              <DetailsSheet
                 pillars={data.devotionPillars}
                 deviations={data.devotionDeviations}
                 score={data.devotionScore}
@@ -177,6 +179,9 @@ export function Summary({ data, showTitle = true }: SummaryProps) {
             </div>
           </div>
         </div>
+
+        {/* Session Photo FAB */}
+        {sessionId && <SessionPhotoFAB sessionId={sessionId} />}
       </div>
     )
   }

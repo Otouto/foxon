@@ -37,6 +37,12 @@ export interface SessionWithDetails {
     note: string | null;
     createdAt: Date;
   } | null;
+  sessionPhoto?: {
+    id: string;
+    sessionId: string;
+    imageUrl: string;
+    createdAt: Date;
+  } | null;
   sessionExercises: {
     id: string;
     sessionId: string;
@@ -262,7 +268,8 @@ export class SessionService {
         workout: {
           select: { id: true, title: true }
         },
-        sessionSeal: true
+        sessionSeal: true,
+        sessionPhoto: true
       }
     });
 

@@ -193,6 +193,7 @@ model Session {
   workout          Workout?          @relation(fields: [workoutId], references: [id])
   sessionExercises SessionExercise[]
   sessionSeal      SessionSeal?
+  sessionPhoto     SessionPhoto?
 
   @@index([userId, date])
   @@map("sessions")
@@ -242,6 +243,17 @@ model SessionSeal {
   session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@map("session_seals")
+}
+
+model SessionPhoto {
+  id        String   @id @default(cuid())
+  sessionId String   @unique @map("session_id")
+  imageUrl  String   @map("image_url")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("session_photos")
 }
 
 // Fox Chronicle — Monthly narrative summaries
