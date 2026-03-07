@@ -65,6 +65,7 @@ function SessionFinishContent() {
     devotionPillars: DevotionPillars;
     devotionDeviations: DevotionDeviation[];
   } | null>(null);
+  const [weekProgress, setWeekProgress] = useState<{ completed: number; planned: number } | undefined>(undefined);
   
   // Memoize summary data calculation to prevent re-render loops
   const summaryData = useMemo(() => {
@@ -209,8 +210,15 @@ function SessionFinishContent() {
     }
   }, [backgroundSave.status, backgroundSave.sessionId, devotionScoreData]);
 
-
-
+  // Fetch week progress for fox quote context
+  useEffect(() => {
+    if (backgroundSave.status === 'completed' && !weekProgress) {
+      fetch('/api/week-progress')
+        .then(res => res.ok ? res.json() : null)
+        .then(data => { if (data) setWeekProgress(data); })
+        .catch(() => {}); // Non-critical, fox just won't show week line
+    }
+  }, [backgroundSave.status, weekProgress]);
 
 
   // Handle missing workout ID
@@ -251,7 +259,7 @@ function SessionFinishContent() {
         </div>
       );
     }
-    return <Summary data={summaryData} sessionId={backgroundSave.sessionId} />;
+    return <Summary data={summaryData} sessionId={backgroundSave.sessionId} weekProgress={weekProgress} />;
   }
 
   // Show loading state only if session is still initializing

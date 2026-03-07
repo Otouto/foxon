@@ -24,6 +24,41 @@ export interface DashboardData {
 
 export class DashboardService {
   /**
+   * Get this week's session progress vs. weekly goal
+   */
+  static async getWeekProgress(): Promise<{ completed: number; planned: number }> {
+    const userId = getCurrentUserId();
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { weeklyGoal: true },
+    });
+
+    if (!user) throw new Error('User not found');
+
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() + mondayOffset);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const completed = await prisma.session.count({
+      where: {
+        userId,
+        status: SessionStatus.FINISHED,
+        date: { gte: startOfWeek, lte: endOfWeek },
+      },
+    });
+
+    return { completed, planned: user.weeklyGoal };
+  }
+
+  /**
    * Calculate fox progression state based on workout completion and devotion
    */
   private static calculateFoxState(

@@ -3,8 +3,9 @@
 import { useRouter } from 'next/navigation'
 import { CircularGauge } from '@/components/ui/CircularGauge'
 import { DetailsSheet } from '@/components/ui/DetailsSheet'
-import { getDevotionVerdict } from '@/lib/devotionVerdicts'
 import { SessionPhotoFAB } from './SessionPhotoFAB'
+import { FoxDialog } from '@/components/fox'
+import { getFoxQuote, type WeekProgress } from '@/lib/foxQuotes'
 import type { DevotionPillars, DevotionDeviation } from '@/services/SessionService'
 import styles from './Summary.module.css'
 
@@ -37,6 +38,7 @@ interface SummaryProps {
   data: SummaryData
   sessionId?: string | null
   showTitle?: boolean
+  weekProgress?: WeekProgress
 }
 
 // Type guard to check if data is devotion-based
@@ -56,12 +58,12 @@ const PILLAR_NAMES: Record<keyof DevotionPillars, string> = {
 // Fixed order for pillar display: Exercises · Sets · Reps · Weight (LF shown only when available)
 const PILLAR_ORDER: (keyof DevotionPillars)[] = ['EC', 'SC', 'RF', 'LF']
 
-export function Summary({ data, sessionId, showTitle = true }: SummaryProps) {
+export function Summary({ data, sessionId, showTitle = true, weekProgress }: SummaryProps) {
   const router = useRouter()
 
   // Check if we have devotion score data
   if (isDevotionSummaryData(data)) {
-    const { verdict, ctaHint } = getDevotionVerdict(data.devotionScore)
+    const foxQuote = getFoxQuote(data.devotionScore, weekProgress)
     
     return (
       <div className="min-h-screen bg-[#F7FAFC] flex flex-col">
@@ -95,11 +97,13 @@ export function Summary({ data, sessionId, showTitle = true }: SummaryProps) {
               </p>
             </div>
 
-            {/* Human Verdict */}
-            <div className="text-center mb-4">
-              <p className={`text-base font-semibold text-[#0F172A] leading-[22px] ${styles.fadeIn} ${styles.verdict}`}>
-                {verdict}
-              </p>
+            {/* Fox Coach Verdict */}
+            <div className="mb-4 px-1">
+              <FoxDialog
+                line={foxQuote.line}
+                secondaryLine={foxQuote.weekLine}
+                delay={300}
+              />
             </div>
 
             {/* Vertical Pillar List - Fixed order and precise spacing */}
@@ -147,14 +151,6 @@ export function Summary({ data, sessionId, showTitle = true }: SummaryProps) {
               })}
             </div>
 
-            {/* CTA Hint */}
-            {ctaHint && (
-              <div className="text-center mt-2.5">
-                <p className="text-sm text-[#6B7280] italic">
-                  {ctaHint}
-                </p>
-              </div>
-            )}
           </div>
         </div>
 
