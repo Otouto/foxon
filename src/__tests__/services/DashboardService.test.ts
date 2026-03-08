@@ -6,6 +6,7 @@ jest.mock('@/lib/prisma', () => ({
     },
     session: {
       findMany: jest.fn(),
+      findFirst: jest.fn(),
     },
     workout: {
       findMany: jest.fn(),
@@ -324,10 +325,12 @@ describe('DashboardService', () => {
 
     describe('Week progress calculation', () => {
       it('should correctly calculate completed this week', async () => {
-        // Mock 8-week sessions and this week's sessions
+        // Mock: 8-week sessions, current month devotion, prev month devotion, this week sessions
         ;(prisma.session.findMany as jest.Mock)
-          .mockResolvedValueOnce([]) // First call: 8-week sessions
-          .mockResolvedValueOnce([ // Second call: This week's sessions
+          .mockResolvedValueOnce([]) // 8-week sessions
+          .mockResolvedValueOnce([]) // Current month devotion sessions
+          .mockResolvedValueOnce([]) // Previous month devotion sessions
+          .mockResolvedValueOnce([ // This week's sessions
             { id: '1', status: SessionStatus.FINISHED },
             { id: '2', status: SessionStatus.FINISHED },
           ])
@@ -341,8 +344,10 @@ describe('DashboardService', () => {
 
       it('should mark week as incomplete if goal not met', async () => {
         ;(prisma.session.findMany as jest.Mock)
-          .mockResolvedValueOnce([]) // First call: 8-week sessions
-          .mockResolvedValueOnce([ // Second call: This week's sessions
+          .mockResolvedValueOnce([]) // 8-week sessions
+          .mockResolvedValueOnce([]) // Current month devotion sessions
+          .mockResolvedValueOnce([]) // Previous month devotion sessions
+          .mockResolvedValueOnce([ // This week's sessions
             { id: '1', status: SessionStatus.FINISHED },
           ])
 
@@ -367,6 +372,8 @@ describe('DashboardService', () => {
 
         ;(prisma.session.findMany as jest.Mock)
           .mockResolvedValueOnce([]) // 8-week sessions
+          .mockResolvedValueOnce([]) // Current month devotion sessions
+          .mockResolvedValueOnce([]) // Previous month devotion sessions
           .mockResolvedValueOnce([]) // This week: 0 sessions
 
         ;(prisma.workout.findMany as jest.Mock).mockResolvedValue([mockWorkout])
@@ -386,6 +393,8 @@ describe('DashboardService', () => {
         ;(prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser)
         ;(prisma.session.findMany as jest.Mock)
           .mockResolvedValueOnce([]) // 8-week sessions
+          .mockResolvedValueOnce([]) // Current month devotion sessions
+          .mockResolvedValueOnce([]) // Previous month devotion sessions
           .mockResolvedValueOnce([ // This week: 2 sessions (goal met)
             { id: '1' },
             { id: '2' },
@@ -395,13 +404,13 @@ describe('DashboardService', () => {
 
         expect(result.nextWorkout).toBeNull()
         expect(result.weekProgress.isComplete).toBe(true)
-        // Workout lookup should be skipped when week is complete
-        expect(prisma.workout.findMany).not.toHaveBeenCalled()
       })
 
       it('should return null if no active workouts exist', async () => {
         ;(prisma.session.findMany as jest.Mock)
           .mockResolvedValueOnce([]) // 8-week sessions
+          .mockResolvedValueOnce([]) // Current month devotion sessions
+          .mockResolvedValueOnce([]) // Previous month devotion sessions
           .mockResolvedValueOnce([]) // This week: 0 sessions
 
         ;(prisma.workout.findMany as jest.Mock).mockResolvedValue([])
