@@ -121,6 +121,13 @@ describe('FoxStateCard', () => {
     expect(screen.getByText('devotion score')).toBeInTheDocument();
   });
 
+  it('links to profile page', () => {
+    render(
+      <FoxStateCard state={'FIT' as any} devotionScore={82} />
+    );
+    expect(screen.getByRole('link')).toHaveAttribute('href', '/profile');
+  });
+
   it('shows last month label when isLastMonth is true', () => {
     render(
       <FoxStateCard state={'STRONG' as any} devotionScore={75} isLastMonth={true} />

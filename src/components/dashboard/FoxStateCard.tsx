@@ -84,6 +84,7 @@ export function FoxStateCard({ state, devotionScore, isLastMonth, hasNoSessions 
   const display = getScoreDisplay();
 
   return (
+    <Link href="/profile" className="block">
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
       {/* Fox Visual */}
       <div className="flex flex-col items-center mb-3">
@@ -121,6 +122,7 @@ export function FoxStateCard({ state, devotionScore, isLastMonth, hasNoSessions 
         </div>
       </div>
     </div>
+    </Link>
   );
 }
 
