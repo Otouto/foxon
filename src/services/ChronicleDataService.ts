@@ -13,7 +13,6 @@ import type {
   ChronicleExerciseInsight,
   ChronicleRhythm,
   ChronicleMilestone,
-  ChronicleNarrativeInputs,
 } from '@/lib/types/chronicle';
 
 // Raw session type from Prisma query
@@ -104,9 +103,6 @@ export class ChronicleDataService {
     const exercises = this.computeExerciseInsights(currentSessions, prevSessions, allTimeSessions);
     const rhythm = this.computeRhythm(currentSessions);
     const milestones = this.computeMilestones(currentSessions, previousMonth, weeks, exercises, allTimeSessions);
-    const narrativeInputs = this.computeNarrativeInputs(
-      currentMonth, previousMonth, weeks, pillars, milestones, rhythm, sessions
-    );
 
     return {
       timeFrame: {
@@ -121,7 +117,6 @@ export class ChronicleDataService {
       exercises,
       rhythm,
       milestones,
-      narrativeInputs,
       userName: user.displayName || 'Fox',
     };
   }
@@ -973,123 +968,6 @@ export class ChronicleDataService {
     }
 
     return milestones;
-  }
-
-  // ─── Section 10: Narrative Inputs ─────────────────────────────
-
-  private static computeNarrativeInputs(
-    current: ChronicleCurrentMonth,
-    prev: ChroniclePreviousMonth | null,
-    weeks: ChronicleWeekData[],
-    pillars: ChroniclePillarAnalysis,
-    milestones: ChronicleMilestone[],
-    rhythm: ChronicleRhythm,
-    sessions: ChronicleSessionData[]
-  ): ChronicleNarrativeInputs {
-    // Dominant theme
-    let dominantTheme: ChronicleNarrativeInputs['dominantTheme'] = 'grind';
-    if (!prev || prev.sessionCount === 0) {
-      dominantTheme = 'beginning';
-    } else if (current.sessionCount > prev.sessionCount * 1.5 && (current.avgDevotion || 0) > (prev.avgDevotion || 0)) {
-      dominantTheme = 'breakthrough';
-    } else if (prev.sessionCount <= 3 && current.sessionCount >= 6) {
-      dominantTheme = 'comeback';
-    } else if ((current.avgDevotion || 0) < (prev.avgDevotion || 0) - 10) {
-      dominantTheme = 'decline';
-    } else if (Math.abs((current.avgDevotion || 0) - (prev.avgDevotion || 0)) <= 5) {
-      dominantTheme = 'consistency';
-    }
-
-    // Trajectory
-    const weekScores = weeks.filter(w => w.avgDevotion !== null).map(w => w.avgDevotion!);
-    let trajectoryDirection: ChronicleNarrativeInputs['trajectoryDirection'] = 'steady';
-    if (weekScores.length >= 3) {
-      const first = weekScores[0];
-      const mid = weekScores[Math.floor(weekScores.length / 2)];
-      const last = weekScores[weekScores.length - 1];
-      if (last > first + 5) trajectoryDirection = 'rising';
-      else if (last < first - 5) trajectoryDirection = 'falling';
-      else if (mid < first - 5 && last > mid + 5) trajectoryDirection = 'dipped-recovered';
-    } else if (weekScores.length === 2) {
-      if (weekScores[1] > weekScores[0] + 5) trajectoryDirection = 'rising';
-      else if (weekScores[1] < weekScores[0] - 5) trajectoryDirection = 'falling';
-    }
-
-    // Emotional arc from vibe lines + effort
-    const vibes = sessions
-      .filter(s => s.vibeLine)
-      .map(s => s.vibeLine!);
-    const firstVibe = vibes[0] || '';
-    const lastVibe = vibes[vibes.length - 1] || '';
-    const emotionalArc = firstVibe && lastVibe && firstVibe !== lastVibe
-      ? `"${firstVibe.slice(0, 40)}" → "${lastVibe.slice(0, 40)}"`
-      : firstVibe || 'Consistent effort';
-
-    // Closing edge
-    let closingEdge = 'Keep the rhythm going.';
-    if (pillars.weakest === 'RF') {
-      closingEdge = 'Close the RF gap. The last 2 reps of heavy sets are where the next level lives.';
-    } else if (pillars.weakest === 'LF') {
-      closingEdge = 'Trust the target weights. Load fidelity is your edge for next month.';
-    } else if (pillars.weakest === 'SC') {
-      closingEdge = 'Finish every set. Set completion is where consistency compounds.';
-    } else if (pillars.weakest === 'EC') {
-      closingEdge = "Don't skip exercises. Coverage is the foundation of a balanced session.";
-    }
-
-    // Presence narrative — how they showed up, pattern of returning
-    let presenceNarrative = 'Showed up and did the work';
-    const weekHitCount = weeks.filter(w => w.hitGoal).length;
-    if (weekHitCount === weeks.length && weeks.length >= 3) {
-      presenceNarrative = 'Never missed a week. The rhythm became reliable.';
-    } else if (rhythm.cameBackFromGap) {
-      presenceNarrative = 'Took a break, then came back. The return matters more than the gap.';
-    } else if (current.sessionCount > (prev?.sessionCount || 0) * 1.5) {
-      presenceNarrative = 'Showed up more than before. Something shifted in the commitment.';
-    } else if (current.sessionCount >= 8) {
-      presenceNarrative = 'Consistent presence. The practice is becoming a habit.';
-    }
-
-    // Inner shift — the emotional/psychological movement through vibe lines
-    let innerShift = 'Steady presence through the month';
-    if (vibes.length >= 3) {
-      const earlyVibes = vibes.slice(0, Math.ceil(vibes.length / 3));
-      const lateVibes = vibes.slice(-Math.ceil(vibes.length / 3));
-      // Check for signs of growth in language
-      const earlyHasStruggle = earlyVibes.some(v => /rusty|tired|hard|rough|slow|meh/i.test(v));
-      const lateHasConfidence = lateVibes.some(v => /click|strong|best|great|solid|flow|good|alive/i.test(v));
-      if (earlyHasStruggle && lateHasConfidence) {
-        innerShift = 'Started uncertain, ended with confidence. The body remembered.';
-      } else if (lateHasConfidence) {
-        innerShift = 'Finished the month feeling strong. Internal compass pointing up.';
-      } else if (earlyHasStruggle) {
-        innerShift = 'Worked through resistance. Not every session felt great, but you stayed.';
-      }
-    }
-
-    // Chapter title
-    const titleOptions: Record<string, string[]> = {
-      breakthrough: ['The Month Things Clicked', 'When It All Came Together', 'The Turning Point'],
-      comeback: ['The Return', 'Coming Back Stronger', 'The Comeback Chapter'],
-      consistency: ['Steady as the Fox', 'The Rhythm Holds', 'Another Solid Month'],
-      grind: ['The Grind Continues', 'Doing the Work', 'One Session at a Time'],
-      decline: ['A Quieter Month', 'Regrouping', 'The Pause Before the Push'],
-      beginning: ['The First Chapter', 'It Starts Here', 'Day One'],
-    };
-    const titles = titleOptions[dominantTheme] || titleOptions.grind;
-    // Pick title based on a simple hash of the month to be deterministic
-    const titleIndex = (current.sessionCount + (current.avgDevotion || 0)) % titles.length;
-    const chapterTitle = titles[titleIndex];
-
-    return {
-      chapterTitle,
-      dominantTheme,
-      trajectoryDirection,
-      emotionalArc,
-      closingEdge,
-      presenceNarrative,
-      innerShift,
-    };
   }
 
   // ─── Helpers ──────────────────────────────────────────────────

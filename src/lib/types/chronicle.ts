@@ -147,25 +147,16 @@ export interface ChronicleMilestone {
   date?: string;
 }
 
-export interface ChronicleNarrativeInputs {
-  chapterTitle: string;
-  dominantTheme: 'comeback' | 'breakthrough' | 'consistency' | 'grind' | 'decline' | 'beginning';
-  trajectoryDirection: 'rising' | 'steady' | 'dipped-recovered' | 'falling';
-  emotionalArc: string;
-  closingEdge: string;
-  presenceNarrative: string; // How they showed up — pattern of returning
-  innerShift: string; // The emotional/psychological movement across the month
-}
-
 export interface ChronicleChapterContent {
   title: string;
   verdict: string;
+  carryForward: string | null;
   threshold: string | null;
   ordeal: string;
+  earnedTruth: string;
   numbers: string;
-  rhythmCaption: string;
-  return: string;
-  rhythmCalendar: string; // app-added from data.rhythm.calendar, not AI-generated
+  nextTest: string;
+  rhythmCalendar: string; // app-rendered, unchanged
 }
 
 export interface ChronicleDataPayload {
@@ -178,7 +169,5 @@ export interface ChronicleDataPayload {
   exercises: ChronicleExerciseInsight[];
   rhythm: ChronicleRhythm;
   milestones: ChronicleMilestone[];
-  narrativeInputs: ChronicleNarrativeInputs;
   userName: string;
-  previousChapterReturn?: string;
 }

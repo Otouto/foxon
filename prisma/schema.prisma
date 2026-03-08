@@ -267,6 +267,7 @@ model FoxChronicle {
   contentMd     String    @map("content_md")   @db.Text
   contentHtml   String    @map("content_html") @db.Text
   dataPayload   Json      @map("data_payload") // All computed data points
+  chapterMemory Json?     @map("chapter_memory") // Structured memory for narrative continuity
   emailSentAt   DateTime? @map("email_sent_at")
   createdAt     DateTime  @default(now()) @map("created_at")
 

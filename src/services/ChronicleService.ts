@@ -3,6 +3,18 @@ import { ChronicleDataService } from './ChronicleDataService';
 import { ChronicleGenerationService } from './ChronicleGenerationService';
 import { ChronicleEmailService } from './ChronicleEmailService';
 import type { ChronicleChapterContent } from '@/lib/types/chronicle';
+import type { ChapterMemory } from './chronicle/types';
+import {
+  buildCanon,
+  buildContinuityBridge,
+  selectPrimaryThreshold,
+  rankOrdealSessions,
+  buildPatternClaims,
+  buildNextTest,
+  assembleNarrativePlan,
+  validateLLMOutput,
+  buildChapterMemory,
+} from './chronicle';
 
 export interface ChronicleListItem {
   id: string;
@@ -29,29 +41,57 @@ export class ChronicleService {
       where: { userId_month_year: { userId, month, year } },
     });
 
-    // Step 1: Compute data
+    // Step 1: Compute raw data (unchanged)
     const dataPayload = await ChronicleDataService.computeChronicleData(userId, month, year);
 
-    // Step 1b: Fetch previous chapter's "return" for narrative continuity
+    // Step 2: Fetch previous chapter memory
     const prevMonth = month === 1 ? 12 : month - 1;
     const prevYear = month === 1 ? year - 1 : year;
     const prevChronicle = await prisma.foxChronicle.findFirst({
       where: { userId, month: prevMonth, year: prevYear },
-      select: { contentMd: true },
+      select: { chapterMemory: true },
     });
-    if (prevChronicle) {
-      try {
-        const parsed = JSON.parse(prevChronicle.contentMd) as ChronicleChapterContent;
-        if (parsed.return) {
-          dataPayload.previousChapterReturn = parsed.return;
-        }
-      } catch { /* legacy format — no return to extract */ }
+    const prevMemory = prevChronicle?.chapterMemory
+      ? (prevChronicle.chapterMemory as unknown as ChapterMemory)
+      : null;
+
+    // Step 3: Fetch recent titles for style constraints
+    const recentChronicles = await prisma.foxChronicle.findMany({
+      where: { userId },
+      select: { title: true },
+      orderBy: [{ year: 'desc' }, { month: 'desc' }],
+      take: 5,
+    });
+    const recentTitles = recentChronicles.map(c => c.title);
+
+    // Step 4: Run transformer pipeline
+    const canon = buildCanon(dataPayload);
+    const bridge = buildContinuityBridge(prevMemory, canon);
+    const threshold = selectPrimaryThreshold(canon);
+    const ordeal = rankOrdealSessions(canon, prevMemory);
+    const claims = buildPatternClaims(canon, bridge);
+    const nextTest = buildNextTest(canon, claims, bridge);
+    const narrativePlan = assembleNarrativePlan({
+      canon, bridge, threshold, ordeal, claims, nextTest, recentTitles,
+    });
+
+    // Step 5: Generate chronicle via Claude (new signature — takes NarrativePlan)
+    const { title, contentMd: rawContentMd } = await ChronicleGenerationService.generateChronicle(narrativePlan);
+
+    // Step 6: Inject rhythmCalendar and validate
+    const parsed = JSON.parse(rawContentMd) as ChronicleChapterContent;
+    parsed.rhythmCalendar = dataPayload.rhythm.calendar;
+    const contentMd = JSON.stringify(parsed);
+    const validation = validateLLMOutput(narrativePlan, parsed);
+    if (!validation.valid) {
+      console.warn('[Chronicle] Validation warnings:', validation.errors);
+      // Continue anyway — warnings, not hard failures
     }
 
-    // Step 2: Generate narrative via Claude (keep old record alive during this)
-    const { title, contentMd } = await ChronicleGenerationService.generateChronicle(dataPayload);
+    // Step 7: Build chapter memory for persistence
+    const chapterMemory = buildChapterMemory(narrativePlan, parsed, ordeal.session.id);
 
-    // Step 3: Render HTML for email
+    // Step 8: Render HTML for email
     const contentHtml = ChronicleEmailService.renderEmailHtml({
       to: '',
       chapterNumber: dataPayload.timeFrame.chapterNumber,
@@ -61,12 +101,12 @@ export class ChronicleService {
       userName: dataPayload.userName,
     });
 
-    // Step 4: Delete old record only after generation succeeds, right before creating the new one
+    // Step 9: Delete old record only after generation succeeds
     if (existing) {
       await prisma.foxChronicle.delete({ where: { id: existing.id } });
     }
 
-    // Step 5: Store in database
+    // Step 10: Store in database
     const chronicle = await prisma.foxChronicle.create({
       data: {
         userId,
@@ -77,10 +117,11 @@ export class ChronicleService {
         contentMd,
         contentHtml,
         dataPayload: JSON.parse(JSON.stringify(dataPayload)),
+        chapterMemory: JSON.parse(JSON.stringify(chapterMemory)),
       },
     });
 
-    // Step 6: Optionally send email
+    // Step 11: Optionally send email
     if (options?.sendEmail) {
       const user = await prisma.user.findUnique({ where: { id: userId } });
       if (user?.email) {

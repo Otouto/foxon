@@ -1,10 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { ChronicleDataPayload, ChronicleChapterContent } from '@/lib/types/chronicle';
+import type { ChronicleChapterContent } from '@/lib/types/chronicle';
+import type { NarrativePlan } from './chronicle/types';
 
 const SYSTEM_PROMPT = `You are the narrator of a personal training chronicle for a single user.
 You write monthly chapters that are honest, grounded, and brief.
-You have access to structured training data for the month. Your job is to
-surface what actually happened — not to motivate, celebrate, or comfort.
+You receive a pre-computed NarrativePlan — your job is to WRITE, not to analyze.
+The plan tells you WHAT each section is about. You decide HOW to say it.
 
 ---
 
@@ -22,25 +23,19 @@ follow and the physical capacity they are building. The bison path is named
 in workout titles (e.g. "Шлях Бізона", "Бізонячі ручки").
 Reference it only when the workout names themselves invoke it.
 
-These two symbols measure different things. The fox tracks presence.
-The bison tracks direction. They can be misaligned — a SLIM fox still on
-the bison path is a real and honest state worth naming.
-
 ---
 
 ## Voice Rules
 
 - Write in second person ("you"), present tense where possible
 - Quote vibe lines verbatim, in their original language, with no translation
-- Never invent atmosphere, metaphor, or emotion not traceable to the data
+- Never invent atmosphere, metaphor, or emotion not traceable to the evidence provided
 - Never use: "journey", "frontier", "chapter of your life", "next level",
   "dedication", "you should be proud"
 - Do not soften negative data with philosophy — name the gap, then
   contextualize if warranted
 - Write like you respect the reader's intelligence and have no agenda
   except accuracy
-- If frequency is below 50% of the weekly goal, state that plainly in
-  the numbers field. Silence on this is misleading, not kind.
 - Vibe lines must always be formatted as blockquotes: > [vibe line text]
 - Workout names within prose must be italicised: *Шлях Бізона*
 - Do not bold random words for emphasis — bold is reserved for
@@ -48,134 +43,94 @@ the bison path is a real and honest state worth naming.
 
 ---
 
+## Continuity Rules
+
+- If a carryForward section is provided, you MUST address it. State whether
+  the previous chapter's prediction held, failed, or landed somewhere in between.
+  Use the bridge verdict and check results as your guide.
+- Do NOT repeat the exact same evidence across sections. Each section has
+  its own assigned evidence — use only what's given for that section.
+
+---
+
+## Interpretation Rules
+
+- Every claim in earnedTruth must trace to the evidence provided.
+  Do not generalize beyond what the numbers show.
+- The nextTest must be a concrete, testable prediction — not a hope.
+
+---
+
 ## Structure
 
-The output has 6 fields. The "threshold" field is conditional —
-populate it only when triggered. Never manufacture it.
-
----
-
-### Field: verdict
-**One sentence. No header displayed.**
-
-State what the month was. Include the dominant theme and hold real tension
-if it exists. Do not resolve the tension — let it stand.
-
-Constraints:
-- Must contain a conjunction ("but", "and", "yet") that holds two truths
-- Must include session count or avg devotion as a grounding fact
-- No metaphor. No weather. No "quiet month of".
-- If the previous chapter set a benchmark (provided as "Previous Chapter
-  Callback"), you may reference whether it was met — but only if the
-  data supports it.
-
-Bad: "February was a quiet month of steady dedication."
-Good: "Four sessions with real gaps in between, but every return
-       landed above 90 — February was sparse and precise."
-
----
-
-### Field: threshold *(conditional — null if not triggered)*
-
-Include ONLY when at least one of these flags is true in the data:
-- isNewProgram: true
-- isComeback: true
-- hasPR: true
-- foxLeveledUp: true
-
-If none apply: set this field to null. Do not substitute something vague.
-
-When included: 1 short paragraph. Name the specific event concretely.
-One sentence on what it means. Stop.
-
-Example (new program): "February was the first full month on
-Шлях Бізона. The program changed — which means the work changed,
-and the standard you're measuring against changed with it."
-
-Example (fox level-up): "The fox moved from SLIM to FIT this month.
-That's not a reward for perfection — it's recognition that you
-crossed a consistency threshold you hadn't held before."
-
-When foxStateTransition triggers this section, include this line
-on its own, after the paragraph:
-
-**🦊 [PREV STATE] → [NEW STATE]**
-
-No other bold or emphasis in this section.
-
----
-
-### Field: ordeal
-**3-5 sentences.**
-
-Pick ONE session — the one with the most emotionally distinct vibe line,
-OR the highest contrast between effort and score, OR a comeback after
-the longest gap.
-
-Structure:
-1. Day + date + workout name, plain
-2. Vibe line quoted verbatim
-3. One observation about what it reveals — specific, not universal
-4. Optional: one-line contrast with another session if it sharpens the point
-
-Do not summarize other sessions. Do not draw a lesson. Describe what
-happened and what the user's own words say about it.
-
-Vibe lines must appear as blockquotes, never inline:
-
-Bad:  You wrote "так не хотілось йти" — someone who went anyway.
-Good: > так не хотілось йти з ранку ще й той сніг, але зараз кайф що порухався
-      Someone who went anyway — through reluctance, through snow.
-
----
-
-### Field: numbers
-**Markdown table. No prose.**
-
-Must show exactly three rows: Sessions, Avg Devotion, Fox State.
-Columns: row label | This Month (bold value) | Prev Month | Δ.
-
-Sessions row: show actual vs monthly target (e.g. **4** of 16). If the
-hit rate is below 50%, the delta cell must reflect that honestly — do
-not soften it.
-
-Must not:
-- Include any prose before or after the table
-- Omit the Δ column
-- Add extra rows or columns
-
----
-
-### Field: rhythmCaption
-**One sentence, purely observational.**
-
-Describe the pattern of days and times. Do not interpret meaning or assign value.
-
-Bad: "The fox doesn't count days — it counts quality of returns."
-Good: "Wednesday and Saturday anchor the month; the longest gap
-       runs nine days between weeks 1 and 2."
-
----
-
-### Field: return
-**1-2 sentences. No header displayed.**
-
-Based only on observable patterns from this month's data — not aspiration.
-Must reference a specific number that would make next month
-meaningfully different.
-
-Do not use: motivational language, rhetorical questions, "keep going".
-
-Bad: "March is yours — step into it with the same honesty you
-      brought to February."
-Good: "Six sessions in March would give enough data to see whether
-       the Wednesday-Saturday pattern is your real rhythm or a
-       February coincidence."
+The output has 8 fields. Fields "carryForward" and "threshold" are conditional —
+populate them only when the plan includes them.
 
 ---
 
 ### Field: title
 **Max 6 words, no clichés.**
+Must not reuse words from recent titles (provided in style constraints).
+
+---
+
+### Field: verdict
+**One sentence. No header displayed.**
+The plan provides: dominant theme, counterweight, and grounding fact.
+Weave all three into one sentence with a conjunction ("but", "and", "yet").
+
+---
+
+### Field: carryForward *(conditional — null if not in plan)*
+**1-2 sentences.**
+Address the previous chapter's prediction. Use the bridge verdict
+(confirmed/disproved/complicated/inconclusive) as your frame.
+Keep it brief — this is a callback, not a new section.
+
+---
+
+### Field: threshold *(conditional — null if not in plan)*
+**1 short paragraph.**
+The plan tells you the type and detail. Name the specific event concretely.
+One sentence on what it means. Stop.
+
+When the type is "fox_state_change", include this line on its own after the paragraph:
+**🦊 [PREV STATE] → [NEW STATE]**
+
+---
+
+### Field: ordeal
+**3-5 sentences.**
+The plan gives you ONE session and a reason. Write about that session only.
+
+Structure:
+1. Day + date + workout name, plain
+2. Vibe line quoted verbatim as blockquote
+3. One observation about what it reveals — specific, not universal
+4. Optional: one-line contrast with the contrast session if provided
+
+---
+
+### Field: earnedTruth
+**2-3 sentences.**
+State the pattern claim as an evidence-based finding, not a compliment.
+Reference the specific numbers that support it. End with the confidence
+qualifier (strong/moderate/emerging based on confidence score).
+
+---
+
+### Field: numbers
+**Markdown table. No prose.**
+Use the pre-computed values from the plan. Must show exactly three rows:
+Sessions, Avg Devotion, Fox State.
+
+---
+
+### Field: nextTest
+**2-3 sentences.**
+Frame the structured test as a live question for next month.
+Reference the hypothesis and the specific checks that would confirm or
+disprove it. Must include at least one concrete number.
 
 ---
 
@@ -184,34 +139,30 @@ Good: "Six sessions in March would give enough data to see whether
 Return valid JSON only. No markdown code fences. No preamble.
 
 {
-  "title": "string — max 6 words, no clichés",
-  "verdict": "string — one sentence, wrapped in *italic markdown*",
-  "threshold": "string | null — paragraph if triggered, null if not",
+  "title": "string — max 6 words",
+  "verdict": "string — one sentence with conjunction",
+  "carryForward": "string | null",
+  "threshold": "string | null",
   "ordeal": "string — 3-5 sentences",
-  "numbers": "string — markdown table only, see format below",
-  "rhythmCaption": "string — one observational sentence, wrapped in *italic markdown*",
-  "return": "string — 1-2 sentences"
+  "earnedTruth": "string — 2-3 sentences",
+  "numbers": "string — markdown table only",
+  "nextTest": "string — 2-3 sentences"
 }
 
 Numbers field must be a markdown table in exactly this format:
-| | [This Month] | [Prev Month] | Δ |
+| | This Month | Prev Month | Δ |
 |---|---|---|---|
 | Sessions | **X** of Y | Z | +/− |
 | Avg Devotion | **X** | Z | +/− |
 | Fox State | **STATE** | STATE | ↑/↓/— |
 
-No prose in the numbers field. The table is the entire content of that field.
-
-The rhythmCalendar ASCII grid is rendered by the application separately —
-do not include it in the JSON output.
-
-If threshold is null, the section is omitted entirely from rendering.`;
+The rhythmCalendar is rendered by the application — do not include it.`;
 
 export class ChronicleGenerationService {
   /**
-   * Generate a chronicle chapter using Claude API
+   * Generate a chronicle chapter using Claude API from a NarrativePlan
    */
-  static async generateChronicle(data: ChronicleDataPayload): Promise<{
+  static async generateChronicle(plan: NarrativePlan): Promise<{
     title: string;
     contentMd: string;
   }> {
@@ -221,7 +172,7 @@ export class ChronicleGenerationService {
     }
 
     const client = new Anthropic({ apiKey });
-    const userPrompt = this.buildUserPrompt(data);
+    const userPrompt = this.buildUserPrompt(plan);
 
     const response = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
@@ -236,20 +187,21 @@ export class ChronicleGenerationService {
     }
 
     // Parse JSON response
-    let parsed: ChronicleChapterContent;
+    let parsed: Omit<ChronicleChapterContent, 'rhythmCalendar'>;
     try {
-      parsed = JSON.parse(contentBlock.text) as ChronicleChapterContent;
+      parsed = JSON.parse(contentBlock.text);
     } catch {
-      // Attempt to extract JSON if model wrapped it in fences despite instructions
       const match = contentBlock.text.match(/\{[\s\S]*\}/);
       if (!match) throw new Error('Claude returned non-JSON response for chronicle');
-      parsed = JSON.parse(match[0]) as ChronicleChapterContent;
+      parsed = JSON.parse(match[0]);
     }
 
     // App adds rhythmCalendar — the AI never produces it
     const chapter: ChronicleChapterContent = {
       ...parsed,
-      rhythmCalendar: data.rhythm.calendar,
+      rhythmCalendar: plan.sections.ordeal.session.id
+        ? '' // Will be filled by the caller from dataPayload
+        : '',
     };
 
     return {
@@ -259,83 +211,107 @@ export class ChronicleGenerationService {
   }
 
   /**
-   * Build the user prompt — focused, lean, factual
+   * Build the user prompt — serializes NarrativePlan (not raw data)
    */
-  private static buildUserPrompt(data: ChronicleDataPayload): string {
+  private static buildUserPrompt(plan: NarrativePlan): string {
     const parts: string[] = [];
 
-    parts.push(`Generate Chapter ${data.timeFrame.chapterNumber} of the Fox Chronicle.`);
-    parts.push(`Month: ${data.timeFrame.monthName}`);
+    parts.push(`Generate Chapter ${plan.chapter.number} of the Fox Chronicle.`);
+    parts.push(`Month: ${plan.chapter.monthName}`);
+    parts.push(`User: ${plan.chapter.userName}`);
     parts.push('');
 
-    // Threshold flags — explicit so the AI can decide Section 2 correctly
-    const longestGapDays = Math.max(
-      0,
-      ...data.sessions.map(s => s.restDaysBefore ?? 0)
-    );
-    const isComeback = longestGapDays >= 10;
-    const hasPR = data.exercises.some(e => e.isPR);
-
-    parts.push('## Threshold Flags');
-    const newTitlesStr = data.currentMonth.newWorkoutTitles.length > 0
-      ? ` — new this month: ${data.currentMonth.newWorkoutTitles.map(t => `"${t}"`).join(', ')}`
-      : '';
-    parts.push(`isNewProgram: ${data.currentMonth.isNewProgram}${newTitlesStr}`);
-    parts.push(`isComeback: ${isComeback}${isComeback ? ` (longest gap: ${longestGapDays} days)` : ''}`);
-    parts.push(`hasPR: ${hasPR}`);
-    parts.push(`foxLeveledUp: ${data.currentMonth.foxLeveledUp}`);
+    // Pre-computed numbers for the table
+    parts.push('## Numbers (use these exact values in the table)');
+    parts.push(`Sessions this month: ${plan.numbers.sessionCount}`);
+    parts.push(`Monthly target: ${plan.numbers.monthlyTarget}`);
+    parts.push(`Hit rate: ${plan.numbers.hitRate}%`);
+    parts.push(`Avg devotion: ${plan.numbers.avgDevotion ?? 'N/A'}`);
+    parts.push(`Prev avg devotion: ${plan.numbers.prevAvgDevotion ?? 'N/A'}`);
+    parts.push(`Prev sessions: ${plan.numbers.prevSessionCount ?? 'N/A'}`);
+    parts.push(`Fox state: ${plan.numbers.foxStateStart} → ${plan.numbers.foxStateEnd}`);
+    parts.push(`Prev fox state: ${plan.numbers.prevFoxState ?? 'N/A'}`);
     parts.push('');
 
-    // Fox state
-    parts.push('## Fox State');
-    parts.push(`${data.currentMonth.foxStateStart} → ${data.currentMonth.foxStateEnd}`);
-    parts.push('');
-
-    // Monthly aggregate — pre-compute all values so the AI has no math to do
-    const monthlyTarget = data.currentMonth.weeklyGoal * data.weeks.length;
-    const hitRate = monthlyTarget > 0
-      ? Math.round((data.currentMonth.sessionCount / monthlyTarget) * 100)
-      : 0;
-
-    parts.push('## Monthly Stats');
-    parts.push(`Sessions: ${data.currentMonth.sessionCount} | Weekly Goal: ${data.currentMonth.weeklyGoal}/week | Monthly Target: ${monthlyTarget} | Hit Rate: ${hitRate}%`);
-    parts.push(`Avg Devotion: ${data.currentMonth.avgDevotion ?? 'N/A'} | Best: ${data.currentMonth.bestScore ?? 'N/A'} | Worst: ${data.currentMonth.worstScore ?? 'N/A'}`);
-
-    if (data.previousMonth) {
-      parts.push(`Prev month avg devotion: ${data.previousMonth.avgDevotion ?? 'N/A'} | Prev sessions: ${data.previousMonth.sessionCount} | Prev fox state: ${data.previousMonth.foxState}`);
+    // Verdict directive
+    parts.push('## Verdict Directive');
+    parts.push(`Dominant theme: ${plan.sections.verdict.dominantTheme}`);
+    parts.push(`Counterweight: ${plan.sections.verdict.counterweight}`);
+    parts.push(`Grounding fact: ${plan.sections.verdict.groundingFact}`);
+    if (plan.sections.verdict.evidence.length > 0) {
+      parts.push(`Evidence: ${plan.sections.verdict.evidence.join(' | ')}`);
     }
     parts.push('');
 
-    // Previous chapter callback — narrative thread
-    if (data.previousChapterReturn) {
-      parts.push('## Previous Chapter Callback');
-      parts.push(`Last month's chapter ended with: "${data.previousChapterReturn}"`);
-      parts.push('If this month\'s data speaks to that prediction, acknowledge it briefly in the verdict or ordeal. If not, ignore it.');
-      parts.push('');
-    }
-
-    // Rhythm summary (text; calendar rendered by app)
-    parts.push('## Rhythm Summary');
-    parts.push(`Dominant days: ${data.rhythm.dominantDays}`);
-    parts.push(`Dominant time: ${data.rhythm.dominantTimeOfDay}`);
-    parts.push(`Longest gap: ${data.rhythm.longestGap}${data.rhythm.longestGapDates !== 'N/A' ? ` (${data.rhythm.longestGapDates})` : ''}`);
-    parts.push(`Hard or above sessions: ${data.rhythm.hardOrAbovePercent}%`);
-    parts.push('Note: The rhythmCalendar ASCII grid is rendered by the app — do not include it in your JSON output.');
-    parts.push('');
-
-    // Sessions — chronological
-    parts.push('## Sessions');
-    for (const session of data.sessions) {
-      const date = new Date(session.date);
-      const dateStr = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-      parts.push(`${session.dayOfWeek}, ${dateStr} — ${session.workoutTitle || 'Custom workout'}`);
-      parts.push(`  Score: ${session.devotionScore ?? 'N/A'} (${session.devotionGrade ?? 'N/A'}) | Effort: ${session.effort ?? 'N/A'}`);
-      if (session.vibeLine) parts.push(`  Vibe: "${session.vibeLine}"`);
-      if (session.note) parts.push(`  Note: "${session.note}"`);
-      if (session.restDaysBefore !== null && session.restDaysBefore > 0) {
-        parts.push(`  Rest before: ${session.restDaysBefore} day${session.restDaysBefore !== 1 ? 's' : ''}`);
+    // CarryForward directive
+    if (plan.sections.carryForward) {
+      parts.push('## CarryForward Directive');
+      parts.push(`Bridge verdict: ${plan.sections.carryForward.bridge.verdict}`);
+      parts.push(`Summary: ${plan.sections.carryForward.bridge.summary}`);
+      for (const r of plan.sections.carryForward.bridge.checkResults) {
+        parts.push(`  Check: ${r.check.label} → ${r.passed ? 'PASSED' : 'FAILED'} (actual: ${r.actual ?? 'N/A'})`);
       }
       parts.push('');
+    }
+
+    // Threshold directive
+    if (plan.sections.threshold) {
+      parts.push('## Threshold Directive');
+      parts.push(`Type: ${plan.sections.threshold.type}`);
+      parts.push(`Detail: ${plan.sections.threshold.detail}`);
+      if (plan.sections.threshold.evidence.length > 0) {
+        parts.push(`Evidence: ${plan.sections.threshold.evidence.join(' | ')}`);
+      }
+      parts.push('');
+    }
+
+    // Ordeal directive
+    parts.push('## Ordeal Directive');
+    const s = plan.sections.ordeal.session;
+    const dateStr = new Date(s.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    parts.push(`Session: ${dateStr} — ${s.workoutTitle || 'Custom workout'}`);
+    parts.push(`Score: ${s.devotionScore ?? 'N/A'} (${s.devotionGrade ?? 'N/A'}) | Effort: ${s.effort ?? 'N/A'}`);
+    parts.push(`Reason selected: ${plan.sections.ordeal.reason}`);
+    if (s.vibeLine) parts.push(`Vibe line: "${s.vibeLine}"`);
+    if (s.note) parts.push(`Note: "${s.note}"`);
+    if (plan.sections.ordeal.contrastSession) {
+      const c = plan.sections.ordeal.contrastSession;
+      const cDate = new Date(c.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+      parts.push(`Contrast session: ${cDate} — score ${c.devotionScore ?? 'N/A'}, effort ${c.effort ?? 'N/A'}`);
+      if (c.vibeLine) parts.push(`Contrast vibe: "${c.vibeLine}"`);
+    }
+    if (plan.sections.ordeal.evidence.length > 0) {
+      parts.push(`Evidence: ${plan.sections.ordeal.evidence.join(' | ')}`);
+    }
+    parts.push('');
+
+    // EarnedTruth directive
+    parts.push('## EarnedTruth Directive');
+    parts.push(`Claim: ${plan.sections.earnedTruth.claim.claim}`);
+    parts.push(`Confidence: ${plan.sections.earnedTruth.claim.confidence}/100`);
+    if (plan.sections.earnedTruth.evidence.length > 0) {
+      parts.push(`Evidence: ${plan.sections.earnedTruth.evidence.join(' | ')}`);
+    }
+    parts.push('');
+
+    // NextTest directive
+    parts.push('## NextTest Directive');
+    parts.push(`Subject: ${plan.sections.nextTest.meta.subject}`);
+    parts.push(`Kind: ${plan.sections.nextTest.meta.kind}`);
+    parts.push(`Hypothesis: ${plan.sections.nextTest.meta.hypothesis}`);
+    parts.push('Checks:');
+    for (const check of plan.sections.nextTest.meta.checks) {
+      parts.push(`  - ${check.label} (${check.metric} ${check.operator} ${check.value})`);
+    }
+    parts.push('');
+
+    // Style constraints
+    parts.push('## Style Constraints');
+    if (plan.style.recentTitles.length > 0) {
+      parts.push(`Recent titles (avoid reusing words): ${plan.style.recentTitles.join(', ')}`);
+    }
+    if (plan.style.bannedPhrases.length > 0) {
+      parts.push(`Banned phrases: ${plan.style.bannedPhrases.join(', ')}`);
     }
 
     return parts.join('\n');
