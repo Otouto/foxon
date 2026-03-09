@@ -2,9 +2,11 @@ import { render, screen } from '@testing-library/react';
 
 // Mock next/link as a simple <a> passthrough
 jest.mock('next/link', () => {
-  return ({ href, children, ...props }: { href: string; children: React.ReactNode }) => (
+  const MockLink = ({ href, children, ...props }: { href: string; children: React.ReactNode }) => (
     <a href={href} {...props}>{children}</a>
   );
+  MockLink.displayName = 'MockLink';
+  return MockLink;
 });
 
 // Mock @prisma/client to provide ProgressionState enum
@@ -22,6 +24,7 @@ jest.mock('@/lib/utils/dateUtils', () => ({
   formatDate: () => 'Mar 1, 2026',
 }));
 
+import { ProgressionState } from '@prisma/client';
 import { NextWorkoutCard } from '@/components/dashboard/NextWorkoutCard';
 import { WeekProgressCard } from '@/components/dashboard/WeekProgressCard';
 import { FoxStateCard } from '@/components/dashboard/FoxStateCard';
@@ -107,7 +110,7 @@ describe('WeekProgressCard', () => {
 describe('FoxStateCard', () => {
   it('shows "—" and "Complete your first session" when no sessions', () => {
     render(
-      <FoxStateCard state={'SLIM' as any} devotionScore={null} hasNoSessions={true} />
+      <FoxStateCard state={'SLIM' as ProgressionState} devotionScore={null} hasNoSessions={true} />
     );
     expect(screen.getByText('—')).toBeInTheDocument();
     expect(screen.getByText('Complete your first session')).toBeInTheDocument();
@@ -115,7 +118,7 @@ describe('FoxStateCard', () => {
 
   it('shows current month devotion score', () => {
     render(
-      <FoxStateCard state={'FIT' as any} devotionScore={82} />
+      <FoxStateCard state={'FIT' as ProgressionState} devotionScore={82} />
     );
     expect(screen.getByText('82')).toBeInTheDocument();
     expect(screen.getByText('devotion score')).toBeInTheDocument();
@@ -123,14 +126,14 @@ describe('FoxStateCard', () => {
 
   it('links to profile page', () => {
     render(
-      <FoxStateCard state={'FIT' as any} devotionScore={82} />
+      <FoxStateCard state={'FIT' as ProgressionState} devotionScore={82} />
     );
     expect(screen.getByRole('link')).toHaveAttribute('href', '/profile');
   });
 
   it('shows last month label when isLastMonth is true', () => {
     render(
-      <FoxStateCard state={'STRONG' as any} devotionScore={75} isLastMonth={true} />
+      <FoxStateCard state={'STRONG' as ProgressionState} devotionScore={75} isLastMonth={true} />
     );
     expect(screen.getByText('75')).toBeInTheDocument();
     expect(screen.getByText(/devotion score.*last month/)).toBeInTheDocument();

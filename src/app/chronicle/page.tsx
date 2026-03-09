@@ -70,10 +70,3 @@ export default async function ChroniclePage() {
   );
 }
 
-function monthName(month: number): string {
-  const names = [
-    '', 'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-  ];
-  return names[month] || '';
-}
