@@ -136,7 +136,6 @@ export interface ChronicleRhythm {
   effortDistribution: Record<string, number>;
   hardOrAbovePercent: number;
   sessionsWithVibeLines: number;
-  calendar: string; // Pre-rendered rhythm calendar grid
 }
 
 export interface ChronicleMilestone {
@@ -156,7 +155,6 @@ export interface ChronicleChapterContent {
   earnedTruth: string;
   numbers: string;
   nextTest: string;
-  rhythmCalendar: string; // app-rendered, unchanged
 }
 
 export interface ChronicleDataPayload {

@@ -156,16 +156,13 @@ Numbers field must be a markdown table in exactly this format:
 | Avg Devotion | **X** | Z | +/− |
 | Fox State | **STATE** | STATE | ↑/↓/— |
 
-The rhythmCalendar is rendered by the application — do not include it.`;
+`;
 
 export class ChronicleGenerationService {
   /**
    * Generate a chronicle chapter using Claude API from a NarrativePlan
    */
-  static async generateChronicle(plan: NarrativePlan): Promise<{
-    title: string;
-    contentMd: string;
-  }> {
+  static async generateChronicle(plan: NarrativePlan): Promise<ChronicleChapterContent> {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
       throw new Error('ANTHROPIC_API_KEY environment variable is not set');
@@ -187,7 +184,7 @@ export class ChronicleGenerationService {
     }
 
     // Parse JSON response
-    let parsed: Omit<ChronicleChapterContent, 'rhythmCalendar'>;
+    let parsed: ChronicleChapterContent;
     try {
       parsed = JSON.parse(contentBlock.text);
     } catch {
@@ -196,18 +193,7 @@ export class ChronicleGenerationService {
       parsed = JSON.parse(match[0]);
     }
 
-    // App adds rhythmCalendar — the AI never produces it
-    const chapter: ChronicleChapterContent = {
-      ...parsed,
-      rhythmCalendar: plan.sections.ordeal.session.id
-        ? '' // Will be filled by the caller from dataPayload
-        : '',
-    };
-
-    return {
-      title: chapter.title,
-      contentMd: JSON.stringify(chapter),
-    };
+    return parsed;
   }
 
   /**

@@ -663,7 +663,6 @@ export class ChronicleDataService {
         effortDistribution: {},
         hardOrAbovePercent: 0,
         sessionsWithVibeLines: 0,
-        calendar: '',
       };
     }
 
@@ -738,9 +737,6 @@ export class ChronicleDataService {
 
     const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-    // Build rhythm calendar grid
-    const calendar = this.buildRhythmCalendar(sessions);
-
     return {
       longestStreak: `${maxStreak} session${maxStreak > 1 ? 's' : ''} in ${maxStreakDays + 1} days`,
       longestGap: maxGap > 0 ? `${maxGap} days` : 'N/A',
@@ -753,83 +749,7 @@ export class ChronicleDataService {
         ? Math.round((hardCount / sessions.length) * 100)
         : 0,
       sessionsWithVibeLines: vibeLineCount,
-      calendar,
     };
-  }
-
-  /**
-   * Build a rhythm calendar like:
-   *          Mon  Tue  Wed  Thu  Fri  Sat  Sun
-   * Week 1    ●              ●                     2 of 2 ✓
-   * Week 2         ●         ●         ●           3 of 2 ✓✓
-   */
-  private static buildRhythmCalendar(sessions: RawSession[]): string {
-    if (sessions.length === 0) return '';
-
-    // Get month boundaries from first session
-    const firstDate = sessions[0].date;
-    const month = firstDate.getMonth();
-    const year = firstDate.getFullYear();
-    const totalDays = new Date(year, month + 1, 0).getDate();
-
-    // Build set of session dates (day-of-month)
-    const sessionDates = new Set<number>();
-    sessions.forEach(s => {
-      if (s.date.getMonth() === month && s.date.getFullYear() === year) {
-        sessionDates.add(s.date.getDate());
-      }
-    });
-
-    // Build week rows (Mon-Sun)
-    const weekRows: Array<{ daySlots: (boolean | null)[]; count: number }> = [];
-    let currentWeek: (boolean | null)[] = [null, null, null, null, null, null, null];
-    let weekSessionCount = 0;
-
-    for (let d = 1; d <= totalDays; d++) {
-      const date = new Date(year, month, d);
-      const dayOfWeek = (date.getDay() + 6) % 7; // Mon=0, Sun=6
-
-      // Start new week row if we're on Monday and not day 1
-      if (dayOfWeek === 0 && d > 1) {
-        weekRows.push({ daySlots: currentWeek, count: weekSessionCount });
-        currentWeek = [null, null, null, null, null, null, null];
-        weekSessionCount = 0;
-      }
-
-      const hasSession = sessionDates.has(d);
-      currentWeek[dayOfWeek] = hasSession;
-      if (hasSession) weekSessionCount++;
-    }
-    // Push final week
-    weekRows.push({ daySlots: currentWeek, count: weekSessionCount });
-
-    // Get weekly goal from first session's user (we'll use it from the context)
-    // For now we pass it through — but actually we need the weeklyGoal here
-    // We'll get it from the caller. For now, compute without goal reference.
-
-    // Render
-    const header = '         Mon  Tue  Wed  Thu  Fri  Sat  Sun';
-    const lines = [header];
-
-    // Rows with fewer than 4 in-month days are partial boundary weeks (e.g. a
-    // month that starts on Sunday gives a 1-day first row). These get a blank
-    // label so week numbering stays consistent with the narrative.
-    const MIN_DAYS_FOR_WEEK_LABEL = 4;
-    let weekNumber = 0;
-    weekRows.forEach((week) => {
-      const inMonthDays = week.daySlots.filter(s => s !== null).length;
-      const isPartial = inMonthDays < MIN_DAYS_FOR_WEEK_LABEL;
-      if (!isPartial) weekNumber++;
-      const weekLabel = isPartial ? '         ' : `Week ${weekNumber}`.padEnd(9);
-      const slots = week.daySlots.map(slot => {
-        if (slot === null) return '    '; // Day not in this month
-        return slot ? '  ● ' : '    ';
-      }).join('');
-      const countStr = `${week.count}`;
-      lines.push(`${weekLabel}${slots}   ${countStr} session${week.count !== 1 ? 's' : ''}`);
-    });
-
-    return lines.join('\n');
   }
 
   // ─── Section 9: Milestones ────────────────────────────────────

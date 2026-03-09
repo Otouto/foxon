@@ -20,7 +20,7 @@ export function validateLLMOutput(
     'title', 'verdict', 'ordeal', 'earnedTruth', 'numbers', 'nextTest',
   ];
   for (const field of required) {
-    if (!output[field] && field !== 'carryForward' && field !== 'threshold' && field !== 'rhythmCalendar') {
+    if (!output[field] && field !== 'carryForward' && field !== 'threshold') {
       errors.push(`Missing required field: ${field}`);
     }
   }

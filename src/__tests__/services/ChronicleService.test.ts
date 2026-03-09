@@ -230,7 +230,6 @@ const mockDataPayload: ChronicleDataPayload = {
     effortDistribution: { Hard: 6, Moderate: 2 },
     hardOrAbovePercent: 75,
     sessionsWithVibeLines: 5,
-    calendar: '         Mon Tue Wed Thu Fri Sat Sun\nWeek 1       ●           ●           (2)',
   },
   milestones: [
     { type: 'pr', label: 'PR on Bench Press', detail: '82.5 kg × 8' },
@@ -267,10 +266,7 @@ describe('ChronicleService.generateAndStore', () => {
     (prisma.foxChronicle.findMany as jest.Mock).mockResolvedValue([]);
 
     // LLM returns valid V2 content
-    (ChronicleGenerationService.generateChronicle as jest.Mock).mockResolvedValue({
-      title: mockV2Content.title,
-      contentMd: JSON.stringify(mockV2Content),
-    });
+    (ChronicleGenerationService.generateChronicle as jest.Mock).mockResolvedValue(mockV2Content);
 
     // DB create returns the new chronicle
     (prisma.foxChronicle.create as jest.Mock).mockResolvedValue(mockNewChronicle);
@@ -288,7 +284,7 @@ describe('ChronicleService.generateAndStore', () => {
       (ChronicleGenerationService.generateChronicle as jest.Mock).mockImplementation(async () => {
         deleteCalledBeforeGenerate =
           (prisma.foxChronicle.delete as jest.Mock).mock.calls.length > 0;
-        return { title: mockV2Content.title, contentMd: JSON.stringify(mockV2Content) };
+        return mockV2Content;
       });
 
       await ChronicleService.generateAndStore('user-123', 2, 2026);
@@ -346,14 +342,6 @@ describe('ChronicleService.generateAndStore', () => {
       expect(memory.title).toBe('The Quiet Return');
       expect(memory.nextTest).toBeDefined();
       expect(memory.nextTest.checks.length).toBeGreaterThan(0);
-    });
-
-    it('injects rhythmCalendar from dataPayload into contentMd', async () => {
-      await ChronicleService.generateAndStore('user-123', 2, 2026);
-
-      const createCall = (prisma.foxChronicle.create as jest.Mock).mock.calls[0][0];
-      const stored = JSON.parse(createCall.data.contentMd);
-      expect(stored.rhythmCalendar).toBe(mockDataPayload.rhythm.calendar);
     });
 
     it('passes NarrativePlan (not raw data) to generateChronicle', async () => {

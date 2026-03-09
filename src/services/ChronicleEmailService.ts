@@ -202,18 +202,6 @@ export class ChronicleEmailService {
       margin: 0;
       line-height: 1.75;
     }
-    .rhythm-cal-email {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 14px 16px;
-      font-size: 12px;
-      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-      line-height: 1.6;
-      white-space: pre;
-      overflow-x: auto;
-      color: #1e293b;
-    }
     .next-test {
       font-size: 15px;
       color: #374151;
@@ -291,12 +279,6 @@ export class ChronicleEmailService {
     parts.push(`<div class="section">
   <div class="section-title">The Numbers</div>
   ${renderMarkdown(chapter.numbers)}
-</div>`);
-
-    // Rhythm — calendar only
-    parts.push(`<div class="section">
-  <div class="section-title">Rhythm</div>${chapter.rhythmCalendar ? `
-  <pre class="rhythm-cal-email">${this.escapeHtml(chapter.rhythmCalendar)}</pre>` : ''}
 </div>`);
 
     // Next Test

@@ -2,7 +2,6 @@ import { prisma } from '@/lib/prisma';
 import { ChronicleDataService } from './ChronicleDataService';
 import { ChronicleGenerationService } from './ChronicleGenerationService';
 import { ChronicleEmailService } from './ChronicleEmailService';
-import type { ChronicleChapterContent } from '@/lib/types/chronicle';
 import type { ChapterMemory } from './chronicle/types';
 import {
   buildCanon,
@@ -76,26 +75,24 @@ export class ChronicleService {
     });
 
     // Step 5: Generate chronicle via Claude (new signature — takes NarrativePlan)
-    const { title, contentMd: rawContentMd } = await ChronicleGenerationService.generateChronicle(narrativePlan);
+    const chapter = await ChronicleGenerationService.generateChronicle(narrativePlan);
 
-    // Step 6: Inject rhythmCalendar and validate
-    const parsed = JSON.parse(rawContentMd) as ChronicleChapterContent;
-    parsed.rhythmCalendar = dataPayload.rhythm.calendar;
-    const contentMd = JSON.stringify(parsed);
-    const validation = validateLLMOutput(narrativePlan, parsed);
+    // Step 6: Validate and serialize for storage
+    const contentMd = JSON.stringify(chapter);
+    const validation = validateLLMOutput(narrativePlan, chapter);
     if (!validation.valid) {
       console.warn('[Chronicle] Validation warnings:', validation.errors);
       // Continue anyway — warnings, not hard failures
     }
 
     // Step 7: Build chapter memory for persistence
-    const chapterMemory = buildChapterMemory(narrativePlan, parsed, ordeal.session.id);
+    const chapterMemory = buildChapterMemory(narrativePlan, chapter, ordeal.session.id);
 
     // Step 8: Render HTML for email
     const contentHtml = ChronicleEmailService.renderEmailHtml({
       to: '',
       chapterNumber: dataPayload.timeFrame.chapterNumber,
-      title,
+      title: chapter.title,
       contentMd,
       monthName: dataPayload.timeFrame.monthName,
       userName: dataPayload.userName,
@@ -113,7 +110,7 @@ export class ChronicleService {
         month,
         year,
         chapterNumber: dataPayload.timeFrame.chapterNumber,
-        title,
+        title: chapter.title,
         contentMd,
         contentHtml,
         dataPayload: JSON.parse(JSON.stringify(dataPayload)),
@@ -129,7 +126,7 @@ export class ChronicleService {
       }
     }
 
-    return { id: chronicle.id, title };
+    return { id: chronicle.id, title: chapter.title };
   }
 
   /**

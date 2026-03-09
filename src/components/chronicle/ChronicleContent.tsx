@@ -102,12 +102,6 @@ function ChapterRenderer({ chapter }: { chapter: ChronicleChapterContent }) {
         />
       </section>
 
-      {/* Rhythm — calendar only */}
-      <section className="mb-6">
-        <p className={SECTION_LABEL}>Rhythm</p>
-        {chapter.rhythmCalendar && <RhythmCalendarGrid text={chapter.rhythmCalendar} />}
-      </section>
-
       {/* Next Test */}
       <section className="pt-5 border-t border-gray-100">
         <p className={SECTION_LABEL}>The Next Test</p>
@@ -121,63 +115,3 @@ function ChapterRenderer({ chapter }: { chapter: ChronicleChapterContent }) {
   );
 }
 
-// ─── Rhythm Calendar — pure React with Tailwind ──────────────────────────────
-
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-interface CalRow { label: string; slots: boolean[]; countText: string }
-
-function parseCalendarRows(text: string): CalRow[] {
-  const lines = text.split('\n').filter(l => l.length > 0);
-  const rows: CalRow[] = [];
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i];
-    if (!line.trim()) continue;
-    const label = line.substring(0, 9).trim();
-    const slots: boolean[] = [];
-    for (let j = 0; j < 7; j++) {
-      const slot = line.substring(9 + j * 4, 13 + j * 4);
-      slots.push(slot.trim() !== '');
-    }
-    const countText = line.substring(37).trim();
-    rows.push({ label, slots, countText });
-  }
-  return rows;
-}
-
-function RhythmCalendarGrid({ text }: { text: string }) {
-  const rows = parseCalendarRows(text);
-  return (
-    <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 overflow-x-auto mb-1">
-      <div className="flex items-center pb-2 mb-0.5 border-b border-slate-200">
-        <span className="w-[4.5rem] shrink-0" />
-        {DAYS.map(d => (
-          <span
-            key={d}
-            className="w-11 shrink-0 text-center text-[0.625rem] font-bold text-slate-400 uppercase tracking-wide"
-          >
-            {d}
-          </span>
-        ))}
-        <span className="ml-2 w-20 shrink-0" />
-      </div>
-      {rows.map((row, i) => (
-        <div key={i} className="flex items-center py-0.5">
-          <span className="w-[4.5rem] shrink-0 text-[0.6875rem] font-mono text-slate-500">
-            {row.label}
-          </span>
-          {row.slots.map((active, j) => (
-            <span key={j} className="w-11 shrink-0 h-7 flex items-center justify-center">
-              {active && (
-                <span className="w-2 h-2 rounded-full bg-slate-700 block" />
-              )}
-            </span>
-          ))}
-          <span className="ml-2 text-[0.6875rem] font-mono text-slate-400 whitespace-nowrap">
-            {row.countText}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
