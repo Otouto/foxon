@@ -93,6 +93,8 @@ async function main() {
       displayName: MOCK_USER.displayName,
       weeklyGoal: MOCK_USER.weeklyGoal,
       progressionState: MOCK_USER.progressionState,
+      foxLevel: MOCK_USER.foxLevel,
+      foxFormScore: MOCK_USER.foxFormScore,
     },
     create: {
       id: MOCK_USER.id,
@@ -100,6 +102,8 @@ async function main() {
       displayName: MOCK_USER.displayName,
       weeklyGoal: MOCK_USER.weeklyGoal,
       progressionState: MOCK_USER.progressionState,
+      foxLevel: MOCK_USER.foxLevel,
+      foxFormScore: MOCK_USER.foxFormScore,
     },
   })
 

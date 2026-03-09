@@ -4,7 +4,9 @@ export const MOCK_USER = {
   clerkUserId: 'mock-clerk-dmytro-123',
   displayName: 'Dmytro',
   weeklyGoal: 2,
-  progressionState: 'FIT' as const
+  progressionState: 'SLIM' as const,
+  foxLevel: 'SLIM' as const,
+  foxFormScore: 0,
 };
 
 // Vocabulary interfaces matching new ERD structure

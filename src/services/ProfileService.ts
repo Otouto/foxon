@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/auth';
 import { ProgressionState, SessionStatus } from '@prisma/client';
+import { FoxLevelService } from '@/services/FoxLevelService';
 
 export interface UserProfile {
   id: string;
@@ -9,6 +10,9 @@ export interface UserProfile {
   email: string | null;
   avatarUrl: string | null;
   weeklyGoal: number;
+  foxLevel: ProgressionState;
+  foxFormScore: number;
+  /** @deprecated Use foxLevel instead */
   progressionState: ProgressionState;
   createdAt: Date;
   updatedAt: Date;
@@ -66,7 +70,7 @@ export class ProfileService {
         return null;
       }
 
-      const [stats, monthAwareDevotion, firstSession, trainingPulse, chronicleEntry] =
+      const [stats, monthAwareDevotion, firstSession, trainingPulse, chronicleEntry, foxEval] =
         await Promise.all([
           this.calculateUserStats(userId),
           this.getMonthAwareDevotion(userId),
@@ -77,6 +81,7 @@ export class ProfileService {
           }),
           this.getTrainingPulseData(userId),
           this.getChronicleEntryInfo(userId),
+          FoxLevelService.ensureEvaluated(userId),
         ]);
 
       return {
@@ -87,7 +92,9 @@ export class ProfileService {
           email: user.email,
           avatarUrl: user.avatarUrl,
           weeklyGoal: user.weeklyGoal,
-          progressionState: user.progressionState,
+          foxLevel: foxEval.level,
+          foxFormScore: foxEval.formScore,
+          progressionState: foxEval.level,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
         },
@@ -337,7 +344,9 @@ export class ProfileService {
         email: updatedUser.email,
         avatarUrl: updatedUser.avatarUrl,
         weeklyGoal: updatedUser.weeklyGoal,
-        progressionState: updatedUser.progressionState,
+        foxLevel: updatedUser.foxLevel,
+        foxFormScore: updatedUser.foxFormScore,
+        progressionState: updatedUser.foxLevel,
         createdAt: updatedUser.createdAt,
         updatedAt: updatedUser.updatedAt,
       };

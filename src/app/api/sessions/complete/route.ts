@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, isAuthenticated } from '@/lib/auth';
 import { SessionStatus, SetType } from '@prisma/client';
 import { DevotionScoringService } from '@/services/DevotionScoringService';
+import { FoxLevelService } from '@/services/FoxLevelService';
 
 interface CompletedSessionData {
   workoutId: string;
@@ -109,13 +110,20 @@ export async function POST(request: NextRequest) {
         }))
       }));
 
-      // Update devotion score in background - don't block response
+      // Update devotion score in background, then evaluate fox level
       DevotionScoringService.updateSessionWithDevotionScore(
         session.id,
         sessionData.workoutId,
         actualExercises
-      ).catch(error => {
-        console.error('Failed to calculate devotion score for session:', session.id, error);
+      ).then(() => {
+        return FoxLevelService.onSessionCompleted(userId);
+      }).catch(error => {
+        console.error('Failed to calculate devotion score / fox level for session:', session.id, error);
+      });
+    } else {
+      // No workout template — still evaluate fox level
+      FoxLevelService.onSessionCompleted(userId).catch(error => {
+        console.error('Failed to evaluate fox level for session:', session.id, error);
       });
     }
 

@@ -1,7 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { SessionStatus } from '@prisma/client';
 import { getPracticeTimeInfo, getDevotionScoreLabel, getWeekBounds, mergePartialBoundaryWeeks } from '@/lib/utils/dateUtils';
-import { computeFoxState } from '@/lib/utils/foxState';
 import type {
   ChronicleDataPayload,
   ChronicleTimeFrame,
@@ -83,26 +82,29 @@ export class ChronicleDataService {
     const prevMonthEnd = new Date(year, month - 1, 0, 23, 59, 59, 999);
 
     // Fetch current and previous month sessions with full relations
-    const [currentSessions, prevSessions, allTimeSessions] = await Promise.all([
+    const [currentSessions, prevSessions, allTimeSessions, prevChapter] = await Promise.all([
       this.fetchSessions(userId, monthStart, monthEnd),
       this.fetchSessions(userId, prevMonthStart, prevMonthEnd),
       this.fetchAllSessionsBefore(userId, monthStart),
+      this.fetchPreviousChapterMemory(userId, month, year),
     ]);
 
     const weeklyGoal = user.weeklyGoal;
+    // Fox state from previous chapter memory (if exists)
+    const prevFoxState = prevChapter?.foxStateEnd || 'SLIM';
 
     // Compute all sections
     const timeFrame = this.computeTimeFrame(month, year, userId, allTimeSessions, currentSessions);
     const previousMonth = prevSessions.length > 0
-      ? this.computePreviousMonth(prevSessions, weeklyGoal, prevMonthStart, prevMonthEnd)
+      ? this.computePreviousMonth(prevSessions, weeklyGoal, prevMonthStart, prevMonthEnd, prevFoxState)
       : null;
     const sessions = this.computeSessionData(currentSessions, monthStart);
     const weeks = this.computeWeekData(currentSessions, monthStart, monthEnd, weeklyGoal);
-    const currentMonth = this.computeCurrentMonth(currentSessions, weeks, weeklyGoal, previousMonth, allTimeSessions);
+    const currentMonth = this.computeCurrentMonth(currentSessions, weeks, weeklyGoal, previousMonth, allTimeSessions, user.foxLevel);
     const pillars = this.computePillarAnalysis(currentSessions, prevSessions);
     const exercises = this.computeExerciseInsights(currentSessions, prevSessions, allTimeSessions);
     const rhythm = this.computeRhythm(currentSessions);
-    const milestones = this.computeMilestones(currentSessions, previousMonth, weeks, exercises, allTimeSessions);
+    const milestones = this.computeMilestones(currentSessions, previousMonth, weeks, exercises, allTimeSessions, user.foxLevel);
 
     return {
       timeFrame: {
@@ -189,6 +191,20 @@ export class ChronicleDataService {
     }) as unknown as RawSession[];
   }
 
+  private static async fetchPreviousChapterMemory(
+    userId: string, month: number, year: number
+  ): Promise<{ foxStateEnd: string } | null> {
+    const prevMonth = month === 1 ? 12 : month - 1;
+    const prevYear = month === 1 ? year - 1 : year;
+    const prevChronicle = await prisma.foxChronicle.findFirst({
+      where: { userId, month: prevMonth, year: prevYear },
+      select: { chapterMemory: true },
+    });
+    if (!prevChronicle?.chapterMemory) return null;
+    const memory = prevChronicle.chapterMemory as Record<string, unknown>;
+    return { foxStateEnd: (memory.foxStateEnd as string) || 'SLIM' };
+  }
+
   // ─── Section 1: Time Frame ────────────────────────────────────
 
   private static computeTimeFrame(
@@ -236,7 +252,8 @@ export class ChronicleDataService {
 
   private static computePreviousMonth(
     sessions: RawSession[], weeklyGoal: number,
-    monthStart: Date, monthEnd: Date
+    monthStart: Date, monthEnd: Date,
+    foxState: string
   ): ChroniclePreviousMonth {
     const scores = sessions.map(s => s.devotionScore).filter((s): s is number => s !== null);
     const volume = this.computeTotalVolume(sessions);
@@ -263,14 +280,11 @@ export class ChronicleDataService {
       if (weekSessions.length >= weeklyGoal) weeksHit++;
     }
 
-    // Determine fox state at end of prev month using monthly week count
-    const foxState = this.inferFoxState(sessions, weeklyGoal, weekBounds.length);
-
     return {
       sessionCount: sessions.length,
       avgDevotion: scores.length > 0 ? Math.round(avg(scores)) : null,
       bestScore: scores.length > 0 ? Math.max(...scores) : null,
-      foxState,
+      foxState,  // now passed as parameter, read from DB
       weeksAtGoal: `${weeksHit} of ${weekBounds.length}`,
       totalVolume: Math.round(volume),
       avgLF: lfValues.length > 0 ? round2(avg(lfValues)) : null,
@@ -284,7 +298,8 @@ export class ChronicleDataService {
     weeks: ChronicleWeekData[],
     weeklyGoal: number,
     prev: ChroniclePreviousMonth | null,
-    priorSessions: RawSession[]
+    priorSessions: RawSession[],
+    foxLevel: string
   ): ChronicleCurrentMonth {
     const scores = sessions.map(s => s.devotionScore).filter((s): s is number => s !== null);
     const volume = this.computeTotalVolume(sessions);
@@ -293,7 +308,7 @@ export class ChronicleDataService {
       .filter((v): v is number => v !== undefined && v !== null);
 
     const weeksHit = weeks.filter(w => w.hitGoal).length;
-    const foxStateEnd = this.inferFoxState(sessions, weeklyGoal, weeks.length);
+    const foxStateEnd = foxLevel;  // read from DB, single source of truth
     const foxStateStart = prev?.foxState || 'SLIM';
     const stateOrder = ['SLIM', 'FIT', 'STRONG', 'FIERY'];
 
@@ -824,7 +839,8 @@ export class ChronicleDataService {
     prev: ChroniclePreviousMonth | null,
     weeks: ChronicleWeekData[],
     exercises: ChronicleExerciseInsight[],
-    _allTime: RawSession[]
+    _allTime: RawSession[],
+    foxLevel: string
   ): ChronicleMilestone[] {
     const milestones: ChronicleMilestone[] = [];
     if (sessions.length === 0) return milestones;
@@ -860,12 +876,11 @@ export class ChronicleDataService {
     // Fox level up
     if (prev) {
       const stateOrder = ['SLIM', 'FIT', 'STRONG', 'FIERY'];
-      const currentState = this.inferFoxState(sessions, weeks[0]?.planned || 2, weeks.length);
-      if (stateOrder.indexOf(currentState) > stateOrder.indexOf(prev.foxState)) {
+      if (stateOrder.indexOf(foxLevel) > stateOrder.indexOf(prev.foxState)) {
         milestones.push({
           type: 'foxLevelUp',
           label: 'Fox leveled up',
-          detail: `${prev.foxState} → ${currentState}`,
+          detail: `${prev.foxState} → ${foxLevel}`,
         });
       }
     }
@@ -1035,11 +1050,6 @@ export class ChronicleDataService {
     return 'Weak spot';
   }
 
-  private static inferFoxState(sessions: RawSession[], weeklyGoal: number, weekCount: number = 4): string {
-    const scores = sessions.map(s => s.devotionScore).filter((s): s is number => s !== null);
-    const avgScore = scores.length > 0 ? avg(scores) : null;
-    return computeFoxState(sessions.length, weeklyGoal * weekCount, avgScore);
-  }
 
   private static generateMiniArc(sessions: RawSession[], _weeklyGoal: number): string {
     if (sessions.length === 0) return 'Rest week.';

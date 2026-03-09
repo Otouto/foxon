@@ -1,12 +1,13 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/auth';
 import { ProgressionState, SessionStatus, WorkoutStatus } from '@prisma/client';
-import { computeFoxState } from '@/lib/utils/foxState';
+import { FoxLevelService } from '@/services/FoxLevelService';
 
 export interface DashboardData {
   displayName: string | null;
   foxState: {
     state: ProgressionState;
+    formScore: number;
     devotionScore: number | null;
     isLastMonth: boolean;
     hasNoSessions: boolean;
@@ -71,17 +72,6 @@ export class DashboardService {
   }
 
   /**
-   * Calculate fox progression state based on workout completion and devotion
-   */
-  private static calculateFoxState(
-    completedWorkouts: number,
-    plannedPerWeek: number,
-    avgDevotionScore: number | null
-  ): ProgressionState {
-    const result = computeFoxState(completedWorkouts, plannedPerWeek * 8, avgDevotionScore);
-    return ProgressionState[result as keyof typeof ProgressionState];
-  }
-  /**
    * Get all dashboard data
    */
   static async getDashboardData(): Promise<DashboardData> {
@@ -96,33 +86,8 @@ export class DashboardService {
       throw new Error('User not found');
     }
 
-    // Get sessions from the last 8 weeks for fox state calculation
-    const eightWeeksAgo = new Date();
-    eightWeeksAgo.setDate(eightWeeksAgo.getDate() - 56);
-
-    const last8WeeksSessions = await prisma.session.findMany({
-      where: {
-        userId,
-        status: SessionStatus.FINISHED,
-        date: { gte: eightWeeksAgo }
-      }
-    });
-
-    // Calculate average devotion score from last 8 weeks (for fox state computation)
-    const sessionsWithDevotionScore = last8WeeksSessions.filter(s => s.devotionScore !== null);
-    const averageDevotionScore8w = sessionsWithDevotionScore.length > 0
-      ? Math.round(
-          sessionsWithDevotionScore.reduce((sum, s) => sum + (s.devotionScore || 0), 0) /
-          sessionsWithDevotionScore.length
-        )
-      : null;
-
-    // Calculate fox state dynamically (still 8-week based)
-    const foxState = this.calculateFoxState(
-      last8WeeksSessions.length,
-      user.weeklyGoal,
-      averageDevotionScore8w
-    );
+    // Fox level: read from DB, lazy-evaluate if stale (>24h)
+    const { level: foxState, formScore: foxFormScore } = await FoxLevelService.ensureEvaluated(userId);
 
     // Month-aware devotion for display
     const now = new Date();
@@ -278,10 +243,11 @@ export class DashboardService {
       displayName: user.displayName,
       foxState: {
         state: foxState,
+        formScore: foxFormScore,
         devotionScore: displayDevotionScore,
         isLastMonth,
         hasNoSessions,
-        timePeriod: 'Last 8 weeks'
+        timePeriod: 'Last 6 weeks'
       },
       weekProgress: {
         completed: completedThisWeek,

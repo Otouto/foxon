@@ -7,6 +7,11 @@ export const mockUser: User = {
   displayName: 'Test User',
   weeklyGoal: 3,
   progressionState: 'SLIM',
+  foxFormScore: 0,
+  foxLevel: 'SLIM',
+  foxLastEvalAt: new Date('2024-01-01'),
+  foxPendingPromo: null,
+  foxPendingDemote: null,
   createdAt: new Date('2024-01-01'),
   updatedAt: new Date('2024-01-01'),
 }

@@ -8,7 +8,9 @@ export function getCurrentUser() {
     clerkUserId: MOCK_USER.clerkUserId,
     displayName: MOCK_USER.displayName,
     weeklyGoal: MOCK_USER.weeklyGoal,
-    progressionState: MOCK_USER.progressionState
+    progressionState: MOCK_USER.progressionState,
+    foxLevel: MOCK_USER.foxLevel,
+    foxFormScore: MOCK_USER.foxFormScore,
   }
 }
 

@@ -59,7 +59,12 @@ model User {
   email            String?
   avatarUrl        String?         @map("avatar_url")
   weeklyGoal       Int             @default(2) @map("weekly_goal")
-  progressionState ProgressionState @default(SLIM) @map("progression_state")
+  progressionState ProgressionState @default(SLIM) @map("progression_state") // @deprecated - use foxLevel
+  foxFormScore     Float            @default(0) @map("fox_form_score")
+  foxLevel         ProgressionState @default(SLIM) @map("fox_level")
+  foxLastEvalAt    DateTime         @default(now()) @map("fox_last_eval_at")
+  foxPendingPromo  String?          @map("fox_pending_promo")
+  foxPendingDemote String?          @map("fox_pending_demote")
   createdAt        DateTime        @default(now()) @map("created_at")
   updatedAt        DateTime        @updatedAt @map("updated_at")
 

@@ -28,7 +28,7 @@ export default async function ProfilePage() {
         firstSessionDate={firstSessionDate}
       />
 
-      <FoxEvolutionTimeline currentState={user.progressionState} />
+      <FoxEvolutionTimeline currentState={user.foxLevel} />
 
       <TrainingPulseGrid
         grid={trainingPulse.grid}
