@@ -28,9 +28,8 @@ export default async function Home() {
         {/* Fox State + Devotion Score */}
         <FoxStateCard
           state={dashboardData.foxState.state}
-          devotionScore={dashboardData.foxState.devotionScore}
-          isLastMonth={dashboardData.foxState.isLastMonth}
-          hasNoSessions={dashboardData.foxState.hasNoSessions}
+          formScore={dashboardData.foxState.formScore}
+          formScoreBreakdown={dashboardData.foxState.formScoreBreakdown}
         />
 
         {/* This Week Progress */}

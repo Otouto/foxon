@@ -22,6 +22,7 @@ jest.mock('@/lib/auth', () => ({
 jest.mock('@/services/FoxLevelService', () => ({
   FoxLevelService: {
     ensureEvaluated: jest.fn(),
+    computeFormScore: jest.fn(),
   },
 }))
 
@@ -80,6 +81,12 @@ describe('DashboardService', () => {
         level: ProgressionState.SLIM,
         formScore: 0,
       })
+      ;(FoxLevelService.computeFormScore as jest.Mock).mockResolvedValue({
+        attendance: 0,
+        quality: 0,
+        consistency: 0,
+        total: 0,
+      })
     })
 
     describe('Fox level from FoxLevelService', () => {
@@ -126,6 +133,25 @@ describe('DashboardService', () => {
         const result = await DashboardService.getDashboardData()
 
         expect(result.foxState.timePeriod).toBe('Last 6 weeks')
+      })
+
+      it('should include formScoreBreakdown from computeFormScore', async () => {
+        ;(prisma.session.findMany as jest.Mock).mockResolvedValue([])
+        ;(FoxLevelService.computeFormScore as jest.Mock).mockResolvedValue({
+          attendance: 50,
+          quality: 80,
+          consistency: 33,
+          total: 57,
+        })
+
+        const result = await DashboardService.getDashboardData()
+
+        expect(FoxLevelService.computeFormScore).toHaveBeenCalledWith('test-user-123')
+        expect(result.foxState.formScoreBreakdown).toEqual({
+          attendance: 50,
+          quality: 80,
+          consistency: 33,
+        })
       })
     })
 

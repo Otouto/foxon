@@ -107,36 +107,67 @@ describe('WeekProgressCard', () => {
 
 // ─── FoxStateCard ───────────────────────────────────────────────────
 
+const defaultBreakdown = { attendance: 58, quality: 94, consistency: 17 };
+
 describe('FoxStateCard', () => {
-  it('shows "—" and "Complete your first session" when no sessions', () => {
+  it('shows the formScore and "form score · 6 weeks" label', () => {
     render(
-      <FoxStateCard state={'SLIM' as ProgressionState} devotionScore={null} hasNoSessions={true} />
+      <FoxStateCard
+        state={'FIT' as ProgressionState}
+        formScore={60}
+        formScoreBreakdown={defaultBreakdown}
+      />
     );
-    expect(screen.getByText('—')).toBeInTheDocument();
-    expect(screen.getByText('Complete your first session')).toBeInTheDocument();
+    expect(screen.getByText('60')).toBeInTheDocument();
+    expect(screen.getByText('form score · 6 weeks')).toBeInTheDocument();
   });
 
-  it('shows current month devotion score', () => {
+  it('shows the Fox State label', () => {
     render(
-      <FoxStateCard state={'FIT' as ProgressionState} devotionScore={82} />
+      <FoxStateCard
+        state={'STRONG' as ProgressionState}
+        formScore={72}
+        formScoreBreakdown={defaultBreakdown}
+      />
     );
-    expect(screen.getByText('82')).toBeInTheDocument();
-    expect(screen.getByText('devotion score')).toBeInTheDocument();
+    expect(screen.getByText('STRONG')).toBeInTheDocument();
+  });
+
+  it('renders all three pillar labels', () => {
+    render(
+      <FoxStateCard
+        state={'FIT' as ProgressionState}
+        formScore={60}
+        formScoreBreakdown={defaultBreakdown}
+      />
+    );
+    expect(screen.getByText('Attendance')).toBeInTheDocument();
+    expect(screen.getByText('Quality')).toBeInTheDocument();
+    expect(screen.getByText('Consistency')).toBeInTheDocument();
+  });
+
+  it('renders numeric pillar values', () => {
+    render(
+      <FoxStateCard
+        state={'FIT' as ProgressionState}
+        formScore={60}
+        formScoreBreakdown={defaultBreakdown}
+      />
+    );
+    expect(screen.getByText('58')).toBeInTheDocument();
+    expect(screen.getByText('94')).toBeInTheDocument();
+    expect(screen.getByText('17')).toBeInTheDocument();
   });
 
   it('links to profile page', () => {
     render(
-      <FoxStateCard state={'FIT' as ProgressionState} devotionScore={82} />
+      <FoxStateCard
+        state={'FIT' as ProgressionState}
+        formScore={60}
+        formScoreBreakdown={defaultBreakdown}
+      />
     );
     expect(screen.getByRole('link')).toHaveAttribute('href', '/profile');
-  });
-
-  it('shows last month label when isLastMonth is true', () => {
-    render(
-      <FoxStateCard state={'STRONG' as ProgressionState} devotionScore={75} isLastMonth={true} />
-    );
-    expect(screen.getByText('75')).toBeInTheDocument();
-    expect(screen.getByText(/devotion score.*last month/)).toBeInTheDocument();
   });
 });
 

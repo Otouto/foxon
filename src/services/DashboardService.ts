@@ -8,6 +8,7 @@ export interface DashboardData {
   foxState: {
     state: ProgressionState;
     formScore: number;
+    formScoreBreakdown: { attendance: number; quality: number; consistency: number };
     devotionScore: number | null;
     isLastMonth: boolean;
     hasNoSessions: boolean;
@@ -88,6 +89,7 @@ export class DashboardService {
 
     // Fox level: read from DB, lazy-evaluate if stale (>24h)
     const { level: foxState, formScore: foxFormScore } = await FoxLevelService.ensureEvaluated(userId);
+    const { attendance, quality, consistency } = await FoxLevelService.computeFormScore(userId);
 
     // Month-aware devotion for display
     const now = new Date();
@@ -244,6 +246,7 @@ export class DashboardService {
       foxState: {
         state: foxState,
         formScore: foxFormScore,
+        formScoreBreakdown: { attendance, quality, consistency },
         devotionScore: displayDevotionScore,
         isLastMonth,
         hasNoSessions,
