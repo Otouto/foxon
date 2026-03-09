@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { formatDate } from '@/lib/utils/dateUtils';
+import { getDaysAgoLabel } from '@/lib/utils/dateUtils';
 
 interface LastSessionSnapshotProps {
   session: {
@@ -21,7 +21,7 @@ export function LastSessionSnapshot({ session }: LastSessionSnapshotProps) {
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Last Session</span>
-          <span className="text-xs text-gray-400">{formatDate(sessionDate)}</span>
+          <span className="text-xs text-gray-400">{getDaysAgoLabel(sessionDate)}</span>
         </div>
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0 mr-3">

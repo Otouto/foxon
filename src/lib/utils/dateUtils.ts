@@ -17,6 +17,16 @@ export function formatDate(date: Date): string {
   }
 }
 
+export function getDaysAgoLabel(date: Date): string {
+  const today = new Date();
+  const diffMs = today.setHours(0, 0, 0, 0) - new Date(date).setHours(0, 0, 0, 0);
+  const days = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+  if (days === 0) return 'Today';
+  if (days === 1) return 'Yesterday';
+  return `${days} days ago`;
+}
+
 export function formatDateShort(date: Date): string {
   return date.toLocaleDateString('en-US', { 
     month: 'short', 
