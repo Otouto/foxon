@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/auth';
 import { ProgressionState, SessionStatus } from '@prisma/client';
 import { FoxLevelService } from '@/services/FoxLevelService';
+import { getWeekBounds } from '@/lib/utils/dateUtils';
 
 export interface UserProfile {
   id: string;
@@ -275,44 +276,39 @@ export class ProfileService {
   private static calculateWeekStreak(sessions: { date: Date }[]): number {
     if (sessions.length === 0) return 0;
 
-    const now = new Date();
-    const currentWeek = this.getWeekNumber(now);
-    const currentYear = now.getFullYear();
-
-    let streak = 0;
-    let checkWeek = currentWeek;
-    let checkYear = currentYear;
-
-    const sessionsByWeek = new Map<string, number>();
+    const sessionsByWeekStart = new Set<string>();
     sessions.forEach(session => {
-      const weekKey = `${session.date.getFullYear()}-${this.getWeekNumber(session.date)}`;
-      sessionsByWeek.set(weekKey, (sessionsByWeek.get(weekKey) || 0) + 1);
+      const weekStart = getWeekBounds(session.date).start;
+      sessionsByWeekStart.add(this.toDateKey(weekStart));
     });
 
-    while (true) {
-      const weekKey = `${checkYear}-${checkWeek}`;
-      if (sessionsByWeek.has(weekKey)) {
-        streak++;
-        checkWeek--;
-        if (checkWeek < 1) {
-          checkWeek = 52;
-          checkYear--;
-        }
-      } else {
-        break;
-      }
+    const currentWeekStart = getWeekBounds(new Date()).start;
+    let checkWeekStart = currentWeekStart;
+
+    // Grace period: an unfinished current week does not break an existing streak.
+    if (!sessionsByWeekStart.has(this.toDateKey(currentWeekStart))) {
+      const previousWeek = new Date(currentWeekStart);
+      previousWeek.setDate(previousWeek.getDate() - 7);
+      checkWeekStart = previousWeek;
+    }
+
+    let streak = 0;
+
+    while (sessionsByWeekStart.has(this.toDateKey(checkWeekStart))) {
+      streak++;
+      const previousWeek = new Date(checkWeekStart);
+      previousWeek.setDate(previousWeek.getDate() - 7);
+      checkWeekStart = previousWeek;
     }
 
     return streak;
   }
 
   /**
-   * Get week number of the year
+   * Format local date as YYYY-MM-DD for stable keying
    */
-  private static getWeekNumber(date: Date): number {
-    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-    const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
-    return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+  private static toDateKey(date: Date): string {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   }
 
   /**
