@@ -24,12 +24,6 @@ export interface UserStats {
   currentWeekStreak: number;
 }
 
-export interface MonthAwareDevotion {
-  score: number | null;
-  isLastMonth: boolean;
-  monthLabel?: string;
-}
-
 export interface TrainingPulseData {
   grid: boolean[][];
   totalSessions: number;
@@ -49,7 +43,6 @@ export interface ChronicleEntryInfo {
 export interface ProfileData {
   user: UserProfile;
   stats: UserStats;
-  monthAwareDevotion: MonthAwareDevotion;
   firstSessionDate: Date | null;
   trainingPulse: TrainingPulseData;
   chronicleEntry: ChronicleEntryInfo;
@@ -71,10 +64,9 @@ export class ProfileService {
         return null;
       }
 
-      const [stats, monthAwareDevotion, firstSession, trainingPulse, chronicleEntry, foxEval] =
+      const [stats, firstSession, trainingPulse, chronicleEntry, foxEval] =
         await Promise.all([
           this.calculateUserStats(userId),
-          this.getMonthAwareDevotion(userId),
           prisma.session.findFirst({
             where: { userId, status: SessionStatus.FINISHED },
             orderBy: { date: 'asc' },
@@ -100,7 +92,6 @@ export class ProfileService {
           updatedAt: user.updatedAt,
         },
         stats,
-        monthAwareDevotion,
         firstSessionDate: firstSession?.date || null,
         trainingPulse,
         chronicleEntry,
@@ -131,57 +122,6 @@ export class ProfileService {
       completedSessions,
       currentWeekStreak,
     };
-  }
-
-  /**
-   * Get month-aware devotion score (current month, fallback to previous)
-   */
-  static async getMonthAwareDevotion(userId: string): Promise<MonthAwareDevotion> {
-    const now = new Date();
-    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    const currentMonthSessions = await prisma.session.findMany({
-      where: {
-        userId,
-        status: SessionStatus.FINISHED,
-        date: { gte: currentMonthStart },
-        devotionScore: { not: null },
-      },
-      select: { devotionScore: true },
-    });
-
-    if (currentMonthSessions.length > 0) {
-      const avg = Math.round(
-        currentMonthSessions.reduce((sum, s) => sum + (s.devotionScore || 0), 0) /
-        currentMonthSessions.length
-      );
-      return { score: avg, isLastMonth: false };
-    }
-
-    // Fallback to previous month
-    const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-
-    const prevMonthSessions = await prisma.session.findMany({
-      where: {
-        userId,
-        status: SessionStatus.FINISHED,
-        date: { gte: prevMonthStart, lte: prevMonthEnd },
-        devotionScore: { not: null },
-      },
-      select: { devotionScore: true },
-    });
-
-    if (prevMonthSessions.length > 0) {
-      const avg = Math.round(
-        prevMonthSessions.reduce((sum, s) => sum + (s.devotionScore || 0), 0) /
-        prevMonthSessions.length
-      );
-      const monthLabel = prevMonthStart.toLocaleDateString('en-US', { month: 'short' });
-      return { score: avg, isLastMonth: true, monthLabel };
-    }
-
-    return { score: null, isLastMonth: false };
   }
 
   /**

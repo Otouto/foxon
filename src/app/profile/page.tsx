@@ -19,7 +19,7 @@ export default async function ProfilePage() {
     );
   }
 
-  const { user, stats, monthAwareDevotion, firstSessionDate, trainingPulse, chronicleEntry } = profileData;
+  const { user, stats, firstSessionDate, trainingPulse, chronicleEntry } = profileData;
 
   return (
     <div className="px-6 py-8 pb-24">
@@ -39,7 +39,7 @@ export default async function ProfilePage() {
       <KeyNumbersRow
         totalSessions={stats.completedSessions}
         weekStreak={stats.currentWeekStreak}
-        devotion={monthAwareDevotion}
+        formScore={user.foxFormScore}
       />
 
       <ChronicleEntryCard entry={chronicleEntry} />
