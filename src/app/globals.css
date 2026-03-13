@@ -506,6 +506,11 @@
    Must live here (not in <style jsx>) because dangerouslySetInnerHTML elements
    never receive the styled-jsx scope hash, so scoped selectors won't match.
 ──────────────────────────────────────────────────────────────────────────── */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .chronicle-fields p {
   font-size: 0.9375rem;
   line-height: 1.75;

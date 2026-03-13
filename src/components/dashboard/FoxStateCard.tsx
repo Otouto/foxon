@@ -1,7 +1,10 @@
 'use client';
 
+import { useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { ProgressionState } from '@prisma/client';
+import { useAnimatedValue } from '@/hooks/useAnimatedValue';
+import { DashboardCache } from '@/lib/dashboardCache';
 
 interface FormScoreBreakdown {
   attendance: number;
@@ -54,14 +57,65 @@ const FOX_STATE_STYLES = {
   }
 };
 
-const PILLARS: { key: keyof FormScoreBreakdown; label: string }[] = [
-  { key: 'attendance',  label: 'Attendance'  },
-  { key: 'quality',     label: 'Quality'     },
-  { key: 'consistency', label: 'Consistency' },
+const PILLARS: { key: keyof FormScoreBreakdown; label: string; delay: number }[] = [
+  { key: 'attendance',  label: 'Attendance',  delay: 600  },
+  { key: 'quality',     label: 'Quality',     delay: 750  },
+  { key: 'consistency', label: 'Consistency', delay: 900  },
 ];
 
 export function FoxStateCard({ state, formScore, formScoreBreakdown }: FoxStateCardProps) {
   const style = FOX_STATE_STYLES[state];
+
+  const cached = useMemo(() => DashboardCache.getFoxState(), []);
+  const hasChange = cached !== null && (
+    cached.formScore !== formScore ||
+    cached.attendance !== formScoreBreakdown.attendance ||
+    cached.quality !== formScoreBreakdown.quality ||
+    cached.consistency !== formScoreBreakdown.consistency
+  );
+
+  const animatedFormScore = useAnimatedValue(
+    hasChange ? cached!.formScore : formScore,
+    formScore,
+    1000,
+    200
+  );
+
+  const animatedAttendance = useAnimatedValue(
+    hasChange ? cached!.attendance : formScoreBreakdown.attendance,
+    formScoreBreakdown.attendance,
+    800,
+    600
+  );
+
+  const animatedQuality = useAnimatedValue(
+    hasChange ? cached!.quality : formScoreBreakdown.quality,
+    formScoreBreakdown.quality,
+    800,
+    750
+  );
+
+  const animatedConsistency = useAnimatedValue(
+    hasChange ? cached!.consistency : formScoreBreakdown.consistency,
+    formScoreBreakdown.consistency,
+    800,
+    900
+  );
+
+  const animatedPillars: Record<keyof FormScoreBreakdown, number> = {
+    attendance: animatedAttendance,
+    quality: animatedQuality,
+    consistency: animatedConsistency,
+  };
+
+  useEffect(() => {
+    DashboardCache.setFoxState({
+      formScore,
+      attendance: formScoreBreakdown.attendance,
+      quality: formScoreBreakdown.quality,
+      consistency: formScoreBreakdown.consistency,
+    });
+  }, [formScore, formScoreBreakdown]);
 
   return (
     <Link href="/profile" className="block">
@@ -92,7 +146,7 @@ export function FoxStateCard({ state, formScore, formScoreBreakdown }: FoxStateC
         {/* Form Score */}
         <div className="text-center mb-4">
           <div className="text-4xl font-bold text-gray-900 mb-0.5">
-            {formScore}
+            {animatedFormScore}
           </div>
           <div className="text-sm text-gray-500">
             form score · 6 weeks
@@ -102,7 +156,7 @@ export function FoxStateCard({ state, formScore, formScoreBreakdown }: FoxStateC
         {/* Pillar Breakdown */}
         <div className="space-y-2">
           {PILLARS.map(({ key, label }) => {
-            const value = formScoreBreakdown[key];
+            const value = animatedPillars[key];
             return (
               <div key={key} className="flex items-center gap-2">
                 <span className="text-xs text-gray-400 w-[76px] shrink-0">
@@ -110,7 +164,7 @@ export function FoxStateCard({ state, formScore, formScoreBreakdown }: FoxStateC
                 </span>
                 <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full ${style.barColor} transition-all duration-500`}
+                    className={`h-full rounded-full ${style.barColor}`}
                     style={{ width: `${value}%` }}
                   />
                 </div>

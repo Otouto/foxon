@@ -1,5 +1,9 @@
 'use client';
 
+import { useEffect, useMemo } from 'react';
+import { useAnimatedValue } from '@/hooks/useAnimatedValue';
+import { DashboardCache } from '@/lib/dashboardCache';
+
 interface WeekProgressCardProps {
   completed: number;
   planned: number;
@@ -9,7 +13,23 @@ interface WeekProgressCardProps {
 }
 
 export function WeekProgressCard({ completed, planned, isComplete, isExceeded, extra }: WeekProgressCardProps) {
-  const percentage = (completed / planned) * 100;
+  const cached = useMemo(() => DashboardCache.getWeekProgress(), []);
+  const hasChange = cached !== null && (
+    cached.completed !== completed || cached.planned !== planned
+  );
+
+  const animatedCompleted = useAnimatedValue(
+    hasChange ? cached!.completed : completed,
+    completed,
+    600,
+    400
+  );
+
+  useEffect(() => {
+    DashboardCache.setWeekProgress({ completed, planned });
+  }, [completed, planned]);
+
+  const percentage = (animatedCompleted / planned) * 100;
   const remaining = planned - completed;
 
   const getStatusMessage = () => {
@@ -27,14 +47,14 @@ export function WeekProgressCard({ completed, planned, isComplete, isExceeded, e
       <div className="flex items-center justify-between mb-2">
         <span className="text-gray-600">Progress</span>
         <span className="text-sm font-medium text-gray-900">
-          {completed} of {planned} workouts
+          {animatedCompleted} of {planned} workouts
         </span>
       </div>
 
       {/* Progress Bar */}
       <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
         <div
-          className="bg-lime-400 h-2 rounded-full transition-all duration-300"
+          className="bg-lime-400 h-2 rounded-full"
           style={{ width: `${Math.min(percentage, 100)}%` }}
         />
       </div>
@@ -46,4 +66,3 @@ export function WeekProgressCard({ completed, planned, isComplete, isExceeded, e
     </div>
   );
 }
-

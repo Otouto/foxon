@@ -1,7 +1,9 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { getDaysAgoLabel } from '@/lib/utils/dateUtils';
+import { DashboardCache } from '@/lib/dashboardCache';
 
 interface LastSessionSnapshotProps {
   session: {
@@ -16,9 +18,22 @@ interface LastSessionSnapshotProps {
 export function LastSessionSnapshot({ session }: LastSessionSnapshotProps) {
   const sessionDate = new Date(session.date);
 
+  const cachedId = useMemo(() => DashboardCache.getLastSessionId(), []);
+  const isNewSession = cachedId !== null && cachedId !== session.id;
+  const [shouldAnimate] = useState(isNewSession);
+
+  useEffect(() => {
+    DashboardCache.setLastSessionId(session.id);
+  }, [session.id]);
+
   return (
     <Link href="/review" className="block">
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+      <div
+        className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100"
+        style={shouldAnimate ? {
+          animation: 'fadeSlideUp 500ms ease-out 1200ms both',
+        } : undefined}
+      >
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Last Session</span>
           <span className="text-xs text-gray-400">{getDaysAgoLabel(sessionDate)}</span>
