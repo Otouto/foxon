@@ -35,24 +35,11 @@
   }
 }
 
-/* Responsive ring sizing using CSS container queries */
+/* Ring container */
 .ringContainer {
-  container-type: inline-size;
   display: flex;
   justify-content: center;
   margin-bottom: 0.5rem;
-}
-
-@container (max-width: 390px) {
-  .ringContainer {
-    --ring-size: 160px;
-  }
-}
-
-@container (min-width: 391px) {
-  .ringContainer {
-    --ring-size: 180px;
-  }
 }
 
 /* Animation delays for staggered appearance */

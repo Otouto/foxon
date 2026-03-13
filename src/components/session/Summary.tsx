@@ -80,66 +80,60 @@ export function Summary({ data, sessionId, showTitle = true, weekProgress }: Sum
         {/* Hero Card - Centered with precise spacing */}
         <div className="flex-1 flex items-center justify-center px-4 pt-2 pb-6">
           <div className="bg-white rounded-2xl p-[18px] shadow-[0_6px_20px_rgba(2,6,23,0.06)] border border-[#E9EDF2] w-full max-w-[380px]">
-            {/* Devotion Score Ring */}
-            <div className={styles.ringContainer}>
-              <CircularGauge 
-                score={data.devotionScore}
-                size={180}
-                strokeWidth={14}
-                className={styles.devotionRing}
-              />
-            </div>
-
-            {/* Score Label */}
-            <div className="text-center mb-1.5">
-              <p className="text-xs font-medium text-[#6B7280]">
-                Devotion score
-              </p>
-            </div>
-
-            {/* Fox Coach Verdict */}
+            {/* Fox Coach Hero — fox left, bubble right */}
             <div className="mb-4 px-1">
               <FoxDialog
                 line={foxQuote.line}
                 secondaryLine={foxQuote.weekLine}
                 delay={300}
+                size={76}
               />
             </div>
 
-            {/* Vertical Pillar List - Fixed order and precise spacing */}
-            <div className="space-y-1.5">
+            {/* Devotion Score Ring — secondary, centered */}
+            <div className={styles.ringContainer}>
+              <CircularGauge
+                score={data.devotionScore}
+                size={120}
+                strokeWidth={10}
+                className={styles.devotionRing}
+              />
+            </div>
+
+            {/* Score Label */}
+            <div className="text-center mb-3">
+              <p className="text-xs font-medium text-[#6B7280]">
+                Devotion score
+              </p>
+            </div>
+
+            {/* Pillars 2×2 Grid */}
+            <div className="grid grid-cols-2 gap-2">
               {PILLAR_ORDER.map((key) => {
                 const value = data.devotionPillars[key]
                 if (value === undefined) return null
-                
-                // Highlight any pillar that's performing poorly, not just the weakest
+
                 const isWarn = value >= 0.6 && value < 0.75
                 const isAlert = value < 0.6
-                
+
                 return (
-                  <div 
+                  <div
                     key={key}
                     className={`
-                      flex items-center justify-between h-12 px-[14px] rounded-[14px] border border-[#E9EDF2] bg-white
+                      flex items-center justify-between h-10 px-3 rounded-xl border border-[#E9EDF2] bg-white
                       ${styles.slideUp} ${styles.pillarItem}
                       ${isWarn ? styles.pillarWarn : ''}
                       ${isAlert ? styles.pillarAlert : ''}
                     `}
                   >
-                    {/* Remove the absolutely positioned accent bar */}
-                    
-                    <div className="flex items-center gap-3">
-                      {/* Icon placeholder - 12px neutral circle */}
-                      <div className="w-3 h-3 rounded-full bg-gray-200" />
-                      <span className={`text-[15px] font-medium ${
-                        (isWarn || isAlert) 
-                          ? isWarn ? styles.textWarn : styles.textAlert
-                          : 'text-[#334155]'
-                      }`}>
-                        {PILLAR_NAMES[key]}
-                      </span>
-                    </div>
-                    <span className={`text-[15px] font-semibold font-mono ${
+                    <span className={`text-[13px] font-medium ${
+                      (isWarn || isAlert)
+                        ? isWarn ? styles.textWarn : styles.textAlert
+                        : 'text-[#334155]'
+                    }`}>
+                      {PILLAR_NAMES[key]}
+                    </span>
+                    <span className={`text-[13px] font-semibold font-mono ${
                       (isWarn || isAlert)
                         ? isWarn ? styles.textWarn : styles.textAlert
                         : 'text-[#334155]'

@@ -8,14 +8,30 @@ interface FoxDialogProps {
   secondaryLine?: string
   delay?: number
   className?: string
+  size?: number
 }
 
-export function FoxDialog({ line, secondaryLine, delay = 300, className = '' }: FoxDialogProps) {
+export function FoxDialog({ line, secondaryLine, delay = 300, className = '', size = 48 }: FoxDialogProps) {
   return (
     <div
       className={`${styles.container} ${className}`}
       style={{ animationDelay: `${delay}ms` }}
     >
+      {/* Fox character */}
+      <div
+        className={styles.fox}
+        style={{ animationDelay: `${delay}ms`, width: size, height: size }}
+      >
+        <Image
+          src="/images/fox-coach.png"
+          alt="Fox coach"
+          width={size}
+          height={size}
+          className={styles.foxImage}
+          style={{ width: size, height: size }}
+        />
+      </div>
+
       {/* Speech bubble */}
       <div
         className={styles.bubble}
@@ -26,20 +42,6 @@ export function FoxDialog({ line, secondaryLine, delay = 300, className = '' }: 
           <p className={styles.secondaryLine}>{secondaryLine}</p>
         )}
         <div className={styles.bubbleTail} />
-      </div>
-
-      {/* Fox character */}
-      <div
-        className={styles.fox}
-        style={{ animationDelay: `${delay}ms` }}
-      >
-        <Image
-          src="/images/fox-coach.png"
-          alt="Fox coach"
-          width={48}
-          height={48}
-          className={styles.foxImage}
-        />
       </div>
     </div>
   )
