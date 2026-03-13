@@ -19,53 +19,16 @@ jest.mock('@prisma/client', () => ({
   },
 }));
 
-// Mock formatDate to return a predictable string
+// Mock date helpers to return predictable strings
 jest.mock('@/lib/utils/dateUtils', () => ({
   formatDate: () => 'Mar 1, 2026',
+  getDaysAgoLabel: () => '2d ago',
 }));
 
 import { ProgressionState } from '@prisma/client';
-import { NextWorkoutCard } from '@/components/dashboard/NextWorkoutCard';
 import { WeekProgressCard } from '@/components/dashboard/WeekProgressCard';
 import { FoxStateCard } from '@/components/dashboard/FoxStateCard';
 import { LastSessionSnapshot } from '@/components/dashboard/LastSessionSnapshot';
-
-// ─── NextWorkoutCard ────────────────────────────────────────────────
-
-describe('NextWorkoutCard', () => {
-  const workout = {
-    id: 'w1',
-    title: 'Push Day',
-    exerciseCount: 4,
-    estimatedDuration: 45,
-  };
-
-  it('renders null when week is complete and has a workout', () => {
-    const { container } = render(
-      <NextWorkoutCard workout={workout} isWeekComplete={true} />
-    );
-    expect(container.innerHTML).toBe('');
-  });
-
-  it('shows "Up Next" and workout title when week is incomplete', () => {
-    render(<NextWorkoutCard workout={workout} isWeekComplete={false} />);
-
-    expect(screen.getByText('Up Next')).toBeInTheDocument();
-    expect(screen.getByText('Push Day')).toBeInTheDocument();
-
-    const link = screen.getByRole('link', { name: /start workout/i });
-    expect(link).toHaveAttribute('href', '/session/start?workoutId=w1');
-  });
-
-  it('shows "No workouts yet" and create link when workout is null', () => {
-    render(<NextWorkoutCard workout={null} isWeekComplete={false} />);
-
-    expect(screen.getByText('No workouts yet')).toBeInTheDocument();
-
-    const link = screen.getByRole('link', { name: /create workout/i });
-    expect(link).toHaveAttribute('href', '/workout/create');
-  });
-});
 
 // ─── WeekProgressCard ───────────────────────────────────────────────
 
@@ -205,7 +168,6 @@ describe('LastSessionSnapshot', () => {
     );
     expect(screen.getByText('Pull Day')).toBeInTheDocument();
     expect(screen.queryByText(/Crushed it!/)).not.toBeInTheDocument();
-    // No devotion score number rendered
-    expect(screen.getByText('Mar 1, 2026')).toBeInTheDocument();
+    expect(screen.getByText('2d ago')).toBeInTheDocument();
   });
 });

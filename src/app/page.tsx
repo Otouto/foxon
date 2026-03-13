@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { DashboardService } from '@/services/DashboardService';
-import { FoxStateCard, WeekProgressCard, NextWorkoutCard, LastSessionSnapshot } from '@/components/dashboard';
+import { FoxStateCard, WeekProgressCard, LastSessionSnapshot } from '@/components/dashboard';
 
 export default async function Home() {
   const dashboardData = await DashboardService.getDashboardData();
@@ -39,12 +39,6 @@ export default async function Home() {
           isComplete={dashboardData.weekProgress.isComplete}
           isExceeded={dashboardData.weekProgress.isExceeded}
           extra={dashboardData.weekProgress.extra}
-        />
-
-        {/* Next Workout or Completion Card */}
-        <NextWorkoutCard
-          workout={dashboardData.nextWorkout}
-          isWeekComplete={dashboardData.weekProgress.isComplete}
         />
 
         {/* Last Session Snapshot */}
