@@ -9,7 +9,7 @@ export function useAnimatedValue(
   delay = 0
 ): number {
   const [value, setValue] = useState(from);
-  const rafRef = useRef<number>();
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (from === to) {
@@ -37,7 +37,7 @@ export function useAnimatedValue(
 
     return () => {
       clearTimeout(timeout);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
   }, [from, to, duration, delay]);
 
