@@ -2,6 +2,7 @@ import { ArrowLeft, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChronicleService } from '@/services/ChronicleService';
+import { getCurrentUserId } from '@/lib/auth';
 import ChronicleContent from '@/components/chronicle/ChronicleContent';
 import ChronicleActions from '@/components/chronicle/ChronicleActions';
 
@@ -16,7 +17,8 @@ export default async function ChronicleDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const chronicle = await ChronicleService.getChronicle(id);
+  const userId = await getCurrentUserId();
+  const chronicle = await ChronicleService.getChronicle(id, userId);
 
   if (!chronicle) {
     notFound();
