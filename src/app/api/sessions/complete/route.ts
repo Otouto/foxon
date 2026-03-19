@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUserId, isAuthenticated } from '@/lib/auth';
+import { getCurrentUserId } from '@/lib/auth';
 import { SessionStatus, SetType } from '@prisma/client';
 import { DevotionScoringService } from '@/services/DevotionScoringService';
 import { FoxLevelService } from '@/services/FoxLevelService';
@@ -30,15 +30,7 @@ interface CompletedSessionData {
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
-    if (!isAuthenticated()) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-    
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
     const { sessionData }: { sessionData: CompletedSessionData } = await request.json();
 
     if (!sessionData) {
@@ -138,7 +130,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Failed to save completed session:', error);
-    
+
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to save session' },
       { status: 500 }

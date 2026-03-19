@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
+import { getCurrentUserId } from '@/lib/auth';
 import { ChronicleService } from '@/services/ChronicleService';
 
 export async function GET(
@@ -7,8 +8,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const userId = await getCurrentUserId();
     const { id } = await params;
-    const chronicle = await ChronicleService.getChronicle(id);
+    const chronicle = await ChronicleService.getChronicle(id, userId);
 
     if (!chronicle) {
       return NextResponse.json(
@@ -49,8 +51,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const userId = await getCurrentUserId();
     const { id } = await params;
-    await ChronicleService.deleteChronicle(id);
+    await ChronicleService.deleteChronicle(id, userId);
     revalidatePath('/chronicle');
     return NextResponse.json({ ok: true });
   } catch (error) {

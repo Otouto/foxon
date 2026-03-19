@@ -1,19 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { WorkoutPreloadService } from '@/services/WorkoutPreloadService';
-import { getCurrentUserId, isAuthenticated } from '@/lib/auth';
+import { getCurrentUserId } from '@/lib/auth';
 import type { WorkoutDetails } from '@/lib/types/workout';
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
-    if (!isAuthenticated()) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-    
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
     const { workoutIds } = await request.json();
 
     if (!workoutIds || !Array.isArray(workoutIds)) {
@@ -40,14 +32,14 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      preloadedData: responseData 
+    return NextResponse.json({
+      success: true,
+      preloadedData: responseData
     });
 
   } catch (error) {
     console.error('Failed to preload workouts:', error);
-    
+
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to preload workouts' },
       { status: 500 }

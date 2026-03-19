@@ -1,9 +1,8 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { ExerciseAnalyticsService } from '@/services/ExerciseAnalyticsService';
-import { getCurrentUserId, isAuthenticated } from '@/lib/auth';
+import { getCurrentUserId } from '@/lib/auth';
 import { ExerciseHistoryCard } from '@/components/exercise/ExerciseHistoryCard';
-import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 
 export default async function ExerciseDetailsPage({ 
@@ -16,12 +15,7 @@ export default async function ExerciseDetailsPage({
   const { id } = await params;
   const { from, tab } = await searchParams;
   
-  // Check authentication
-  if (!isAuthenticated()) {
-    redirect('/');
-  }
-
-  const userId = getCurrentUserId();
+  const userId = await getCurrentUserId();
   
   // Get exercise details and history
   const [exercise, exerciseHistory] = await Promise.all([

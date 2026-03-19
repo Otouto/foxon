@@ -40,7 +40,7 @@ Foxon is configured as a Progressive Web App with:
 ### Data Layer
 - **Prisma ORM** with PostgreSQL database (required - no direct DB connections)
 - **Service Layer Pattern**: All database operations through services in `src/services/`
-- **Mock Authentication**: Currently uses mock user data (`src/lib/auth.ts`)
+- **Clerk Authentication**: Real auth via `@clerk/nextjs` (`src/lib/auth.ts`), middleware in `src/middleware.ts`
 - **User Reference**: Always use User table `id`, not `clerkUserId` for relationships
 
 ### Core Domain Models

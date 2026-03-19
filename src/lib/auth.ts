@@ -1,33 +1,44 @@
-// Mock authentication utility for testing without Clerk
-import { MOCK_USER } from './seedData'
+import { auth } from '@clerk/nextjs/server';
+import { prisma } from '@/lib/prisma';
 
-// This simulates getting the current user without real authentication
-export function getCurrentUser() {
-  return {
-    id: MOCK_USER.id,
-    clerkUserId: MOCK_USER.clerkUserId,
-    displayName: MOCK_USER.displayName,
-    weeklyGoal: MOCK_USER.weeklyGoal,
-    progressionState: MOCK_USER.progressionState,
-    foxLevel: MOCK_USER.foxLevel,
-    foxFormScore: MOCK_USER.foxFormScore,
+/**
+ * Get the internal User.id for the current Clerk user.
+ * Auto-creates a User record on first sign-in.
+ */
+export async function getCurrentUserId(): Promise<string> {
+  const { userId: clerkUserId } = await auth();
+
+  if (!clerkUserId) {
+    throw new Error('Not authenticated');
   }
+
+  // Look up existing user by Clerk ID
+  const existingUser = await prisma.user.findFirst({
+    where: { clerkUserId },
+    select: { id: true },
+  });
+
+  if (existingUser) {
+    return existingUser.id;
+  }
+
+  // Auto-create user on first sign-in
+  const newUser = await prisma.user.create({
+    data: {
+      clerkUserId,
+      displayName: null,
+      weeklyGoal: 3,
+    },
+    select: { id: true },
+  });
+
+  return newUser.id;
 }
 
-// Get the user ID for database queries
-export function getCurrentUserId() {
-  return MOCK_USER.id
+/**
+ * Check if the current request is authenticated.
+ */
+export async function isAuthenticated(): Promise<boolean> {
+  const { userId } = await auth();
+  return !!userId;
 }
-
-// Get the Clerk user ID (for when you implement real auth later)
-export function getCurrentClerkUserId() {
-  return MOCK_USER.clerkUserId
-}
-
-// Check if user is "authenticated" (always true in mock mode)
-export function isAuthenticated() {
-  return true
-}
-
-// When you implement real Clerk auth, you can replace these functions
-// with actual Clerk hooks like useUser(), useAuth(), etc.

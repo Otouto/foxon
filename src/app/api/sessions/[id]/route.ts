@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserId, isAuthenticated } from '@/lib/auth';
+import { getCurrentUserId } from '@/lib/auth';
 import { SessionService } from '@/services/SessionService';
 
 export async function GET(
@@ -7,15 +7,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Check authentication
-    if (!isAuthenticated()) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
     const { id: sessionId } = await params;
 
     if (!sessionId) {

@@ -1,14 +1,3 @@
-// Mock User for testing without Clerk authentication
-export const MOCK_USER = {
-  id: 'user-dmytro-1',
-  clerkUserId: 'mock-clerk-dmytro-123',
-  displayName: 'Dmytro',
-  weeklyGoal: 2,
-  progressionState: 'SLIM' as const,
-  foxLevel: 'SLIM' as const,
-  foxFormScore: 0,
-};
-
 // Vocabulary interfaces matching new ERD structure
 export interface MuscleGroup {
   id: string;
@@ -644,11 +633,6 @@ export const workoutSeedData = {
 };
 
 
-
-// Helper function to get the current mock user
-export function getCurrentMockUser() {
-  return MOCK_USER;
-}
 
 // Helper functions for vocabulary data
 export function getMuscleGroups(): MuscleGroup[] {

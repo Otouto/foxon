@@ -13,7 +13,7 @@ export class WorkoutService {
    * Get all workouts for the current user (for workout list page)
    */
   static async getUserWorkouts(): Promise<WorkoutListItem[]> {
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
     
     const workouts = await prisma.workout.findMany({
       where: {
@@ -63,7 +63,7 @@ export class WorkoutService {
    * Get detailed workout by ID (for workout detail page)
    */
   static async getWorkoutById(workoutId: string): Promise<WorkoutDetails | null> {
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
 
     const workout = await prisma.workout.findFirst({
       where: {
@@ -168,7 +168,7 @@ export class WorkoutService {
     data: CreateWorkoutRequest,
     status: 'ACTIVE' | 'DRAFT'
   ): Promise<WorkoutDetails> {
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
 
     const workout = await prisma.workout.create({
       data: {
@@ -273,7 +273,7 @@ export class WorkoutService {
    * Update an existing workout
    */
   static async updateWorkout(workoutId: string, data: UpdateWorkoutRequest): Promise<WorkoutDetails | null> {
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
 
     // First verify the workout belongs to the user
     const existingWorkout = await prisma.workout.findFirst({
@@ -413,7 +413,7 @@ export class WorkoutService {
    * Delete a workout
    */
   static async deleteWorkout(workoutId: string): Promise<boolean> {
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
 
     try {
       await prisma.workout.deleteMany({
@@ -436,7 +436,7 @@ export class WorkoutService {
     workoutId: string,
     status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED'
   ): Promise<boolean> {
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
 
     try {
       await prisma.workout.updateMany({
@@ -459,7 +459,7 @@ export class WorkoutService {
    * Get workout count for the current user
    */
   static async getUserWorkoutCount(): Promise<number> {
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
 
     return prisma.workout.count({
       where: {
@@ -472,7 +472,7 @@ export class WorkoutService {
    * Get draft workouts for the current user
    */
   static async getDraftWorkouts(): Promise<WorkoutListItem[]> {
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
 
     const workouts = await prisma.workout.findMany({
       where: {

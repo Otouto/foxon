@@ -7,7 +7,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
     const { id: sessionId } = await params;
 
     if (!sessionId) {

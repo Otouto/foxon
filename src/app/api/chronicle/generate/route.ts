@@ -5,7 +5,7 @@ import { ChronicleService } from '@/services/ChronicleService';
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
     const body = await request.json();
     const { month, year, sendEmail } = body;
 

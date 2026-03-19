@@ -4,7 +4,7 @@ import { ChronicleService } from '@/services/ChronicleService';
 
 export async function POST() {
   try {
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
 
     // Generate February 2026 chronicle and send email
     const result = await ChronicleService.generateAndStore(userId, 2, 2026, {

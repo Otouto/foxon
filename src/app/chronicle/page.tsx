@@ -6,7 +6,7 @@ import ChronicleCard from '@/components/chronicle/ChronicleCard';
 import GenerateChronicleButton from '@/components/chronicle/GenerateChronicleButton';
 
 export default async function ChroniclePage() {
-  const userId = getCurrentUserId();
+  const userId = await getCurrentUserId();
   const chronicles = await ChronicleService.listChronicles(userId);
 
   // Target the last fully completed month for generation

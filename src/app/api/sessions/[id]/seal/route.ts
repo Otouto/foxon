@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUserId, isAuthenticated } from '@/lib/auth';
+import { getCurrentUserId } from '@/lib/auth';
 import { EffortLevel, SessionStatus } from '@prisma/client';
 
 interface SessionSealData {
@@ -14,18 +14,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Check authentication
-    if (!isAuthenticated()) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-    
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
     const { id: sessionId } = await params;
     const sealData: SessionSealData = await request.json();
-    
+
     if (!sessionId) {
       return NextResponse.json(
         { error: 'Session ID is required' },
@@ -42,10 +34,10 @@ export async function POST(
 
     // Verify user owns the session and it's finished
     const session = await prisma.session.findFirst({
-      where: { 
-        id: sessionId, 
-        userId, 
-        status: SessionStatus.FINISHED 
+      where: {
+        id: sessionId,
+        userId,
+        status: SessionStatus.FINISHED
       }
     });
 
@@ -72,14 +64,14 @@ export async function POST(
       }
     });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       message: 'Session reflection saved successfully'
     });
 
   } catch (error) {
     console.error('Failed to save session seal:', error);
-    
+
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to save session reflection' },
       { status: 500 }

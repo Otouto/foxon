@@ -1,12 +1,22 @@
 import { PrismaClient } from '@prisma/client'
-import { 
-  muscleGroupsSeed, 
-  equipmentSeed, 
+import {
+  muscleGroupsSeed,
+  equipmentSeed,
   exercisesSeed,
   workoutSeedData,
   sessionSeedData,
-  MOCK_USER
 } from '../src/lib/seedData'
+
+// Seed user data (kept for historical seeding purposes)
+const SEED_USER = {
+  id: 'user-dmytro-1',
+  clerkUserId: 'user_3BAiCFAJLfkh8hnOV8H8bbuYqS7',
+  displayName: 'Dmytro',
+  weeklyGoal: 2,
+  progressionState: 'SLIM' as const,
+  foxLevel: 'SLIM' as const,
+  foxFormScore: 0,
+};
 
 // Use direct connection for seeding to avoid pooled connection issues
 const prisma = new PrismaClient(
@@ -88,22 +98,22 @@ async function main() {
   // Create the mock user for testing
   console.log('Creating mock user...')
   const mockUser = await prisma.user.upsert({
-    where: { clerkUserId: MOCK_USER.clerkUserId },
+    where: { clerkUserId: SEED_USER.clerkUserId },
     update: {
-      displayName: MOCK_USER.displayName,
-      weeklyGoal: MOCK_USER.weeklyGoal,
-      progressionState: MOCK_USER.progressionState,
-      foxLevel: MOCK_USER.foxLevel,
-      foxFormScore: MOCK_USER.foxFormScore,
+      displayName: SEED_USER.displayName,
+      weeklyGoal: SEED_USER.weeklyGoal,
+      progressionState: SEED_USER.progressionState,
+      foxLevel: SEED_USER.foxLevel,
+      foxFormScore: SEED_USER.foxFormScore,
     },
     create: {
-      id: MOCK_USER.id,
-      clerkUserId: MOCK_USER.clerkUserId,
-      displayName: MOCK_USER.displayName,
-      weeklyGoal: MOCK_USER.weeklyGoal,
-      progressionState: MOCK_USER.progressionState,
-      foxLevel: MOCK_USER.foxLevel,
-      foxFormScore: MOCK_USER.foxFormScore,
+      id: SEED_USER.id,
+      clerkUserId: SEED_USER.clerkUserId,
+      displayName: SEED_USER.displayName,
+      weeklyGoal: SEED_USER.weeklyGoal,
+      progressionState: SEED_USER.progressionState,
+      foxLevel: SEED_USER.foxLevel,
+      foxFormScore: SEED_USER.foxFormScore,
     },
   })
 

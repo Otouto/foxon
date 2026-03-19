@@ -4,7 +4,7 @@ import { ChronicleService } from '@/services/ChronicleService';
 
 export async function GET() {
   try {
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
     const chronicles = await ChronicleService.listChronicles(userId);
     return NextResponse.json(chronicles);
   } catch (error) {

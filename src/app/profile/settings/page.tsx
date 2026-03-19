@@ -1,8 +1,9 @@
 import Link from 'next/link';
-import { ArrowLeft, User, LogOut } from 'lucide-react';
+import { ArrowLeft, User } from 'lucide-react';
 import { ProfileService } from '@/services/ProfileService';
 import EmailEditor from '@/components/profile/EmailEditor';
 import WeeklyGoalEditor from '@/components/profile/WeeklyGoalEditor';
+import { SignOutButton } from '@/components/profile/SignOutButton';
 
 export default async function SettingsPage() {
   const profileData = await ProfileService.getUserProfile();
@@ -32,15 +33,7 @@ export default async function SettingsPage() {
           </div>
         </button>
 
-        <button className="w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4 text-left">
-          <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center">
-            <LogOut size={20} className="text-red-500" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-medium text-red-500">Sign Out</h3>
-            <p className="text-sm text-gray-500">Log out of your account</p>
-          </div>
-        </button>
+        <SignOutButton />
       </div>
     </div>
   );

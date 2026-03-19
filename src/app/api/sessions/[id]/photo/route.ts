@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserId, isAuthenticated } from '@/lib/auth';
+import { getCurrentUserId } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(
@@ -7,11 +7,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    if (!isAuthenticated()) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    }
-
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
     const { id: sessionId } = await params;
     const { imageUrl } = await request.json();
 
@@ -47,11 +43,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    if (!isAuthenticated()) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    }
-
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
     const { id: sessionId } = await params;
 
     // Verify session belongs to user

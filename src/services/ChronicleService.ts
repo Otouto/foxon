@@ -178,17 +178,17 @@ export class ChronicleService {
   /**
    * Get a single chronicle by ID
    */
-  static async getChronicle(id: string) {
-    return prisma.foxChronicle.findUnique({
-      where: { id },
+  static async getChronicle(id: string, userId: string) {
+    return prisma.foxChronicle.findFirst({
+      where: { id, userId },
     });
   }
 
   /**
    * Delete a chronicle by ID
    */
-  static async deleteChronicle(id: string): Promise<void> {
-    await prisma.foxChronicle.delete({ where: { id } });
+  static async deleteChronicle(id: string, userId: string): Promise<void> {
+    await prisma.foxChronicle.deleteMany({ where: { id, userId } });
   }
 
   /**

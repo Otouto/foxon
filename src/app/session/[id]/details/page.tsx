@@ -2,11 +2,10 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { SessionService } from '@/services/SessionService';
 import { WorkoutService } from '@/services/WorkoutService';
-import { getCurrentUserId, isAuthenticated } from '@/lib/auth';
+import { getCurrentUserId } from '@/lib/auth';
 import { SessionHeroBlock } from '@/components/session/SessionHeroBlock';
 import { ExercisePerformanceCard } from '@/components/session/ExercisePerformanceCard';
 import { AlternativeWorkSection } from '@/components/session/AlternativeWorkSection';
-import { redirect } from 'next/navigation';
 
 export default async function SessionDetailsPage({ 
   params,
@@ -18,12 +17,7 @@ export default async function SessionDetailsPage({
   const { id } = await params;
   const { from, tab, exerciseId } = await searchParams;
   
-  // Check authentication
-  if (!isAuthenticated()) {
-    redirect('/');
-  }
-
-  const userId = getCurrentUserId();
+  const userId = await getCurrentUserId();
   
   // Fetch session details and session count
   const [session, sessionNumber] = await Promise.all([

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserId, getCurrentUser } from '@/lib/auth';
+import { getCurrentUserId } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { NarrativeService } from '@/services/NarrativeService';
 import { ExerciseAnalyticsService } from '@/services/ExerciseAnalyticsService';
@@ -31,12 +31,17 @@ export interface ExerciseStatsData {
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = getCurrentUserId();
-    const user = getCurrentUser();
+    const userId = await getCurrentUserId();
     const { searchParams } = new URL(request.url);
     const tab = searchParams.get('tab') || 'sessions';
 
     if (tab === 'sessions') {
+      // Get user's weeklyGoal from DB
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { weeklyGoal: true },
+      });
+
       // Get sessions with seals for review
       const sessions = await prisma.session.findMany({
         where: {
@@ -83,12 +88,12 @@ export async function GET(request: NextRequest) {
         })
       );
 
-      return NextResponse.json({ 
+      return NextResponse.json({
         sessions: sessionReviewData,
-        weeklyGoal: user.weeklyGoal
+        weeklyGoal: user?.weeklyGoal ?? 3
       });
-    } 
-    
+    }
+
     if (tab === 'exercises') {
       // Get categorized exercise analytics
       const categorizedExercises = await ExerciseAnalyticsService.getCategorizedExerciseAnalytics();

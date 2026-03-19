@@ -25,7 +25,7 @@ export interface CategorizedExerciseAnalytics {
 export class ExerciseAnalyticsService {
   
   static async getCategorizedExerciseAnalytics(): Promise<CategorizedExerciseAnalytics> {
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
     
     // Get all exercises the user has performed
     const exercisesWithSessions = await prisma.exercise.findMany({
@@ -200,7 +200,7 @@ export class ExerciseAnalyticsService {
   }
 
   static async getAllExerciseAnalytics(): Promise<ExerciseAnalytics[]> {
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
     
     // Get all exercises the user has performed
     const exercisesWithSessions = await prisma.exercise.findMany({
@@ -420,7 +420,7 @@ export class ExerciseAnalyticsService {
   }
 
   private static async getEarliestWorkoutSessionDate(exerciseId: string): Promise<Date | null> {
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
     
     // Find all workouts that contain this exercise
     const workoutsWithExercise = await prisma.workout.findMany({

@@ -41,7 +41,7 @@ export class DashboardService {
    * Get this week's session progress vs. weekly goal
    */
   static async getWeekProgress(): Promise<{ completed: number; planned: number }> {
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -76,7 +76,7 @@ export class DashboardService {
    * Get all dashboard data
    */
   static async getDashboardData(): Promise<DashboardData> {
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
 
     // Get user profile
     const user = await prisma.user.findUnique({

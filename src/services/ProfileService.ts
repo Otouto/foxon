@@ -53,7 +53,7 @@ export class ProfileService {
    * Get user profile with comprehensive stats
    */
   static async getUserProfile(): Promise<ProfileData | null> {
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
 
     try {
       const user = await prisma.user.findUnique({
@@ -260,7 +260,7 @@ export class ProfileService {
     avatarUrl?: string;
     weeklyGoal?: number;
   }): Promise<UserProfile | null> {
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
 
     try {
       const updatedUser = await prisma.user.update({
