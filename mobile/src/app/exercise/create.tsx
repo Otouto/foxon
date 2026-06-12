@@ -12,7 +12,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  View,
 } from 'react-native';
 
 import { useCreateExercise, useEquipment, useMuscleGroups } from '@/api/exercises';
