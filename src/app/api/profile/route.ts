@@ -1,6 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ProfileService } from '@/services/ProfileService';
 
+export async function GET() {
+  try {
+    const profile = await ProfileService.getUserProfile();
+
+    if (!profile) {
+      return NextResponse.json(
+        { error: 'Profile not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(profile);
+  } catch (error) {
+    console.error('Failed to fetch profile:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch profile' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
