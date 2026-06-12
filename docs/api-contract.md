@@ -48,6 +48,7 @@ routes are thin wrappers.
 | POST | `/api/exercises` | Body: `{ name, muscleGroupId?, equipmentId?, instructions?, imageUrl? }` → 201 `{ exercise }`. 409 if name exists. |
 | GET | `/api/exercises/[id]` | `{ exercise }` with muscleGroup/equipment relations. 404 if missing. |
 | PUT | `/api/exercises/[id]` | Partial exercise fields → `{ exercise }`. |
+| GET | `/api/exercises/[id]/history` | `{ history: [...] }` — per-session performance entries for the exercise (`ExerciseAnalyticsService.getExerciseHistory`). Added for mobile (web renders this server-side). |
 | GET | `/api/muscle-groups` | `{ muscleGroups: [{ id, name, description }] }` |
 | GET | `/api/equipment` | `{ equipment: [{ id, name, description }] }` |
 
