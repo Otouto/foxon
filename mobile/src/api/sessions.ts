@@ -1,0 +1,85 @@
+import { useQuery } from '@tanstack/react-query';
+
+import { api } from './client';
+
+/**
+ * Mirrors SessionWithDetails from src/services/SessionService.ts and the
+ * exercise history entries from ExerciseAnalyticsService.getExerciseHistory.
+ * Keep in sync with the web app.
+ */
+export interface SessionSetDetail {
+  id: string;
+  type: 'WARMUP' | 'NORMAL';
+  load: number;
+  reps: number;
+  completed: boolean;
+  order: number;
+  notes: string | null;
+}
+
+export interface SessionWithDetails {
+  id: string;
+  workoutId: string | null;
+  date: string;
+  status: string;
+  duration: number | null;
+  devotionScore: number | null;
+  devotionGrade: string | null;
+  sessionSeal?: {
+    effort: string;
+    vibeLine: string;
+    note: string | null;
+  } | null;
+  sessionPhoto?: {
+    imageUrl: string;
+  } | null;
+  sessionExercises: {
+    id: string;
+    exerciseId: string;
+    order: number;
+    notes: string | null;
+    exercise: { id: string; name: string };
+    sessionSets: SessionSetDetail[];
+  }[];
+  workout?: { id: string; title: string } | null;
+}
+
+export interface ExerciseHistoryEntry {
+  id: string;
+  date: string;
+  workoutTitle: string | null;
+  duration: number | null;
+  devotionScore: number | null;
+  sessionExercise: {
+    id: string;
+    order: number;
+    notes: string | null;
+    exercise: {
+      name: string;
+      muscleGroup: { name: string } | null;
+      equipment: { name: string } | null;
+    };
+    sessionSets: SessionSetDetail[];
+  };
+}
+
+export function useSessionDetails(id: string | undefined) {
+  return useQuery({
+    queryKey: ['session', id],
+    queryFn: () => api.get<SessionWithDetails>(`/api/sessions/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useExerciseHistory(exerciseId: string | undefined) {
+  return useQuery({
+    queryKey: ['exercise-history', exerciseId],
+    queryFn: async () => {
+      const data = await api.get<{ history: ExerciseHistoryEntry[] }>(
+        `/api/exercises/${exerciseId}/history`
+      );
+      return data.history;
+    },
+    enabled: !!exerciseId,
+  });
+}

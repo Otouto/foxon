@@ -1,4 +1,5 @@
 import SegmentedControl from '@react-native-segmented-control/segmented-control';
+import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -44,6 +45,7 @@ export default function ReviewScreen() {
 }
 
 function SessionsTab() {
+  const router = useRouter();
   const { data, isLoading, refetch, isRefetching } = useSessionsReview();
   const deleteSession = useDeleteSession();
 
@@ -106,8 +108,15 @@ function SessionsTab() {
             </View>
             <View style={styles.groupCards}>
               {group.sessions.map((session) => (
-                <Pressable key={session.id} onLongPress={() => confirmDelete(session)}>
-                  <SessionReviewCard session={session} />
+                <Pressable
+                  key={session.id}
+                  onPress={() => router.push(`/session-details/${session.id}`)}
+                  onLongPress={() => confirmDelete(session)}>
+                  {({ pressed }) => (
+                    <View style={pressed ? styles.pressedCard : undefined}>
+                      <SessionReviewCard session={session} />
+                    </View>
+                  )}
                 </Pressable>
               ))}
             </View>
@@ -154,7 +163,11 @@ function SessionReviewCard({
 }
 
 function ExercisesTab() {
+  const router = useRouter();
   const { data, isLoading, refetch, isRefetching } = useExercisesReview();
+
+  const openHistory = (exercise: ExerciseAnalytics) =>
+    router.push(`/exercise-history/${exercise.id}?name=${encodeURIComponent(exercise.name)}`);
 
   if (isLoading) {
     return (
@@ -178,13 +191,21 @@ function ExercisesTab() {
       ) : (
         <>
           {active.map((exercise) => (
-            <ExerciseAnalyticsCard key={exercise.id} exercise={exercise} />
+            <ExerciseAnalyticsCard
+              key={exercise.id}
+              exercise={exercise}
+              onPress={() => openHistory(exercise)}
+            />
           ))}
           {archived.length > 0 ? (
             <>
               <Text style={styles.groupTitle}>Archived</Text>
               {archived.map((exercise) => (
-                <ExerciseAnalyticsCard key={exercise.id} exercise={exercise} />
+                <ExerciseAnalyticsCard
+                  key={exercise.id}
+                  exercise={exercise}
+                  onPress={() => openHistory(exercise)}
+                />
               ))}
             </>
           ) : null}
@@ -194,7 +215,25 @@ function ExercisesTab() {
   );
 }
 
-function ExerciseAnalyticsCard({ exercise }: { exercise: ExerciseAnalytics }) {
+function ExerciseAnalyticsCard({
+  exercise,
+  onPress,
+}: {
+  exercise: ExerciseAnalytics;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable onPress={onPress}>
+      {({ pressed }) => (
+        <View style={pressed ? styles.pressedCard : undefined}>
+          <ExerciseAnalyticsCardContent exercise={exercise} />
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
+function ExerciseAnalyticsCardContent({ exercise }: { exercise: ExerciseAnalytics }) {
   return (
     <Card>
       <View style={styles.cardTop}>
@@ -258,6 +297,9 @@ const styles = StyleSheet.create({
   },
   groupCards: {
     gap: spacing.md,
+  },
+  pressedCard: {
+    opacity: 0.7,
   },
   cardTop: {
     flexDirection: 'row',
