@@ -71,7 +71,7 @@ export function SessionPhotoButton({ sessionId }: SessionPhotoButtonProps) {
   };
 
   if (photoUri) {
-    return <Image source={{ uri: photoUri }} style={styles.preview} />;
+    return <Image source={{ uri: photoUri }} style={styles.preview} alt="Session photo" />;
   }
 
   return (
