@@ -48,6 +48,7 @@ function RootNavigator() {
           name="session/log"
           options={{ presentation: 'fullScreenModal', gestureEnabled: false }}
         />
+        <Stack.Screen name="session/finish" options={{ gestureEnabled: false }} />
       </Stack.Protected>
       <Stack.Protected guard={!isSignedIn}>
         <Stack.Screen name="(auth)/sign-in" />
