@@ -44,6 +44,10 @@ function RootNavigator() {
       }}>
       <Stack.Protected guard={!!isSignedIn}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="session/log"
+          options={{ presentation: 'fullScreenModal', gestureEnabled: false }}
+        />
       </Stack.Protected>
       <Stack.Protected guard={!isSignedIn}>
         <Stack.Screen name="(auth)/sign-in" />
