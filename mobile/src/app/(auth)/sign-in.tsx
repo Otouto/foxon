@@ -51,6 +51,10 @@ export default function SignInScreen() {
   };
 
   const sendEmailCode = async () => {
+    if (!email.trim()) {
+      Alert.alert('Email needed', 'Enter your email address first, then request a code.');
+      return;
+    }
     setBusy(true);
     try {
       const attempt = await signIn.create({ identifier: email.trim() });
@@ -134,10 +138,7 @@ export default function SignInScreen() {
                 <Text style={styles.buttonLabel}>Sign in</Text>
               )}
             </Pressable>
-            <Pressable
-              style={styles.linkButton}
-              disabled={!email || busy}
-              onPress={sendEmailCode}>
+            <Pressable style={styles.linkButton} disabled={busy} onPress={sendEmailCode}>
               <Text style={[styles.linkLabel, !email && styles.linkDisabled]}>
                 Email me a sign-in code instead
               </Text>
