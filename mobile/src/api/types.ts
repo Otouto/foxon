@@ -70,8 +70,10 @@ export interface SessionReviewData {
 
 export interface ProfileData {
   user: {
+    id: string;
     displayName: string | null;
     email: string | null;
+    avatarUrl: string | null;
     weeklyGoal: number;
     foxLevel: ProgressionState;
     foxFormScore: number;
@@ -82,14 +84,29 @@ export interface ProfileData {
   };
   firstSessionDate: string | null;
   trainingPulse: {
-    grid: number[][];
+    grid: boolean[][];
     totalSessions: number;
     weekStreak: number;
   };
   chronicleEntry: {
-    id: string;
-    title: string;
-    month: number;
-    year: number;
-  } | null;
+    state: 'brand_new' | 'no_chapter' | 'has_chapter';
+    latestChapter?: {
+      id: string;
+      title: string;
+      month: number;
+      year: number;
+    };
+  };
+}
+
+export interface ChronicleListItem {
+  id: string;
+  month: number;
+  year: number;
+  chapterNumber: number;
+  title: string;
+  contentMd: string;
+  contentHtml: string | null;
+  emailSentAt: string | null;
+  createdAt: string;
 }
