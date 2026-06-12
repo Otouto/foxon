@@ -14,7 +14,7 @@ import type { WorkoutListItem } from '@shared/types/workout';
 
 import { useWorkouts } from '@/api/queries';
 import { Card } from '@/components/Card';
-import { colors, spacing, typography } from '@/theme';
+import { colors, radius, spacing, typography } from '@/theme';
 
 const SECTION_TITLES: Record<string, string> = {
   ACTIVE: 'Workouts',
@@ -44,7 +44,25 @@ export default function WorkoutsScreen() {
         contentContainerStyle={styles.content}
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}
-        ListHeaderComponent={<Text style={[typography.title, styles.screenTitle]}>Workouts</Text>}
+        ListHeaderComponent={
+          <View style={styles.headerRow}>
+            <Text style={typography.title}>Workouts</Text>
+            <View style={styles.headerActions}>
+              <Pressable
+                style={({ pressed }) => [styles.headerAction, pressed && styles.pressed]}
+                onPress={() => router.push('/exercise/create')}>
+                <Text style={styles.headerActionLabel}>New exercise</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.headerAction, styles.headerActionPrimary, pressed && styles.pressed]}
+                onPress={() => router.push('/workout/create')}>
+                <Text style={[styles.headerActionLabel, styles.headerActionLabelPrimary]}>
+                  New workout
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        }
         ListEmptyComponent={
           isLoading ? (
             <View style={styles.centered}>
@@ -100,8 +118,33 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: spacing.xxl,
   },
-  screenTitle: {
+  headerRow: {
     marginBottom: spacing.lg,
+    gap: spacing.md,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  headerAction: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.full,
+    backgroundColor: colors.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.separator,
+  },
+  headerActionPrimary: {
+    backgroundColor: colors.tint,
+    borderColor: colors.tint,
+  },
+  headerActionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  headerActionLabelPrimary: {
+    color: colors.textInverse,
   },
   sectionHeader: {
     ...typography.footnote,
