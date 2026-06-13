@@ -103,6 +103,20 @@ export class ProfileService {
   }
 
   /**
+   * Current week streak for a user. Thin public wrapper so other services
+   * (e.g. the dashboard) can reuse the single-sourced streak math.
+   */
+  static async getWeekStreak(userId: string): Promise<number> {
+    const sessions = await prisma.session.findMany({
+      where: { userId, status: SessionStatus.FINISHED },
+      orderBy: { date: 'desc' },
+      select: { date: true },
+    });
+
+    return this.calculateWeekStreak(sessions);
+  }
+
+  /**
    * Calculate user statistics
    */
   private static async calculateUserStats(userId: string): Promise<UserStats> {

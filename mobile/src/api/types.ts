@@ -39,6 +39,8 @@ export interface DashboardData {
     isExceeded: boolean;
     extra: number;
   };
+  /** Current consecutive-week training streak (for the home greeting whisper). */
+  weekStreak: number;
   nextWorkout: {
     id: string;
     title: string;

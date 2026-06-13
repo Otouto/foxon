@@ -17,10 +17,14 @@ export const colors = {
   textTertiary: '#9CA3AF', // gray-400
   textInverse: '#FFFFFF',
 
-  // Brand / fox states
+  // Brand / fox states (soft = gradient top stop, deep = gradient bottom / ring)
   foxSlim: '#9CA3AF', // gray-400
+  foxSlimSoft: '#D1D5DB', // gray-300
   foxFit: '#A3E635', // lime-400
+  foxFitSoft: '#BEF264', // lime-300
+  foxFitDeep: '#84CC16', // lime-500
   foxStrong: '#22D3EE', // cyan-400
+  foxStrongSoft: '#67E8F9', // cyan-300
   foxStrongDeep: '#06B6D4', // cyan-500
   foxFiery: '#C084FC', // purple-400
   foxFieryDeep: '#A855F7', // purple-500

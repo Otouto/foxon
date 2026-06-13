@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/auth';
 import { ProgressionState, SessionStatus, WorkoutStatus } from '@prisma/client';
 import { FoxLevelService } from '@/services/FoxLevelService';
+import { ProfileService } from '@/services/ProfileService';
 
 export interface DashboardData {
   displayName: string | null;
@@ -21,6 +22,8 @@ export interface DashboardData {
     isExceeded: boolean;
     extra: number;
   };
+  /** Current consecutive-week training streak (for the home greeting whisper). */
+  weekStreak: number;
   nextWorkout: {
     id: string;
     title: string;
@@ -169,8 +172,9 @@ export class DashboardService {
     const isExceeded = completedThisWeek > weeklyGoal;
     const extra = isExceeded ? completedThisWeek - weeklyGoal : 0;
 
-    // Get next workout: first active not done this week (ordered by createdAt asc)
-    // If all done or none exist, show first active (repeat allowed)
+    // Get next workout: rotate through active programs (ordered by createdAt asc),
+    // advancing to the one *after* the program last trained so it cycles
+    // (e.g. legs day -> arms day -> ... -> legs day).
     let nextWorkout: DashboardData['nextWorkout'] = null;
 
     const activeWorkouts = await prisma.workout.findMany({
@@ -188,15 +192,23 @@ export class DashboardService {
       orderBy: { createdAt: 'asc' }
     });
 
-    const doneThisWeek = new Set(
-      thisWeekSessions
-        .map((s) => s.workoutId)
-        .filter((id): id is string => id !== null)
-    );
+    // Most recent finished session tied to a workout (any date), to anchor rotation.
+    const lastTrainedSession = await prisma.session.findFirst({
+      where: { userId, status: SessionStatus.FINISHED, workoutId: { not: null } },
+      orderBy: { date: 'desc' },
+      select: { workoutId: true },
+    });
+
+    const lastTrainedIndex = lastTrainedSession?.workoutId
+      ? activeWorkouts.findIndex((w) => w.id === lastTrainedSession.workoutId)
+      : -1;
 
     const workout =
-      activeWorkouts.find((w) => !doneThisWeek.has(w.id)) ??
-      activeWorkouts[0];
+      activeWorkouts.length === 0
+        ? undefined
+        : lastTrainedIndex >= 0
+          ? activeWorkouts[(lastTrainedIndex + 1) % activeWorkouts.length]
+          : activeWorkouts[0];
 
     if (workout) {
       const exerciseCount = workout.workoutItems.length;
@@ -241,6 +253,8 @@ export class DashboardService {
         }
       : null;
 
+    const weekStreak = await ProfileService.getWeekStreak(userId);
+
     return {
       displayName: user.displayName,
       foxState: {
@@ -259,6 +273,7 @@ export class DashboardService {
         isExceeded,
         extra
       },
+      weekStreak,
       nextWorkout,
       lastSession
     };

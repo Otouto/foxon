@@ -1,3 +1,4 @@
+import { SymbolView } from 'expo-symbols';
 import { useCallback } from 'react';
 import {
   ActivityIndicator,
@@ -10,9 +11,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useDashboard } from '@/api/queries';
-import { FoxStateCard } from '@/components/dashboard/FoxStateCard';
+import { FadeInUp } from '@/components/FadeInUp';
+import { FoxHeroCard } from '@/components/dashboard/FoxHeroCard';
 import { LastSessionSnapshot } from '@/components/dashboard/LastSessionSnapshot';
 import { WeekProgressCard } from '@/components/dashboard/WeekProgressCard';
+import { getGreeting } from '@/lib/greeting';
 import { colors, spacing, typography } from '@/theme';
 
 export default function DashboardScreen() {
@@ -30,9 +33,18 @@ export default function DashboardScreen() {
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}>
         <View style={styles.header}>
           <Text style={typography.title}>
-            Hey, {data?.displayName || 'Athlete'}!
+            {getGreeting()}, {data?.displayName || 'Athlete'}
           </Text>
-          <Text style={typography.subhead}>Ready to train?</Text>
+          {data && data.weekStreak > 0 ? (
+            <View style={styles.whisperRow}>
+              <SymbolView name="flame.fill" size={13} tintColor={colors.warning} />
+              <Text style={styles.whisper}>
+                {data.weekStreak}-week streak
+              </Text>
+            </View>
+          ) : (
+            <Text style={typography.subhead}>Ready to train?</Text>
+          )}
         </View>
 
         {isLoading ? (
@@ -47,19 +59,33 @@ export default function DashboardScreen() {
           </View>
         ) : data ? (
           <View style={styles.cards}>
-            <FoxStateCard
-              state={data.foxState.state}
-              formScore={data.foxState.formScore}
-              formScoreBreakdown={data.foxState.formScoreBreakdown}
-            />
-            <WeekProgressCard
-              completed={data.weekProgress.completed}
-              planned={data.weekProgress.planned}
-              isComplete={data.weekProgress.isComplete}
-              isExceeded={data.weekProgress.isExceeded}
-              extra={data.weekProgress.extra}
-            />
-            {data.lastSession && <LastSessionSnapshot session={data.lastSession} />}
+            <FadeInUp delay={60}>
+              <FoxHeroCard
+                state={data.foxState.state}
+                formScore={data.foxState.formScore}
+                formScoreBreakdown={data.foxState.formScoreBreakdown}
+                hasNoSessions={data.foxState.hasNoSessions}
+                timePeriod={data.foxState.timePeriod}
+                weeklyGoal={data.weekProgress.planned}
+              />
+            </FadeInUp>
+
+            <FadeInUp delay={130}>
+              <WeekProgressCard
+                completed={data.weekProgress.completed}
+                planned={data.weekProgress.planned}
+                isComplete={data.weekProgress.isComplete}
+                isExceeded={data.weekProgress.isExceeded}
+                extra={data.weekProgress.extra}
+                nextWorkout={data.nextWorkout}
+              />
+            </FadeInUp>
+
+            {data.lastSession ? (
+              <FadeInUp delay={200}>
+                <LastSessionSnapshot session={data.lastSession} />
+              </FadeInUp>
+            ) : null}
           </View>
         ) : null}
       </ScrollView>
@@ -78,6 +104,17 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: spacing.xl,
+  },
+  whisperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: 2,
+  },
+  whisper: {
+    ...typography.subhead,
+    color: colors.textSecondary,
+    fontWeight: '600',
   },
   cards: {
     gap: spacing.lg,
