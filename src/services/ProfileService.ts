@@ -56,26 +56,47 @@ export class ProfileService {
     const userId = await getCurrentUserId();
 
     try {
-      const user = await prisma.user.findUnique({
-        where: { id: userId }
-      });
+      const now = new Date();
+
+      // One parallel wave. The full finished-session list (date only) is fetched
+      // ONCE and reused for stats, first-session, week streak, and the heatmap
+      // grid — replacing ~8 queries (incl. 3 duplicate all-session fetches) with 4.
+      const [user, allSessions, latestChronicle, foxEval] = await Promise.all([
+        prisma.user.findUnique({ where: { id: userId } }),
+        prisma.session.findMany({
+          where: { userId, status: SessionStatus.FINISHED },
+          orderBy: { date: 'desc' },
+          select: { date: true },
+        }),
+        prisma.foxChronicle.findFirst({
+          where: { userId },
+          orderBy: [{ year: 'desc' }, { month: 'desc' }],
+          select: { id: true, title: true, month: true, year: true },
+        }),
+        FoxLevelService.ensureEvaluated(userId),
+      ]);
 
       if (!user) {
         return null;
       }
 
-      const [stats, firstSession, trainingPulse, chronicleEntry, foxEval] =
-        await Promise.all([
-          this.calculateUserStats(userId),
-          prisma.session.findFirst({
-            where: { userId, status: SessionStatus.FINISHED },
-            orderBy: { date: 'asc' },
-            select: { date: true },
-          }),
-          this.getTrainingPulseData(userId),
-          this.getChronicleEntryInfo(userId),
-          FoxLevelService.ensureEvaluated(userId),
-        ]);
+      const completedSessions = allSessions.length;
+      const weekStreak = this.calculateWeekStreak(allSessions);
+      // allSessions is date-desc, so the last element is the earliest session.
+      const firstSessionDate = completedSessions > 0 ? allSessions[completedSessions - 1].date : null;
+
+      const trainingPulse: TrainingPulseData = {
+        grid: this.computePulseGrid(allSessions, now),
+        totalSessions: completedSessions,
+        weekStreak,
+      };
+
+      const chronicleEntry: ChronicleEntryInfo =
+        completedSessions === 0
+          ? { state: 'brand_new' }
+          : latestChronicle
+            ? { state: 'has_chapter', latestChapter: latestChronicle }
+            : { state: 'no_chapter' };
 
       return {
         user: {
@@ -91,8 +112,8 @@ export class ProfileService {
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
         },
-        stats,
-        firstSessionDate: firstSession?.date || null,
+        stats: { completedSessions, currentWeekStreak: weekStreak },
+        firstSessionDate,
         trainingPulse,
         chronicleEntry,
       };
@@ -100,6 +121,34 @@ export class ProfileService {
       console.error('Failed to get user profile:', error);
       return null;
     }
+  }
+
+  /**
+   * Build the 12-week activity heatmap grid (7 days × 12 weeks) from an
+   * in-memory finished-session list. Pure JS — no DB access.
+   */
+  private static computePulseGrid(sessions: { date: Date }[], now: Date): boolean[][] {
+    const todayDay = now.getDay();
+    const mondayOffset = todayDay === 0 ? -6 : 1 - todayDay;
+    const thisMonday = new Date(now);
+    thisMonday.setDate(now.getDate() + mondayOffset);
+    thisMonday.setHours(0, 0, 0, 0);
+
+    const gridStart = new Date(thisMonday);
+    gridStart.setDate(thisMonday.getDate() - 11 * 7); // 11 weeks back
+
+    const trainedDays = new Set<string>();
+    sessions.forEach((s) => trainedDays.add(this.toDateKey(s.date)));
+
+    const grid: boolean[][] = Array.from({ length: 7 }, () => Array(12).fill(false));
+    for (let week = 0; week < 12; week++) {
+      for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+        const cellDate = new Date(gridStart);
+        cellDate.setDate(gridStart.getDate() + week * 7 + dayIdx);
+        grid[dayIdx][week] = trainedDays.has(this.toDateKey(cellDate));
+      }
+    }
+    return grid;
   }
 
   /**

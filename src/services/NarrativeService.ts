@@ -54,6 +54,67 @@ export class NarrativeService {
   }
 
   /**
+   * Compute narratives for many sessions WITHOUT extra DB queries.
+   *
+   * Each session's context (previous session / last-30-day history / current
+   * month) is a subset of the full finished-session list the caller already
+   * loaded, so we derive it in memory by slicing the array. This replaces the
+   * per-session getNarrativeContext() N+1 (which fired 4 queries per session).
+   */
+  static narrativesForSessions(allFinished: SessionData[]): Map<string, string | null> {
+    const sorted = [...allFinished].sort((a, b) => b.date.getTime() - a.date.getTime());
+    const result = new Map<string, string | null>();
+
+    for (const current of sorted) {
+      const currentTime = current.date.getTime();
+
+      // Most recent finished session strictly before the current one.
+      const previousSession = sorted.find((s) => s.date.getTime() < currentTime) ?? null;
+
+      // Finished sessions in the 30 days before the current one.
+      const thirtyDaysAgo = new Date(current.date);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const sessionHistory = sorted.filter(
+        (s) => s.date.getTime() < currentTime && s.date >= thirtyDaysAgo
+      );
+
+      // Finished sessions within the current session's calendar month (asc).
+      const startOfMonth = new Date(current.date.getFullYear(), current.date.getMonth(), 1);
+      const endOfMonth = new Date(
+        current.date.getFullYear(),
+        current.date.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+        999
+      );
+      const monthSessions = sorted
+        .filter((s) => s.date >= startOfMonth && s.date <= endOfMonth)
+        .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+      const workoutFrequency = new Map<string, number>();
+      sessionHistory.forEach((s) => {
+        const name = s.workoutTitle || 'Custom Workout';
+        workoutFrequency.set(name, (workoutFrequency.get(name) || 0) + 1);
+      });
+
+      result.set(
+        current.id,
+        this.calculateNarrative({
+          currentSession: current,
+          previousSession,
+          sessionHistory,
+          monthSessions,
+          workoutFrequency,
+        })
+      );
+    }
+
+    return result;
+  }
+
+  /**
    * Get narrative context for a user and session
    */
   static async getNarrativeContext(

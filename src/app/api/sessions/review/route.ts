@@ -57,36 +57,30 @@ export async function GET(request: NextRequest) {
         orderBy: { date: 'desc' }
       });
 
-      const sessionReviewData: SessionReviewData[] = await Promise.all(
-        sessions.map(async (session) => {
-          // Calculate narrative for each session
-          let narrative: string | null = null;
-          try {
-            const narrativeContext = await NarrativeService.getNarrativeContext(
-              userId,
-              session.id,
-              session.date
-            );
-            narrative = NarrativeService.calculateNarrative(narrativeContext);
-          } catch (error) {
-            console.error(`Failed to calculate narrative for session ${session.id}:`, error);
-          }
-
-          return {
-            id: session.id,
-            date: session.date,
-            workoutTitle: session.workout?.title || null,
-            status: session.status,
-            devotionScore: session.devotionScore,
-            devotionGrade: session.devotionGrade,
-            effort: session.sessionSeal?.effort,
-            vibeLine: session.sessionSeal?.vibeLine,
-            note: session.sessionSeal?.note || undefined,
-            duration: session.duration || undefined,
-            narrative: narrative || undefined
-          };
-        })
+      // Narratives are derived in memory from the session list above — no
+      // per-session queries (previously an N+1 of 4 queries × every session).
+      const narratives = NarrativeService.narrativesForSessions(
+        sessions.map((s) => ({
+          id: s.id,
+          date: s.date,
+          workoutTitle: s.workout?.title ?? null,
+          devotionScore: s.devotionScore,
+        }))
       );
+
+      const sessionReviewData: SessionReviewData[] = sessions.map((session) => ({
+        id: session.id,
+        date: session.date,
+        workoutTitle: session.workout?.title || null,
+        status: session.status,
+        devotionScore: session.devotionScore,
+        devotionGrade: session.devotionGrade,
+        effort: session.sessionSeal?.effort,
+        vibeLine: session.sessionSeal?.vibeLine,
+        note: session.sessionSeal?.note || undefined,
+        duration: session.duration || undefined,
+        narrative: narratives.get(session.id) || undefined,
+      }));
 
       return NextResponse.json({
         sessions: sessionReviewData,

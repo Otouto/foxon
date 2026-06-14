@@ -81,31 +81,87 @@ export class DashboardService {
   static async getDashboardData(): Promise<DashboardData> {
     const userId = await getCurrentUserId();
 
-    // Get user profile
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
+    // Date bounds are pure JS — compute up front so every query below can fire
+    // in a single parallel wave instead of ~10 sequential remote round-trips.
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const dayOfWeek = now.getDay();
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // If Sunday, go back 6 days, else go to Monday
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() + mondayOffset);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const [
+      user,
+      foxEval,
+      formScoreBreakdown,
+      currentMonthSessions,
+      thisWeekSessions,
+      activeWorkouts,
+      lastTrainedSession,
+      recentSession,
+      weekStreak,
+    ] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId } }),
+      // Fox level: read from DB, lazy-evaluate if stale (>24h)
+      FoxLevelService.ensureEvaluated(userId),
+      FoxLevelService.computeFormScore(userId),
+      // Month-aware devotion for display
+      prisma.session.findMany({
+        where: {
+          userId,
+          status: SessionStatus.FINISHED,
+          date: { gte: currentMonthStart },
+          devotionScore: { not: null },
+        },
+        select: { devotionScore: true },
+      }),
+      // This week's sessions (Monday to Sunday)
+      prisma.session.findMany({
+        where: {
+          userId,
+          status: SessionStatus.FINISHED,
+          date: { gte: startOfWeek, lte: endOfWeek },
+        },
+      }),
+      // Active workouts for the rotation
+      prisma.workout.findMany({
+        where: { userId, status: WorkoutStatus.ACTIVE },
+        include: { workoutItems: { include: { workoutItemSets: true } } },
+        orderBy: { createdAt: 'asc' },
+      }),
+      // Most recent finished session tied to a workout (any date), to anchor rotation.
+      prisma.session.findFirst({
+        where: { userId, status: SessionStatus.FINISHED, workoutId: { not: null } },
+        orderBy: { date: 'desc' },
+        select: { workoutId: true },
+      }),
+      // Last session within 7 days
+      prisma.session.findFirst({
+        where: { userId, status: SessionStatus.FINISHED, date: { gte: sevenDaysAgo } },
+        orderBy: { date: 'desc' },
+        include: {
+          workout: { select: { title: true } },
+          sessionSeal: { select: { vibeLine: true } },
+        },
+      }),
+      ProfileService.getWeekStreak(userId),
+    ]);
 
     if (!user) {
       throw new Error('User not found');
     }
 
-    // Fox level: read from DB, lazy-evaluate if stale (>24h)
-    const { level: foxState, formScore: foxFormScore } = await FoxLevelService.ensureEvaluated(userId);
-    const { attendance, quality, consistency } = await FoxLevelService.computeFormScore(userId);
-
-    // Month-aware devotion for display
-    const now = new Date();
-    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const currentMonthSessions = await prisma.session.findMany({
-      where: {
-        userId,
-        status: SessionStatus.FINISHED,
-        date: { gte: currentMonthStart },
-        devotionScore: { not: null },
-      },
-      select: { devotionScore: true },
-    });
+    const { level: foxState, formScore: foxFormScore } = foxEval;
+    const { attendance, quality, consistency } = formScoreBreakdown;
 
     let displayDevotionScore: number | null = null;
     let isLastMonth = false;
@@ -117,6 +173,7 @@ export class DashboardService {
         currentMonthSessions.length
       );
     } else {
+      // Rare fallback (no sessions this month): one extra query, then maybe one more.
       const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
       const prevMonthSessions = await prisma.session.findMany({
@@ -144,60 +201,16 @@ export class DashboardService {
       }
     }
 
-    // Get this week's sessions (Monday to Sunday)
-    const dayOfWeek = now.getDay();
-    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // If Sunday, go back 6 days, else go to Monday
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() + mondayOffset);
-    startOfWeek.setHours(0, 0, 0, 0);
-
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
-    endOfWeek.setHours(23, 59, 59, 999);
-
-    const thisWeekSessions = await prisma.session.findMany({
-      where: {
-        userId,
-        status: SessionStatus.FINISHED,
-        date: {
-          gte: startOfWeek,
-          lte: endOfWeek
-        }
-      }
-    });
-
     const completedThisWeek = thisWeekSessions.length;
     const weeklyGoal = user.weeklyGoal;
     const isWeekComplete = completedThisWeek >= weeklyGoal;
     const isExceeded = completedThisWeek > weeklyGoal;
     const extra = isExceeded ? completedThisWeek - weeklyGoal : 0;
 
-    // Get next workout: rotate through active programs (ordered by createdAt asc),
+    // Next workout: rotate through active programs (ordered by createdAt asc),
     // advancing to the one *after* the program last trained so it cycles
     // (e.g. legs day -> arms day -> ... -> legs day).
     let nextWorkout: DashboardData['nextWorkout'] = null;
-
-    const activeWorkouts = await prisma.workout.findMany({
-      where: {
-        userId,
-        status: WorkoutStatus.ACTIVE
-      },
-      include: {
-        workoutItems: {
-          include: {
-            workoutItemSets: true
-          }
-        }
-      },
-      orderBy: { createdAt: 'asc' }
-    });
-
-    // Most recent finished session tied to a workout (any date), to anchor rotation.
-    const lastTrainedSession = await prisma.session.findFirst({
-      where: { userId, status: SessionStatus.FINISHED, workoutId: { not: null } },
-      orderBy: { date: 'desc' },
-      select: { workoutId: true },
-    });
 
     const lastTrainedIndex = lastTrainedSession?.workoutId
       ? activeWorkouts.findIndex((w) => w.id === lastTrainedSession.workoutId)
@@ -226,23 +239,6 @@ export class DashboardService {
       };
     }
 
-    // Get last session within 7 days
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    const recentSession = await prisma.session.findFirst({
-      where: {
-        userId,
-        status: SessionStatus.FINISHED,
-        date: { gte: sevenDaysAgo },
-      },
-      orderBy: { date: 'desc' },
-      include: {
-        workout: { select: { title: true } },
-        sessionSeal: { select: { vibeLine: true } },
-      },
-    });
-
     const lastSession: DashboardData['lastSession'] = recentSession
       ? {
           id: recentSession.id,
@@ -252,8 +248,6 @@ export class DashboardService {
           vibeLine: recentSession.sessionSeal?.vibeLine || null,
         }
       : null;
-
-    const weekStreak = await ProfileService.getWeekStreak(userId);
 
     return {
       displayName: user.displayName,
