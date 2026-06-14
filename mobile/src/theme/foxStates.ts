@@ -61,3 +61,21 @@ export const FOX_STATE_VISUALS: Record<ProgressionState, FoxStateVisual> = {
     barColor: colors.foxFieryDeep,
   },
 };
+
+/** Expressive evolution icons for the profile journey path (mirrors the web). */
+export const STAGE_EMOJI: Record<ProgressionState, string> = {
+  SLIM: '🦊',
+  FIT: '🦊',
+  STRONG: '💪',
+  FIERY: '🔥',
+};
+
+/** Short stage descriptions (condensed from ProfileService.getProgressionInfo). */
+export const STAGE_DESC: Record<ProgressionState, string> = {
+  SLIM: 'Just starting out',
+  FIT: 'Building the habit',
+  STRONG: 'Getting seriously strong',
+  FIERY: 'Peak performance',
+};
+
+export const FOX_STATES: ProgressionState[] = ['SLIM', 'FIT', 'STRONG', 'FIERY'];

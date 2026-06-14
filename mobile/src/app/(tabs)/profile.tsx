@@ -1,5 +1,6 @@
 import { useAuth } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import {
   ActivityIndicator,
   Alert,
@@ -13,22 +14,20 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useProfile } from '@/api/profile';
-import type { ProgressionState } from '@/api/types';
 import { Card } from '@/components/Card';
-import { colors, radius, spacing, typography } from '@/theme';
-
-const FOX_STATES: ProgressionState[] = ['SLIM', 'FIT', 'STRONG', 'FIERY'];
-
-const STATE_COLORS: Record<ProgressionState, string> = {
-  SLIM: colors.foxSlim,
-  FIT: colors.foxFit,
-  STRONG: colors.foxStrong,
-  FIERY: colors.foxFiery,
-};
+import { FadeInUp } from '@/components/FadeInUp';
+import { ChronicleCard } from '@/components/profile/ChronicleCard';
+import { FoxEvolution } from '@/components/profile/FoxEvolution';
+import { KeyNumbers } from '@/components/profile/KeyNumbers';
+import { ProfileHeader } from '@/components/profile/ProfileHeader';
+import { TrainingPulse } from '@/components/profile/TrainingPulse';
+import { useHapticFeedback } from '@/hooks/useHapticFeedback';
+import { colors, spacing, typography } from '@/theme';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { signOut } = useAuth();
+  const { triggerHaptic } = useHapticFeedback();
   const { data, isLoading, refetch, isRefetching } = useProfile();
 
   const confirmSignOut = () => {
@@ -49,123 +48,73 @@ export default function ProfileScreen() {
   }
 
   const { user, stats, firstSessionDate, trainingPulse, chronicleEntry } = data;
-  const currentStateIndex = FOX_STATES.indexOf(user.foxLevel);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}>
-        {/* Identity */}
-        <View style={styles.identity}>
-          <Text style={styles.foxEmoji}>🦊</Text>
-          <Text style={typography.title}>{user.displayName ?? 'Athlete'}</Text>
-          {firstSessionDate ? (
-            <Text style={typography.subhead}>
-              Training since{' '}
-              {new Date(firstSessionDate).toLocaleDateString('en-US', {
-                month: 'long',
-                year: 'numeric',
-              })}
-            </Text>
-          ) : null}
-        </View>
+        <FadeInUp>
+          <ProfileHeader
+            displayName={user.displayName}
+            firstSessionDate={firstSessionDate}
+            state={user.foxLevel}
+          />
+        </FadeInUp>
 
-        {/* Fox evolution */}
-        <Card>
-          <Text style={typography.headline}>Fox Evolution</Text>
-          <View style={styles.evolution}>
-            {FOX_STATES.map((state, index) => {
-              const reached = index <= currentStateIndex;
-              return (
-                <View key={state} style={styles.evolutionStep}>
-                  <View
-                    style={[
-                      styles.evolutionDot,
-                      { backgroundColor: reached ? STATE_COLORS[state] : colors.fillMuted },
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.evolutionLabel,
-                      reached && { color: colors.text, fontWeight: '600' },
-                    ]}>
-                    {state}
+        <View style={styles.sections}>
+          <FadeInUp delay={60}>
+            <FoxEvolution state={user.foxLevel} formScore={user.foxFormScore} />
+          </FadeInUp>
+
+          <FadeInUp delay={130}>
+            <TrainingPulse
+              grid={trainingPulse.grid}
+              totalSessions={trainingPulse.totalSessions}
+              weekStreak={trainingPulse.weekStreak}
+            />
+          </FadeInUp>
+
+          <FadeInUp delay={200}>
+            <KeyNumbers
+              totalSessions={stats.completedSessions}
+              weekStreak={stats.currentWeekStreak}
+              formScore={user.foxFormScore}
+              state={user.foxLevel}
+            />
+          </FadeInUp>
+
+          <FadeInUp delay={270}>
+            <ChronicleCard entry={chronicleEntry} />
+          </FadeInUp>
+
+          <FadeInUp delay={330}>
+            <Card style={styles.settingsGroup}>
+              <Pressable
+                onPress={() => {
+                  triggerHaptic('light');
+                  router.push('/profile-settings');
+                }}
+                style={({ pressed }) => [styles.settingsRow, pressed && styles.pressed]}>
+                <Text style={typography.body}>Weekly goal</Text>
+                <View style={styles.settingsRight}>
+                  <Text style={typography.subhead}>
+                    {user.weeklyGoal} workout{user.weeklyGoal !== 1 ? 's' : ''}
                   </Text>
+                  <SymbolView name="chevron.right" size={14} tintColor={colors.textTertiary} />
                 </View>
-              );
-            })}
-          </View>
-        </Card>
+              </Pressable>
 
-        {/* Training pulse */}
-        <Card>
-          <Text style={typography.headline}>Training Pulse</Text>
-          <Text style={typography.footnote}>Last 12 weeks</Text>
-          <View style={styles.pulseGrid}>
-            {trainingPulse.grid.map((week, weekIndex) => (
-              <View key={weekIndex} style={styles.pulseColumn}>
-                {week.map((active, dayIndex) => (
-                  <View
-                    key={dayIndex}
-                    style={[
-                      styles.pulseCell,
-                      { backgroundColor: active ? colors.foxFit : colors.fillMuted },
-                    ]}
-                  />
-                ))}
-              </View>
-            ))}
-          </View>
-        </Card>
+              <View style={styles.separator} />
 
-        {/* Key numbers */}
-        <View style={styles.numbersRow}>
-          <Card style={styles.numberCard}>
-            <Text style={styles.numberValue}>{stats.completedSessions}</Text>
-            <Text style={typography.caption}>Sessions</Text>
-          </Card>
-          <Card style={styles.numberCard}>
-            <Text style={styles.numberValue}>{stats.currentWeekStreak}</Text>
-            <Text style={typography.caption}>Week streak</Text>
-          </Card>
-          <Card style={styles.numberCard}>
-            <Text style={styles.numberValue}>{user.foxFormScore}</Text>
-            <Text style={typography.caption}>Form score</Text>
-          </Card>
+              <Pressable
+                onPress={confirmSignOut}
+                style={({ pressed }) => [styles.settingsRow, pressed && styles.pressed]}>
+                <Text style={[typography.body, { color: colors.destructive }]}>Sign Out</Text>
+              </Pressable>
+            </Card>
+          </FadeInUp>
         </View>
-
-        {/* Chronicle */}
-        <Pressable onPress={() => router.push('/chronicle')}>
-          {({ pressed }) => (
-            <Card style={pressed ? styles.pressed : undefined}>
-              <Text style={typography.headline}>Fox Chronicle</Text>
-              {chronicleEntry.state === 'has_chapter' && chronicleEntry.latestChapter ? (
-                <Text style={typography.subhead}>
-                  Latest: {chronicleEntry.latestChapter.title}
-                </Text>
-              ) : (
-                <Text style={typography.subhead}>Your monthly training story</Text>
-              )}
-            </Card>
-          )}
-        </Pressable>
-
-        {/* Settings & sign out */}
-        <Pressable onPress={() => router.push('/profile-settings')}>
-          {({ pressed }) => (
-            <Card style={pressed ? styles.pressed : undefined}>
-              <Text style={typography.headline}>Settings</Text>
-              <Text style={typography.subhead}>
-                Weekly goal: {user.weeklyGoal} workout{user.weeklyGoal !== 1 ? 's' : ''}
-              </Text>
-            </Card>
-          )}
-        </Pressable>
-
-        <Pressable style={styles.signOut} onPress={confirmSignOut}>
-          <Text style={styles.signOutLabel}>Sign Out</Text>
-        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -184,72 +133,30 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing.lg,
     paddingBottom: spacing.xxl,
-    gap: spacing.lg,
   },
-  identity: {
+  sections: {
+    gap: spacing.lg,
+    marginTop: spacing.xl,
+  },
+  settingsGroup: {
+    paddingVertical: spacing.xs,
+  },
+  settingsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.md,
+  },
+  settingsRight: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    marginVertical: spacing.lg,
   },
-  foxEmoji: {
-    fontSize: 56,
-  },
-  evolution: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.lg,
-  },
-  evolutionStep: {
-    alignItems: 'center',
-    gap: spacing.sm,
-    flex: 1,
-  },
-  evolutionDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-  },
-  evolutionLabel: {
-    ...typography.caption,
-  },
-  pulseGrid: {
-    flexDirection: 'row',
-    gap: 3,
-    marginTop: spacing.md,
-  },
-  pulseColumn: {
-    gap: 3,
-    flex: 1,
-  },
-  pulseCell: {
-    aspectRatio: 1,
-    borderRadius: 3,
-  },
-  numbersRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  numberCard: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 2,
-  },
-  numberValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text,
-    fontVariant: ['tabular-nums'],
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.separator,
   },
   pressed: {
-    opacity: 0.7,
-  },
-  signOut: {
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-  },
-  signOutLabel: {
-    ...typography.body,
-    color: colors.destructive,
+    opacity: 0.6,
   },
 });

@@ -36,6 +36,13 @@ export const colors = {
   destructive: '#EF4444', // red-500
   destructiveSoft: '#FEF2F2', // red-50
 
+  // Amber accent (chronicle / story card)
+  amberBg: '#FFFBEB', // amber-50
+  amberSoft: '#FEF3C7', // amber-100
+  amberIcon: '#D97706', // amber-600
+  amberSubtext: '#B45309', // amber-700
+  amberText: '#92400E', // amber-900
+
   separator: '#E5E7EB', // gray-200
   fill: '#E5E7EB',
   fillMuted: '#F3F4F6', // gray-100
