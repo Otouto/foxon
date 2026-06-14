@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { queryOptions, useQuery } from '@tanstack/react-query';
 
 import { api } from './client';
 
@@ -63,16 +63,19 @@ export interface ExerciseHistoryEntry {
   };
 }
 
-export function useSessionDetails(id: string | undefined) {
-  return useQuery({
+export const sessionDetailsQueryOptions = (id: string | undefined) =>
+  queryOptions({
     queryKey: ['session', id],
     queryFn: () => api.get<SessionWithDetails>(`/api/sessions/${id}`),
     enabled: !!id,
   });
+
+export function useSessionDetails(id: string | undefined) {
+  return useQuery(sessionDetailsQueryOptions(id));
 }
 
-export function useExerciseHistory(exerciseId: string | undefined) {
-  return useQuery({
+export const exerciseHistoryQueryOptions = (exerciseId: string | undefined) =>
+  queryOptions({
     queryKey: ['exercise-history', exerciseId],
     queryFn: async () => {
       const data = await api.get<{ history: ExerciseHistoryEntry[] }>(
@@ -82,4 +85,7 @@ export function useExerciseHistory(exerciseId: string | undefined) {
     },
     enabled: !!exerciseId,
   });
+
+export function useExerciseHistory(exerciseId: string | undefined) {
+  return useQuery(exerciseHistoryQueryOptions(exerciseId));
 }

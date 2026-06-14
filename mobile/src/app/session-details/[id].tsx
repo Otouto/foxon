@@ -1,9 +1,10 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useSessionDetails } from '@/api/sessions';
 import { Card } from '@/components/Card';
+import { SessionDetailsSkeleton } from '@/components/ui/Skeleton';
 import { formatDateWithWeekday } from '@/lib/dateUtils';
 import { formatDuration } from '@/lib/exerciseUtils';
 import { colors, radius, spacing, typography } from '@/theme';
@@ -19,9 +20,7 @@ export default function SessionDetailsScreen() {
       />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {isLoading || !session ? (
-          <View style={styles.centered}>
-            <ActivityIndicator />
-          </View>
+          <SessionDetailsSkeleton />
         ) : (
           <>
             {/* Hero */}
@@ -125,10 +124,6 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: 48,
     gap: spacing.md,
-  },
-  centered: {
-    paddingVertical: 64,
-    alignItems: 'center',
   },
   hero: {
     gap: spacing.xs,

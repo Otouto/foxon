@@ -1,8 +1,8 @@
 import SegmentedControl from '@react-native-segmented-control/segmented-control';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Pressable,
   RefreshControl,
@@ -19,8 +19,10 @@ import {
   useSessionsReview,
   type ExerciseAnalytics,
 } from '@/api/review';
+import { exerciseHistoryQueryOptions, sessionDetailsQueryOptions } from '@/api/sessions';
 import type { SessionReviewData } from '@/api/types';
 import { Card } from '@/components/Card';
+import { ReviewListSkeleton } from '@/components/ui/Skeleton';
 import { formatDate, groupSessionsByTime } from '@/lib/dateUtils';
 import { formatDuration } from '@/lib/exerciseUtils';
 import { colors, radius, spacing, typography } from '@/theme';
@@ -46,6 +48,7 @@ export default function ReviewScreen() {
 
 function SessionsTab() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data, isLoading, refetch, isRefetching } = useSessionsReview();
   const deleteSession = useDeleteSession();
 
@@ -74,11 +77,7 @@ function SessionsTab() {
   };
 
   if (isLoading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator />
-      </View>
-    );
+    return <ReviewListSkeleton />;
   }
 
   return (
@@ -110,6 +109,9 @@ function SessionsTab() {
               {group.sessions.map((session) => (
                 <Pressable
                   key={session.id}
+                  onPressIn={() =>
+                    queryClient.prefetchQuery(sessionDetailsQueryOptions(session.id))
+                  }
                   onPress={() => router.push(`/session-details/${session.id}`)}
                   onLongPress={() => confirmDelete(session)}>
                   {({ pressed }) => (
@@ -164,17 +166,17 @@ function SessionReviewCard({
 
 function ExercisesTab() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data, isLoading, refetch, isRefetching } = useExercisesReview();
 
   const openHistory = (exercise: ExerciseAnalytics) =>
     router.push(`/exercise-history/${exercise.id}?name=${encodeURIComponent(exercise.name)}`);
 
+  const prefetchHistory = (exercise: ExerciseAnalytics) =>
+    queryClient.prefetchQuery(exerciseHistoryQueryOptions(exercise.id));
+
   if (isLoading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator />
-      </View>
-    );
+    return <ReviewListSkeleton />;
   }
 
   const active = data?.activeExercises ?? [];
@@ -195,6 +197,7 @@ function ExercisesTab() {
               key={exercise.id}
               exercise={exercise}
               onPress={() => openHistory(exercise)}
+              onPressIn={() => prefetchHistory(exercise)}
             />
           ))}
           {archived.length > 0 ? (
@@ -218,12 +221,14 @@ function ExercisesTab() {
 function ExerciseAnalyticsCard({
   exercise,
   onPress,
+  onPressIn,
 }: {
   exercise: ExerciseAnalytics;
   onPress: () => void;
+  onPressIn?: () => void;
 }) {
   return (
-    <Pressable onPress={onPress}>
+    <Pressable onPress={onPress} onPressIn={onPressIn}>
       {({ pressed }) => (
         <View style={pressed ? styles.pressedCard : undefined}>
           <ExerciseAnalyticsCardContent exercise={exercise} />

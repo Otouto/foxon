@@ -2,7 +2,6 @@ import { useAuth } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import {
-  ActivityIndicator,
   Alert,
   Pressable,
   RefreshControl,
@@ -16,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useProfile } from '@/api/profile';
 import { Card } from '@/components/Card';
 import { FadeInUp } from '@/components/FadeInUp';
+import { ProfileSkeleton } from '@/components/ui/Skeleton';
 import { ChronicleCard } from '@/components/profile/ChronicleCard';
 import { FoxEvolution } from '@/components/profile/FoxEvolution';
 import { KeyNumbers } from '@/components/profile/KeyNumbers';
@@ -40,9 +40,7 @@ export default function ProfileScreen() {
   if (isLoading || !data) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.centered}>
-          <ActivityIndicator />
-        </View>
+        <ProfileSkeleton />
       </SafeAreaView>
     );
   }
@@ -124,11 +122,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   content: {
     padding: spacing.lg,

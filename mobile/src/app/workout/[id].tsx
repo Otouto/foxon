@@ -1,16 +1,10 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { WorkoutItem } from '@shared/types/workout';
 
 import { useWorkout } from '@/api/queries';
 import { Card } from '@/components/Card';
+import { WorkoutDetailSkeleton } from '@/components/ui/Skeleton';
 import { colors, radius, spacing, typography } from '@/theme';
 
 export default function WorkoutDetailScreen() {
@@ -32,9 +26,7 @@ export default function WorkoutDetailScreen() {
         contentContainerStyle={styles.content}
         contentInsetAdjustmentBehavior="automatic">
         {isLoading || !workout ? (
-          <View style={styles.centered}>
-            <ActivityIndicator />
-          </View>
+          <WorkoutDetailSkeleton />
         ) : (
           <>
             <View style={styles.summary}>
@@ -100,10 +92,6 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing.lg,
     paddingBottom: 48,
-  },
-  centered: {
-    paddingVertical: 64,
-    alignItems: 'center',
   },
   summary: {
     marginBottom: spacing.lg,

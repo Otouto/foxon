@@ -1,21 +1,17 @@
 import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
 import { tokenCache } from '@clerk/clerk-expo/token-cache';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { registerTokenGetter } from '@/api/client';
+import { CACHE_BUSTER, mmkvPersister } from '@/api/persister';
+import { queryClient } from '@/api/queryClient';
+import { PrefetchOnAuth } from '@/components/PrefetchOnAuth';
 import { colors } from '@/theme';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 30_000,
-      retry: 2,
-    },
-  },
-});
+const ONE_DAY = 1000 * 60 * 60 * 24;
 
 /** Bridges Clerk's getToken into the plain-module API client. */
 function ApiAuthBinding() {
@@ -62,12 +58,15 @@ export default function RootLayout() {
     <ClerkProvider
       tokenCache={tokenCache}
       publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY}>
-      <QueryClientProvider client={queryClient}>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{ persister: mmkvPersister, maxAge: ONE_DAY, buster: CACHE_BUSTER }}>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <ApiAuthBinding />
+          <PrefetchOnAuth />
           <RootNavigator />
         </GestureHandlerRootView>
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </ClerkProvider>
   );
 }

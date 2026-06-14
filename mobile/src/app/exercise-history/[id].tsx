@@ -1,15 +1,9 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useExerciseHistory, type ExerciseHistoryEntry } from '@/api/sessions';
 import { Card } from '@/components/Card';
+import { ExerciseHistorySkeleton } from '@/components/ui/Skeleton';
 import { formatDate } from '@/lib/dateUtils';
 import { colors, spacing, typography } from '@/theme';
 
@@ -35,9 +29,7 @@ export default function ExerciseHistoryScreen() {
         }
         ListEmptyComponent={
           isLoading ? (
-            <View style={styles.centered}>
-              <ActivityIndicator />
-            </View>
+            <ExerciseHistorySkeleton />
           ) : (
             <View style={styles.centered}>
               <Text style={typography.headline}>No performance history</Text>

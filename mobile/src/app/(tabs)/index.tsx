@@ -1,17 +1,11 @@
 import { SymbolView } from 'expo-symbols';
 import { useCallback } from 'react';
-import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useDashboard } from '@/api/queries';
 import { FadeInUp } from '@/components/FadeInUp';
+import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import { FoxHeroCard } from '@/components/dashboard/FoxHeroCard';
 import { LastSessionSnapshot } from '@/components/dashboard/LastSessionSnapshot';
 import { WeekProgressCard } from '@/components/dashboard/WeekProgressCard';
@@ -48,9 +42,7 @@ export default function DashboardScreen() {
         </View>
 
         {isLoading ? (
-          <View style={styles.centered}>
-            <ActivityIndicator />
-          </View>
+          <DashboardSkeleton />
         ) : isError ? (
           <View style={styles.centered}>
             <Text style={typography.subhead}>

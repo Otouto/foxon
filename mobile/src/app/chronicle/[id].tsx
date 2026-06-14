@@ -1,8 +1,9 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 
 import { useChronicle } from '@/api/profile';
+import { ChronicleSkeleton } from '@/components/ui/Skeleton';
 import { colors, spacing, typography } from '@/theme';
 
 export default function ChronicleDetailScreen() {
@@ -20,9 +21,7 @@ export default function ChronicleDetailScreen() {
       />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {isLoading || !chronicle ? (
-          <View style={styles.centered}>
-            <ActivityIndicator />
-          </View>
+          <ChronicleSkeleton />
         ) : (
           <Markdown style={markdownStyles}>{chronicle.contentMd}</Markdown>
         )}
@@ -39,10 +38,6 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing.lg,
     paddingBottom: 48,
-  },
-  centered: {
-    paddingVertical: 64,
-    alignItems: 'center',
   },
 });
 

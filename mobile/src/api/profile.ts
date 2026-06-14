@@ -1,13 +1,16 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { api } from './client';
 import type { ChronicleListItem, ProfileData } from './types';
 
-export function useProfile() {
-  return useQuery({
+export const profileQueryOptions = () =>
+  queryOptions({
     queryKey: ['profile'],
     queryFn: () => api.get<ProfileData>('/api/profile'),
   });
+
+export function useProfile() {
+  return useQuery(profileQueryOptions());
 }
 
 export function useUpdateProfile() {
@@ -25,17 +28,23 @@ export function useUpdateProfile() {
   });
 }
 
-export function useChronicles() {
-  return useQuery({
+export const chroniclesQueryOptions = () =>
+  queryOptions({
     queryKey: ['chronicles'],
     queryFn: () => api.get<ChronicleListItem[]>('/api/chronicle'),
   });
+
+export function useChronicles() {
+  return useQuery(chroniclesQueryOptions());
 }
 
-export function useChronicle(id: string | undefined) {
-  return useQuery({
+export const chronicleQueryOptions = (id: string | undefined) =>
+  queryOptions({
     queryKey: ['chronicle', id],
     queryFn: () => api.get<ChronicleListItem>(`/api/chronicle/${id}`),
     enabled: !!id,
   });
+
+export function useChronicle(id: string | undefined) {
+  return useQuery(chronicleQueryOptions(id));
 }

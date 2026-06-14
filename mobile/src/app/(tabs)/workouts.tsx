@@ -1,7 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   RefreshControl,
   SectionList,
@@ -14,6 +13,7 @@ import type { WorkoutListItem } from '@shared/types/workout';
 
 import { useWorkouts } from '@/api/queries';
 import { Card } from '@/components/Card';
+import { WorkoutsSkeleton } from '@/components/ui/Skeleton';
 import { colors, radius, spacing, typography } from '@/theme';
 
 const SECTION_TITLES: Record<string, string> = {
@@ -65,9 +65,7 @@ export default function WorkoutsScreen() {
         }
         ListEmptyComponent={
           isLoading ? (
-            <View style={styles.centered}>
-              <ActivityIndicator />
-            </View>
+            <WorkoutsSkeleton />
           ) : (
             <View style={styles.centered}>
               <Text style={typography.subhead}>No workouts yet</Text>

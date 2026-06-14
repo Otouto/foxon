@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { api } from './client';
 import type { SessionReviewData } from './types';
@@ -27,21 +27,27 @@ export interface CategorizedExerciseAnalytics {
   archivedExercises: ExerciseAnalytics[];
 }
 
-export function useSessionsReview() {
-  return useQuery({
+export const sessionsReviewQueryOptions = () =>
+  queryOptions({
     queryKey: ['review', 'sessions'],
     queryFn: () =>
       api.get<{ sessions: SessionReviewData[]; weeklyGoal: number }>(
         '/api/sessions/review?tab=sessions'
       ),
   });
+
+export function useSessionsReview() {
+  return useQuery(sessionsReviewQueryOptions());
 }
 
-export function useExercisesReview() {
-  return useQuery({
+export const exercisesReviewQueryOptions = () =>
+  queryOptions({
     queryKey: ['review', 'exercises'],
     queryFn: () => api.get<CategorizedExerciseAnalytics>('/api/sessions/review?tab=exercises'),
   });
+
+export function useExercisesReview() {
+  return useQuery(exercisesReviewQueryOptions());
 }
 
 export function useDeleteSession() {
