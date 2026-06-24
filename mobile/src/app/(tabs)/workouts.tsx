@@ -1,23 +1,19 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { useMemo } from 'react';
-import {
-  Pressable,
-  RefreshControl,
-  SectionList,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { WorkoutListItem } from '@shared/types/workout';
 
 import { useWorkouts } from '@/api/queries';
-import { Card } from '@/components/Card';
+import { AmbientGlow } from '@/components/ui/AmbientGlow';
+import { GradientButton } from '@/components/ui/GradientButton';
 import { WorkoutsSkeleton } from '@/components/ui/Skeleton';
-import { colors, radius, spacing, typography } from '@/theme';
+import { colors, gradients, spacing, typography } from '@/theme';
 
 const SECTION_TITLES: Record<string, string> = {
-  ACTIVE: 'Workouts',
+  ACTIVE: 'Active',
   DRAFT: 'Drafts',
   ARCHIVED: 'Archived',
 };
@@ -37,131 +33,187 @@ export default function WorkoutsScreen() {
   }, [workouts]);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <SectionList
-        sections={sections}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.content}
-        contentInsetAdjustmentBehavior="automatic"
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}
-        ListHeaderComponent={
-          <View style={styles.headerRow}>
-            <Text style={typography.title}>Workouts</Text>
-            <View style={styles.headerActions}>
-              <Pressable
-                style={({ pressed }) => [styles.headerAction, pressed && styles.pressed]}
-                onPress={() => router.push('/exercise/create')}>
-                <Text style={styles.headerActionLabel}>New exercise</Text>
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [styles.headerAction, styles.headerActionPrimary, pressed && styles.pressed]}
-                onPress={() => router.push('/workout/create')}>
-                <Text style={[styles.headerActionLabel, styles.headerActionLabelPrimary]}>
-                  New workout
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        }
-        ListEmptyComponent={
-          isLoading ? (
-            <WorkoutsSkeleton />
-          ) : (
-            <View style={styles.centered}>
-              <Text style={typography.subhead}>No workouts yet</Text>
-            </View>
-          )
-        }
-        renderSectionHeader={({ section }) => (
-          <Text style={styles.sectionHeader}>{section.title}</Text>
-        )}
-        renderItem={({ item }) => (
-          <WorkoutRow workout={item} onPress={() => router.push(`/workout/${item.id}`)} />
-        )}
-        SectionSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
-        ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
-        stickySectionHeadersEnabled={false}
+    <View style={styles.root}>
+      <AmbientGlow
+        color="rgba(163,230,53,0.2)"
+        width={340}
+        height={300}
+        style={{ top: -100, right: -80 }}
       />
-    </SafeAreaView>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <SectionList
+          sections={sections}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />
+          }
+          ListHeaderComponent={
+            <View style={styles.headerRow}>
+              <Text style={styles.screenTitle}>Workouts</Text>
+              <Pressable
+                style={({ pressed }) => [styles.newExercise, pressed && styles.pressed]}
+                onPress={() => router.push('/exercise/create')}>
+                <SymbolView name="plus" size={13} weight="bold" tintColor={colors.textSecondary} />
+                <Text style={styles.newExerciseLabel}>New exercise</Text>
+              </Pressable>
+            </View>
+          }
+          ListEmptyComponent={
+            isLoading ? (
+              <WorkoutsSkeleton />
+            ) : (
+              <View style={styles.centered}>
+                <Text style={typography.subhead}>No workouts yet</Text>
+              </View>
+            )
+          }
+          renderSectionHeader={({ section }) => (
+            <Text style={styles.sectionHeader}>{section.title}</Text>
+          )}
+          renderItem={({ item }) => (
+            <WorkoutCard workout={item} onPress={() => router.push(`/workout/${item.id}`)} />
+          )}
+          ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
+          SectionSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
+          ListFooterComponent={
+            sections.length > 0 ? (
+              <GradientButton
+                label="Create new workout"
+                variant="cyan"
+                icon="plus"
+                iconPlacement="leading"
+                onPress={() => router.push('/workout/create')}
+                style={styles.createButton}
+              />
+            ) : null
+          }
+          stickySectionHeadersEnabled={false}
+        />
+      </SafeAreaView>
+    </View>
   );
 }
 
-function WorkoutRow({ workout, onPress }: { workout: WorkoutListItem; onPress: () => void }) {
+function WorkoutCard({ workout, onPress }: { workout: WorkoutListItem; onPress: () => void }) {
   return (
     <Pressable onPress={onPress}>
       {({ pressed }) => (
-        <Card style={pressed ? styles.pressed : undefined}>
-          <Text style={typography.headline}>{workout.title}</Text>
-          {workout.description ? (
-            <Text style={styles.description} numberOfLines={2}>
-              {workout.description}
+        <View style={[styles.card, pressed && styles.pressed]}>
+          <View style={styles.cardText}>
+            <Text style={styles.cardTitle} numberOfLines={1}>
+              {workout.title}
             </Text>
-          ) : null}
-          <Text style={styles.meta}>
-            {workout.exerciseCount} exercise{workout.exerciseCount !== 1 ? 's' : ''} · ~
-            {workout.estimatedDuration} min
-          </Text>
-        </Card>
+            <Text style={styles.cardMeta}>
+              {workout.exerciseCount} exercise{workout.exerciseCount !== 1 ? 's' : ''} · ~
+              {workout.estimatedDuration} min
+            </Text>
+          </View>
+          <LinearGradient
+            colors={gradients.lime}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.play}>
+            <SymbolView name="play.fill" size={22} tintColor={colors.onLime} />
+          </LinearGradient>
+        </View>
       )}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  root: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  safeArea: {
+    flex: 1,
   },
   content: {
     padding: spacing.lg,
     paddingBottom: spacing.xxl,
   },
   headerRow: {
-    marginBottom: spacing.lg,
-    gap: spacing.md,
-  },
-  headerActions: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.lg,
   },
-  headerAction: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.full,
+  screenTitle: {
+    fontSize: 34,
+    fontWeight: '800',
+    color: colors.text,
+    letterSpacing: -0.8,
+  },
+  newExercise: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
     backgroundColor: colors.card,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.separator,
   },
-  headerActionPrimary: {
-    backgroundColor: colors.tint,
-    borderColor: colors.tint,
-  },
-  headerActionLabel: {
+  newExerciseLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.text,
-  },
-  headerActionLabelPrimary: {
-    color: colors.textInverse,
+    color: colors.textSecondary,
   },
   sectionHeader: {
-    ...typography.footnote,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.6,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: spacing.sm,
-    marginTop: spacing.md,
+    color: colors.textTertiary,
+    marginBottom: spacing.md,
+    marginTop: spacing.sm,
+  },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    backgroundColor: colors.card,
+    borderRadius: 26,
+    padding: 20,
+    shadowColor: '#141828',
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 12 },
+  },
+  cardText: {
+    flex: 1,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+    letterSpacing: -0.3,
+  },
+  cardMeta: {
+    fontSize: 13,
+    color: colors.textTertiary,
+    marginTop: 3,
+  },
+  play: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: 'rgba(132,204,22,0.65)',
+    shadowOpacity: 1,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+  },
+  createButton: {
+    marginTop: spacing.xl,
   },
   pressed: {
-    opacity: 0.7,
-  },
-  description: {
-    ...typography.subhead,
-    marginTop: 2,
-  },
-  meta: {
-    ...typography.footnote,
-    marginTop: spacing.sm,
+    opacity: 0.8,
   },
   centered: {
     paddingVertical: 64,
