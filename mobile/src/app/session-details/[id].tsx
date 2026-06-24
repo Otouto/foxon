@@ -113,7 +113,9 @@ export default function SessionDetailsScreen() {
             {/* Performance */}
             <Text style={styles.sectionLabel}>PERFORMANCE</Text>
             {session.sessionExercises.map((sessionExercise, index) => {
-              const completed = sessionExercise.sessionSets.filter((set) => set.completed);
+              const sets = sessionExercise.sessionSets;
+              const completedCount = sets.filter((set) => set.completed).length;
+              let normalCount = 0;
               return (
                 <View key={sessionExercise.id} style={styles.perfCard}>
                   <View style={styles.perfHeader}>
@@ -123,28 +125,36 @@ export default function SessionDetailsScreen() {
                     <View style={styles.perfTitleArea}>
                       <Text style={styles.perfName}>{sessionExercise.exercise.name}</Text>
                       <Text style={styles.perfMeta}>
-                        {completed.length} of {sessionExercise.sessionSets.length} sets
+                        {completedCount} of {sets.length} sets
                       </Text>
                     </View>
                   </View>
-                  {completed.length > 0 ? (
-                    <View style={styles.setList}>
-                      {completed.map((set, setIndex) => (
-                        <View key={set.id} style={styles.setRow}>
-                          <Text style={styles.setLabel}>
-                            {set.type === 'WARMUP' ? 'Warm-up' : `Set ${setIndex + 1}`}
+                  <View style={styles.setList}>
+                    {sets.map((set) => {
+                      const isWarmup = set.type === 'WARMUP';
+                      if (!isWarmup) normalCount += 1;
+                      const label = isWarmup ? 'Warm-up' : `Set ${normalCount}`;
+                      const value =
+                        set.load > 0 ? `${set.reps} reps × ${set.load} kg` : `${set.reps} reps`;
+                      return (
+                        <View
+                          key={set.id}
+                          style={[styles.setRow, !set.completed && styles.setRowMissed]}>
+                          <Text style={[styles.setLabel, !set.completed && styles.setTextMissed]}>
+                            {label}
                           </Text>
-                          <Text style={styles.setValue}>
-                            {set.load > 0
-                              ? `${set.reps} reps × ${set.load} kg`
-                              : `${set.reps} reps`}
-                          </Text>
+                          {set.completed ? (
+                            <Text style={styles.setValue}>{value}</Text>
+                          ) : (
+                            <View style={styles.missedRight}>
+                              <Text style={styles.missedTag}>skipped</Text>
+                              <Text style={[styles.setValue, styles.setTextMissed]}>{value}</Text>
+                            </View>
+                          )}
                         </View>
-                      ))}
-                    </View>
-                  ) : (
-                    <Text style={styles.noSets}>No completed sets</Text>
-                  )}
+                      );
+                    })}
+                  </View>
                   {sessionExercise.notes ? (
                     <Text style={styles.perfNotes}>{sessionExercise.notes}</Text>
                   ) : null}
@@ -327,6 +337,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 11,
   },
+  setRowMissed: {
+    backgroundColor: colors.fillMuted,
+    borderColor: 'transparent',
+  },
   setLabel: {
     fontSize: 13,
     fontWeight: '600',
@@ -338,9 +352,20 @@ const styles = StyleSheet.create({
     color: '#1A2E05',
     fontVariant: ['tabular-nums'],
   },
-  noSets: {
-    ...typography.footnote,
-    marginTop: spacing.md,
+  setTextMissed: {
+    color: colors.textTertiary,
+  },
+  missedRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  missedTag: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   perfNotes: {
     ...typography.footnote,
