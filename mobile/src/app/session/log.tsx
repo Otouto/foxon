@@ -1,21 +1,16 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SessionExerciseCard } from '@/components/session/SessionExerciseCard';
+import { AmbientGlow } from '@/components/ui/AmbientGlow';
+import { GradientButton } from '@/components/ui/GradientButton';
 import { useInMemorySession } from '@/hooks/useInMemorySession';
 import { formatDuration, hasBodyweightSets, isBodyweightExercise } from '@/lib/exerciseUtils';
-import { colors, radius, spacing, typography } from '@/theme';
+import { colors, gradients, spacing, typography } from '@/theme';
 
 export default function SessionLogScreen() {
   useKeepAwake(); // screen stays on for the whole workout
@@ -132,76 +127,107 @@ export default function SessionLogScreen() {
       ? `Block ${currentExercise.blockId.replace('block-', '')}`
       : null;
 
+  // Live progress = completed sets / total sets across what's on screen.
+  const totalSets = exercisesToDisplay.reduce((n, ex) => n + ex.sets.length, 0);
+  const doneSets = exercisesToDisplay.reduce(
+    (n, ex) => n + ex.sets.filter((set) => set.completed).length,
+    0
+  );
+  const progress = totalSets > 0 ? doneSets / totalSets : 0;
+
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={handleBack} hitSlop={8} style={styles.backButton}>
-          <SymbolView name="chevron.left" size={20} tintColor={colors.text} />
-        </Pressable>
-        <View style={styles.headerCenter}>
-          <Text style={typography.headline} numberOfLines={1}>
-            {session.workoutTitle}
-          </Text>
-          <Text style={typography.footnote}>
-            {blockLabel ??
-              `Exercise ${session.currentExerciseIndex + 1} of ${session.exercises.length}`}
-          </Text>
+    <View style={styles.root}>
+      <AmbientGlow
+        color="rgba(190,242,100,0.42)"
+        width={460}
+        height={360}
+        style={{ top: -120, left: -35 }}
+      />
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        {/* Hero header */}
+        <View style={styles.header}>
+          <Pressable onPress={handleBack} hitSlop={8} style={styles.backButton}>
+            <SymbolView name="chevron.left" size={18} weight="semibold" tintColor={colors.text} />
+          </Pressable>
+          <View style={styles.headerCenter}>
+            <View style={styles.titleLine}>
+              <Text style={styles.title} numberOfLines={1}>
+                {blockLabel ?? session.workoutTitle}
+              </Text>
+              {blockLabel ? <Text style={styles.fox}>🦊</Text> : null}
+            </View>
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {blockLabel
+                ? session.workoutTitle
+                : `Exercise ${session.currentExerciseIndex + 1} of ${session.exercises.length}`}
+            </Text>
+          </View>
+          <Text style={styles.timer}>{formatDuration(session.duration)}</Text>
         </View>
-        <Text style={styles.timer}>{formatDuration(session.duration)}</Text>
-      </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {exercisesToDisplay.map((exercise) => {
-          const exerciseIndex = session.exercises.findIndex((ex) => ex.id === exercise.id);
-          const bodyweight =
-            isBodyweightExercise({ equipment: exercise.equipment || null }) ||
-            hasBodyweightSets(exercise.sets);
+        {/* Progress */}
+        <View style={styles.progressTrack}>
+          <LinearGradient
+            colors={gradients.limeSoft}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]}
+          />
+        </View>
 
-          return (
-            <SessionExerciseCard
-              key={exercise.id}
-              exercise={exercise}
-              isBodyweight={bodyweight}
-              onToggleSetCompletion={(setIndex) => toggleSetCompletion(exerciseIndex, setIndex)}
-              onUpdateSet={(setIndex, weight, reps) =>
-                updateSet(exerciseIndex, setIndex, { actualLoad: weight, actualReps: reps })
-              }
-              onAddSet={() => addSet(exerciseIndex)}
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          {exercisesToDisplay.map((exercise) => {
+            const exerciseIndex = session.exercises.findIndex((ex) => ex.id === exercise.id);
+            const bodyweight =
+              isBodyweightExercise({ equipment: exercise.equipment || null }) ||
+              hasBodyweightSets(exercise.sets);
+
+            return (
+              <SessionExerciseCard
+                key={exercise.id}
+                exercise={exercise}
+                isBodyweight={bodyweight}
+                onToggleSetCompletion={(setIndex) => toggleSetCompletion(exerciseIndex, setIndex)}
+                onUpdateSet={(setIndex, weight, reps) =>
+                  updateSet(exerciseIndex, setIndex, { actualLoad: weight, actualReps: reps })
+                }
+                onAddSet={() => addSet(exerciseIndex)}
+              />
+            );
+          })}
+        </ScrollView>
+
+        {/* Bottom CTA */}
+        <View style={styles.footer}>
+          {isLast ? (
+            <GradientButton
+              label="Finish Workout"
+              variant="lime"
+              icon="flag.checkered"
+              disabled={!canFinishWorkout()}
+              onPress={() => router.push(`/session/finish?workoutId=${workoutId}`)}
             />
-          );
-        })}
-      </ScrollView>
-
-      {/* Bottom CTA */}
-      <View style={styles.footer}>
-        {isLast ? (
-          <Pressable
-            style={({ pressed }) => [
-              styles.cta,
-              styles.finishCta,
-              (!canFinishWorkout() || pressed) && styles.ctaDim,
-            ]}
-            disabled={!canFinishWorkout()}
-            onPress={() => router.push(`/session/finish?workoutId=${workoutId}`)}>
-            <Text style={styles.ctaLabel}>Finish Workout</Text>
-          </Pressable>
-        ) : (
-          <Pressable
-            style={({ pressed }) => [styles.cta, styles.nextCta, pressed && styles.ctaDim]}
-            onPress={navigateToNextExercise}>
-            <Text style={styles.ctaLabel}>Next Exercise</Text>
-          </Pressable>
-        )}
-      </View>
-    </SafeAreaView>
+          ) : (
+            <GradientButton
+              label="Next exercise"
+              variant="cyan"
+              icon="chevron.right"
+              onPress={navigateToNextExercise}
+            />
+          )}
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  root: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  safeArea: {
+    flex: 1,
   },
   centered: {
     flex: 1,
@@ -218,51 +244,71 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
     gap: spacing.md,
   },
   backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.fillMuted,
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
   },
   headerCenter: {
     flex: 1,
   },
-  timer: {
-    fontSize: 17,
-    fontWeight: '600',
+  titleLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
     color: colors.text,
+    letterSpacing: -0.3,
+    flexShrink: 1,
+  },
+  fox: {
+    fontSize: 15,
+  },
+  subtitle: {
+    fontSize: 12.5,
+    color: colors.textSecondary,
+  },
+  timer: {
+    fontSize: 23,
+    fontWeight: '700',
+    color: colors.text,
+    letterSpacing: -0.5,
     fontVariant: ['tabular-nums'],
+  },
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.06)',
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
   },
   content: {
     padding: spacing.lg,
+    paddingTop: spacing.md,
     paddingBottom: spacing.xxl,
   },
   footer: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
-  },
-  cta: {
-    borderRadius: radius.lg,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  nextCta: {
-    backgroundColor: colors.foxStrong,
-  },
-  finishCta: {
-    backgroundColor: colors.foxFit,
-  },
-  ctaDim: {
-    opacity: 0.5,
-  },
-  ctaLabel: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: colors.text,
+    paddingBottom: spacing.xs,
   },
 });

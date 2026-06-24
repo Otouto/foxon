@@ -46,6 +46,25 @@ export const colors = {
   separator: '#E5E7EB', // gray-200
   fill: '#E5E7EB',
   fillMuted: '#F3F4F6', // gray-100
+
+  // Dark ink that reads on top of the bright gradient CTAs
+  onLime: '#1A2E05', // lime-950
+  onCyan: '#063040', // cyan-950
+} as const;
+
+/**
+ * Gradient stop pairs for LinearGradient (top-left → bottom-right unless noted).
+ * Mirror the "Foxon Soul" redesign: lime = energy/live, cyan = strength/primary,
+ * journey = the cyan→purple arc used by score rings and milestone surfaces.
+ */
+export const gradients = {
+  lime: ['#A3E635', '#84CC16'] as const, // lime-400 → lime-500
+  limeSoft: ['#BEF264', '#84CC16'] as const, // lime-300 → lime-500 (progress bars)
+  cyan: ['#22D3EE', '#06B6D4'] as const, // cyan-400 → cyan-500
+  journey: ['#22D3EE', '#A855F7'] as const, // cyan-400 → purple-500
+  /** Soft aurora wash (milestone cards / reveal background). */
+  aurora: ['#F8F4FF', '#FDFAFF'] as const,
+  auroraBorder: '#EFE6FB',
 } as const;
 
 export const spacing = {
@@ -70,13 +89,18 @@ export const fonts = Platform.select({
     sans: 'system-ui',
     rounded: 'ui-rounded',
     mono: 'ui-monospace',
+    /** Newsreader italic — the editorial "soul" voice (loaded in _layout.tsx). */
+    serif: 'Newsreader_500Medium_Italic',
+    serifSemibold: 'Newsreader_600SemiBold',
   },
   default: {
     sans: 'normal',
     rounded: 'normal',
     mono: 'monospace',
+    serif: 'serif',
+    serifSemibold: 'serif',
   },
-});
+})!;
 
 export const typography = {
   largeTitle: { fontSize: 34, fontWeight: '700' as const, color: colors.text },

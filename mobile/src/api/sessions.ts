@@ -17,6 +17,22 @@ export interface SessionSetDetail {
   notes: string | null;
 }
 
+/** Devotion pillar scores (0–1). Mirrors DevotionPillars in SessionService.ts. */
+export interface DevotionPillars {
+  EC: number; // Exercise Coverage
+  SC: number; // Set Completion
+  RF: number; // Rep Fidelity
+  LF?: number; // Load Fidelity (absent for bodyweight-only sessions)
+}
+
+/** Top deviation explaining the score. Mirrors DevotionDeviation in SessionService.ts. */
+export interface DevotionDeviation {
+  type: 'missed_sets' | 'rep_variance' | 'load_variance' | 'missed_exercise';
+  exerciseName: string;
+  description: string;
+  impact: number; // 0–1 share of the gap
+}
+
 export interface SessionWithDetails {
   id: string;
   workoutId: string | null;
@@ -25,6 +41,8 @@ export interface SessionWithDetails {
   duration: number | null;
   devotionScore: number | null;
   devotionGrade: string | null;
+  devotionPillars?: DevotionPillars | null;
+  devotionDeviations?: DevotionDeviation[] | null;
   sessionSeal?: {
     effort: string;
     vibeLine: string;

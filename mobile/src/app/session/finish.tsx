@@ -17,32 +17,42 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { api } from '@/api/client';
+import type { DevotionDeviation, DevotionPillars } from '@/api/sessions';
 import type { EffortLevel } from '@/api/types';
-import { Card } from '@/components/Card';
+import { BreathingFox } from '@/components/session/BreathingFox';
 import { RPEPicker, rpeToEffortLevel } from '@/components/session/RPEPicker';
+import { ScoreBreakdownSheet } from '@/components/session/ScoreBreakdownSheet';
 import { SessionPhotoButton } from '@/components/session/SessionPhotoButton';
+import { AmbientGlow } from '@/components/ui/AmbientGlow';
+import { AnimatedCount } from '@/components/AnimatedCount';
+import { GradientButton } from '@/components/ui/GradientButton';
+import { ScoreRing } from '@/components/ui/ScoreRing';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 import type { InMemorySession } from '@/hooks/useInMemorySession';
 import { getDevotionVerdict } from '@/lib/devotionVerdicts';
 import { formatDuration } from '@/lib/exerciseUtils';
 import { getFoxQuote } from '@/lib/foxQuotes';
 import { SessionStorage } from '@/lib/sessionStorage';
-import { colors, radius, spacing, typography } from '@/theme';
+import { colors, fonts, spacing, typography } from '@/theme';
 
 interface DevotionData {
   devotionScore: number;
   devotionGrade: string;
+  pillars: DevotionPillars | null;
+  deviations: DevotionDeviation[] | null;
 }
 
 type SaveStatus = 'saving' | 'completed' | 'error';
 
 /**
- * Port of the web session finish flow (src/app/session/finish/page.tsx):
- * background-save the session on mount, collect the reflection (RPE + vibe),
- * seal it, then show the summary while polling for the async devotion score.
+ * Port of the web session finish flow (src/app/session/finish/page.tsx), reframed
+ * as the "Foxon Soul" Capture → Reveal moment. Same background-save / seal / poll
+ * state machine underneath.
  */
 export default function SessionFinishScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const reduceMotion = useReduceMotion();
   const { workoutId } = useLocalSearchParams<{ workoutId: string }>();
 
   const [session] = useState<InMemorySession | null>(() =>
@@ -52,12 +62,14 @@ export default function SessionFinishScreen() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saving');
   const savePromiseRef = useRef<Promise<string> | null>(null);
   const sessionIdRef = useRef<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   const [rpeValue, setRpeValue] = useState(7);
   const [vibeLine, setVibeLine] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [showSummary, setShowSummary] = useState(false);
+  const [showBreakdown, setShowBreakdown] = useState(false);
   const [devotion, setDevotion] = useState<DevotionData | null>(null);
   const [weekProgress, setWeekProgress] = useState<
     { completed: number; planned: number } | undefined
@@ -73,9 +85,7 @@ export default function SessionFinishScreen() {
       workoutTitle: session.workoutTitle,
       startTime: session.startTime,
       endTime,
-      duration: Math.floor(
-        (endTime.getTime() - new Date(session.startTime).getTime()) / 1000
-      ),
+      duration: Math.floor((endTime.getTime() - new Date(session.startTime).getTime()) / 1000),
       exercises: session.exercises.map((exercise) => ({
         exerciseId: exercise.exerciseId,
         exerciseName: exercise.exerciseName,
@@ -96,6 +106,7 @@ export default function SessionFinishScreen() {
       .post<{ success: boolean; sessionId: string }>('/api/sessions/complete', { sessionData })
       .then((result) => {
         sessionIdRef.current = result.sessionId;
+        setSessionId(result.sessionId);
         setSaveStatus('completed');
         return result.sessionId;
       });
@@ -120,12 +131,16 @@ export default function SessionFinishScreen() {
         const data = await api.get<{
           devotionScore: number | null;
           devotionGrade: string | null;
+          devotionPillars?: DevotionPillars | null;
+          devotionDeviations?: DevotionDeviation[] | null;
         }>(`/api/sessions/${sessionIdRef.current}`);
         if (cancelled) return;
         if (data.devotionScore !== null) {
           setDevotion({
             devotionScore: data.devotionScore,
             devotionGrade: data.devotionGrade ?? '',
+            pillars: data.devotionPillars ?? null,
+            deviations: data.devotionDeviations ?? null,
           });
           return;
         }
@@ -178,10 +193,7 @@ export default function SessionFinishScreen() {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       setShowSummary(true);
     } catch (err) {
-      Alert.alert(
-        'Could not save',
-        err instanceof Error ? err.message : 'Failed to save reflection'
-      );
+      Alert.alert('Could not save', err instanceof Error ? err.message : 'Failed to save reflection');
     } finally {
       setIsSubmitting(false);
     }
@@ -205,139 +217,224 @@ export default function SessionFinishScreen() {
     );
   }
 
-  // ---- Summary phase ----
-  if (showSummary) {
-    const completedSets = session.exercises.reduce(
-      (total, ex) => total + ex.sets.filter((set) => set.completed).length,
-      0
-    );
-    const totalVolume = session.exercises.reduce(
-      (total, ex) =>
-        total +
-        ex.sets
-          .filter((set) => set.completed)
-          .reduce((sum, set) => sum + set.actualLoad * set.actualReps, 0),
-      0
-    );
+  const exerciseCount = session.exercises.length;
 
+  // ---- Reveal phase ----
+  if (showSummary) {
     const verdict = devotion ? getDevotionVerdict(devotion.devotionScore) : null;
     const quote = devotion ? getFoxQuote(devotion.devotionScore, weekProgress) : null;
 
+    // Map the four devotion pillars to the reference's chips; the single
+    // lagging pillar (<100) gets the amber treatment.
+    const pillars = devotion?.pillars;
+    const pillarRows = [
+      { label: 'Exercises', pct: pillars?.EC != null ? Math.round(pillars.EC * 100) : null },
+      { label: 'Sets', pct: pillars?.SC != null ? Math.round(pillars.SC * 100) : null },
+      { label: 'Reps', pct: pillars?.RF != null ? Math.round(pillars.RF * 100) : null },
+      { label: 'Weight', pct: pillars?.LF != null ? Math.round(pillars.LF * 100) : null },
+    ];
+    let laggingLabel: string | null = null;
+    let laggingPct = 101;
+    for (const row of pillarRows) {
+      if (row.pct != null && row.pct < 100 && row.pct < laggingPct) {
+        laggingPct = row.pct;
+        laggingLabel = row.label;
+      }
+    }
+    const chips = pillarRows.map((row) => ({ ...row, amber: row.label === laggingLabel }));
+
     return (
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <ScrollView contentContainerStyle={styles.summaryContent}>
-          <Text style={styles.summaryFox}>🦊</Text>
-          <Text style={typography.title}>{session.workoutTitle}</Text>
+      <View style={styles.root}>
+        <AmbientGlow
+          color="rgba(34,211,238,0.22)"
+          width={520}
+          height={440}
+          style={{ top: -60, alignSelf: 'center' }}
+        />
+        <AmbientGlow
+          color="rgba(192,132,252,0.20)"
+          width={460}
+          height={400}
+          style={{ top: -30, alignSelf: 'center' }}
+        />
+        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+          <ScrollView contentContainerStyle={styles.revealContent} showsVerticalScrollIndicator={false}>
+            <Text style={styles.eyebrow}>Your latest chapter</Text>
+            <Text style={styles.revealTitle}>Session complete</Text>
 
-          <View style={styles.scoreBlock}>
+            {/* Fox + speech bubble */}
+            <View style={styles.foxRow}>
+              <BreathingFox />
+              <View style={styles.bubble}>
+                {quote ? (
+                  <>
+                    <Text style={styles.bubbleTitle}>{quote.line}</Text>
+                    {quote.weekLine ? <Text style={styles.bubbleSub}>{quote.weekLine}</Text> : null}
+                  </>
+                ) : (
+                  <Text style={styles.bubbleSub}>Crunching your devotion…</Text>
+                )}
+              </View>
+            </View>
+
+            {/* Score ring */}
+            <View style={styles.ringWrap}>
+              {devotion ? (
+                <ScoreRing
+                  size={178}
+                  strokeWidth={13}
+                  progress={devotion.devotionScore}
+                  animate={!reduceMotion}>
+                  <AnimatedCount
+                    value={devotion.devotionScore}
+                    animate={!reduceMotion}
+                    style={styles.ringScore}
+                  />
+                  <Text style={styles.ringCaption}>DEVOTION</Text>
+                </ScoreRing>
+              ) : (
+                <ScoreRing size={178} strokeWidth={13} progress={0} animate={false}>
+                  <ActivityIndicator />
+                  <Text style={styles.ringCaption}>SCORING…</Text>
+                </ScoreRing>
+              )}
+            </View>
+            {verdict ? <Text style={styles.verdict}>{verdict.verdict}</Text> : null}
+
+            {/* Pillar breakdown chips — the lagging pillar reads amber */}
+            <View style={styles.chips}>
+              {chips.map((chip) => (
+                <View
+                  key={chip.label}
+                  style={[styles.chip, chip.amber && styles.chipAmber]}>
+                  <Text style={[styles.chipLabel, chip.amber && styles.chipLabelAmber]}>
+                    {chip.label}
+                  </Text>
+                  <Text style={[styles.chipValue, chip.amber && styles.chipValueAmber]}>
+                    {chip.pct ?? '—'}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+
+          <View style={styles.footer}>
+            <GradientButton label="Save to chronicle" variant="lime" onPress={handleDone} />
             {devotion ? (
-              <>
-                <Text style={styles.scoreValue}>{devotion.devotionScore}</Text>
-                <Text style={styles.scoreCaption}>Devotion score</Text>
-                {verdict ? <Text style={styles.verdict}>{verdict.verdict}</Text> : null}
-              </>
-            ) : (
-              <>
-                <ActivityIndicator />
-                <Text style={styles.scoreCaption}>Calculating score…</Text>
-              </>
-            )}
+              <Pressable
+                onPress={() => setShowBreakdown(true)}
+                hitSlop={8}
+                style={({ pressed }) => [styles.howScored, pressed && styles.pressed]}>
+                <Text style={styles.howScoredText}>How it scored</Text>
+              </Pressable>
+            ) : null}
           </View>
+        </SafeAreaView>
 
-          <View style={styles.statsRow}>
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>{formatDuration(session.duration)}</Text>
-              <Text style={typography.caption}>Duration</Text>
-            </View>
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>{completedSets}</Text>
-              <Text style={typography.caption}>Sets</Text>
-            </View>
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>{Math.round(totalVolume)}</Text>
-              <Text style={typography.caption}>Volume (kg)</Text>
-            </View>
-          </View>
-
-          {quote ? (
-            <Card style={styles.quoteCard}>
-              <Text style={styles.quoteLine}>“{quote.line}”</Text>
-              {quote.weekLine ? <Text style={typography.footnote}>{quote.weekLine}</Text> : null}
-            </Card>
-          ) : null}
-
-          {sessionIdRef.current ? <SessionPhotoButton sessionId={sessionIdRef.current} /> : null}
-        </ScrollView>
-        <View style={styles.footer}>
-          <Pressable
-            style={({ pressed }) => [styles.cta, pressed && styles.ctaDim]}
-            onPress={handleDone}>
-            <Text style={styles.ctaLabel}>Done</Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
+        {devotion ? (
+          <ScoreBreakdownSheet
+            visible={showBreakdown}
+            score={devotion.devotionScore}
+            pillars={devotion.pillars}
+            deviations={devotion.deviations}
+            onClose={() => setShowBreakdown(false)}
+          />
+        ) : null}
+      </View>
     );
   }
 
-  // ---- Reflection phase ----
+  // ---- Capture phase ----
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={typography.title}>How was your session?</Text>
-          {saveStatus === 'error' ? (
-            <Card style={styles.errorCard}>
-              <Text style={styles.errorText}>
-                Saving your session failed. Check your connection — we’ll retry when you submit.
+    <View style={styles.root}>
+      <AmbientGlow
+        color="rgba(163,230,53,0.22)"
+        width={420}
+        height={340}
+        style={{ top: -90, left: -60 }}
+      />
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <ScrollView
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}>
+            {/* Warm header */}
+            <View style={styles.captureHeader}>
+              <Text style={styles.eyebrow}>That’s a wrap</Text>
+              <Text style={styles.captureTitle}>How did it feel?</Text>
+              <Text style={styles.captureSubtitle}>
+                {session.workoutTitle} · {formatDuration(session.duration)} · {exerciseCount}{' '}
+                exercises
               </Text>
-            </Card>
-          ) : null}
+            </View>
 
-          <Card style={styles.formCard}>
-            <Text style={styles.fieldLabel}>Rate your effort</Text>
-            <RPEPicker value={rpeValue} onChange={setRpeValue} disabled={isSubmitting} />
+            {saveStatus === 'error' ? (
+              <View style={styles.errorCard}>
+                <Text style={styles.errorText}>
+                  Saving your session failed. Check your connection — we’ll retry when you submit.
+                </Text>
+              </View>
+            ) : null}
 
-            <Text style={[styles.fieldLabel, { marginTop: spacing.xl }]}>
-              One-line vibe <Text style={{ color: colors.destructive }}>*</Text>
-            </Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g., Crushed those bench sets!"
-              placeholderTextColor={colors.textTertiary}
-              value={vibeLine}
-              onChangeText={setVibeLine}
-              maxLength={200}
-              editable={!isSubmitting}
+            {/* Effort dial */}
+            <View style={styles.softCard}>
+              <View style={styles.cardLabelRow}>
+                <Text style={styles.cardLabel}>EFFORT</Text>
+                <Text style={styles.cardHint}>tap to set</Text>
+              </View>
+              <RPEPicker value={rpeValue} onChange={setRpeValue} disabled={isSubmitting} />
+            </View>
+
+            {/* Vibe */}
+            <View style={styles.softCard}>
+              <View style={styles.cardLabelRow}>
+                <Text style={styles.cardLabel}>
+                  ONE-LINE VIBE <Text style={styles.required}>*</Text>
+                </Text>
+              </View>
+              <View style={styles.vibeInputWrap}>
+                <TextInput
+                  style={styles.vibeInput}
+                  placeholder="потужна треня з ранку до роботи"
+                  placeholderTextColor={colors.textTertiary}
+                  value={vibeLine}
+                  onChangeText={setVibeLine}
+                  maxLength={200}
+                  editable={!isSubmitting}
+                  multiline
+                />
+              </View>
+            </View>
+
+            {/* Photo — a moment to remember this session */}
+            <SessionPhotoButton sessionId={sessionId} />
+          </ScrollView>
+
+          <View style={styles.footer}>
+            <GradientButton
+              label="Reveal my score"
+              variant="cyan"
+              icon="chevron.right"
+              disabled={!vibeLine.trim() || isSubmitting}
+              onPress={handleSubmit}
             />
-          </Card>
-        </ScrollView>
-
-        <View style={styles.footer}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.cta,
-              (!vibeLine.trim() || isSubmitting || pressed) && styles.ctaDim,
-            ]}
-            disabled={!vibeLine.trim() || isSubmitting}
-            onPress={handleSubmit}>
-            {isSubmitting ? (
-              <ActivityIndicator color={colors.text} />
-            ) : (
-              <Text style={styles.ctaLabel}>Done</Text>
-            )}
-          </Pressable>
-        </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  root: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  safeArea: {
+    flex: 1,
   },
   flex: {
     flex: 1,
@@ -352,103 +449,205 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.foxStrongDeep,
   },
+  // shared
+  eyebrow: {
+    fontFamily: fonts.serif,
+    fontSize: 17,
+    color: colors.foxFitDeep,
+  },
+  footer: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
+  },
+  pressed: {
+    opacity: 0.6,
+  },
+  // capture
   content: {
     padding: spacing.lg,
     gap: spacing.lg,
   },
-  formCard: {
-    gap: spacing.sm,
+  captureHeader: {
+    marginTop: spacing.sm,
+    gap: 2,
+  },
+  captureTitle: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: colors.text,
+    letterSpacing: -0.6,
+  },
+  captureSubtitle: {
+    ...typography.footnote,
+    marginTop: 2,
+  },
+  softCard: {
+    backgroundColor: colors.card,
+    borderRadius: 28,
+    padding: 20,
+    paddingTop: 22,
+    shadowColor: '#141828',
+    shadowOpacity: 0.09,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 14 },
+  },
+  cardLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  cardLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    color: '#9AA0AC',
+  },
+  cardHint: {
+    fontSize: 12,
+    color: '#CDD2DA',
+  },
+  required: {
+    color: colors.destructive,
+  },
+  vibeInputWrap: {
+    backgroundColor: '#F7F8FA',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#EDEFF2',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  vibeInput: {
+    fontFamily: fonts.serif,
+    fontSize: 16,
+    color: colors.text,
+    minHeight: 24,
   },
   errorCard: {
     backgroundColor: colors.destructiveSoft,
+    borderRadius: 18,
+    padding: spacing.lg,
   },
   errorText: {
     ...typography.subhead,
     color: colors.destructive,
   },
-  fieldLabel: {
-    ...typography.subhead,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: spacing.md,
-  },
-  input: {
-    backgroundColor: colors.cardMuted,
-    borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.separator,
+  // reveal
+  revealContent: {
     paddingHorizontal: spacing.lg,
-    paddingVertical: 14,
-    fontSize: 17,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xxl,
+    alignItems: 'center',
+  },
+  revealTitle: {
+    fontSize: 30,
+    fontWeight: '800',
     color: colors.text,
+    letterSpacing: -0.6,
+    marginTop: 2,
   },
-  footer: {
-    padding: spacing.lg,
-    paddingTop: spacing.sm,
+  foxRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 12,
+    marginTop: spacing.xl,
+    alignSelf: 'stretch',
   },
-  cta: {
-    backgroundColor: colors.foxFit,
-    borderRadius: radius.lg,
-    paddingVertical: 16,
-    alignItems: 'center',
+  bubble: {
+    flex: 1,
+    backgroundColor: colors.card,
+    borderRadius: 20,
+    borderBottomLeftRadius: 6,
+    padding: 14,
+    paddingHorizontal: 16,
+    shadowColor: '#141828',
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
   },
-  ctaDim: {
-    opacity: 0.5,
-  },
-  ctaLabel: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  summaryContent: {
-    padding: spacing.xl,
-    alignItems: 'center',
-    gap: spacing.lg,
-  },
-  summaryFox: {
-    fontSize: 64,
-  },
-  scoreBlock: {
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginVertical: spacing.lg,
-  },
-  scoreValue: {
-    fontSize: 64,
+  bubbleTitle: {
+    fontSize: 15,
     fontWeight: '700',
     color: colors.text,
+  },
+  bubbleSub: {
+    fontSize: 13.5,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  ringWrap: {
+    marginTop: spacing.xl,
+  },
+  ringScore: {
+    fontSize: 58,
+    fontWeight: '800',
+    color: colors.text,
+    letterSpacing: -2,
     fontVariant: ['tabular-nums'],
   },
-  scoreCaption: {
-    ...typography.footnote,
+  ringCaption: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#9AA0AC',
+    letterSpacing: 0.4,
+    marginTop: 2,
   },
   verdict: {
     ...typography.subhead,
-    marginTop: spacing.sm,
-    textAlign: 'center',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: spacing.xl,
-  },
-  stat: {
-    alignItems: 'center',
-    gap: 2,
-  },
-  statValue: {
-    fontSize: 22,
     fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+    marginTop: spacing.lg,
+  },
+  chips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: spacing.xl,
+    alignSelf: 'stretch',
+  },
+  chip: {
+    flexGrow: 1,
+    flexBasis: '47%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    borderRadius: 16,
+    paddingHorizontal: 15,
+    paddingVertical: 13,
+  },
+  chipAmber: {
+    backgroundColor: colors.amberBg,
+    borderWidth: 1,
+    borderColor: colors.amberSoft,
+  },
+  chipLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  chipLabelAmber: {
+    color: colors.amberText,
+  },
+  chipValue: {
+    fontSize: 15,
+    fontWeight: '800',
     color: colors.text,
     fontVariant: ['tabular-nums'],
   },
-  quoteCard: {
-    alignSelf: 'stretch',
-    alignItems: 'center',
-    gap: spacing.xs,
+  chipValueAmber: {
+    color: colors.amberSubtext,
   },
-  quoteLine: {
-    ...typography.body,
-    fontStyle: 'italic',
-    textAlign: 'center',
+  howScored: {
+    alignSelf: 'center',
+    marginTop: spacing.md,
+  },
+  howScoredText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
   },
 });

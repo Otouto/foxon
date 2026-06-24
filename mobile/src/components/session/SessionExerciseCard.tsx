@@ -1,12 +1,12 @@
 import { SymbolView } from 'expo-symbols';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Card } from '@/components/Card';
 import { SetEditorSheet } from '@/components/session/SetEditorSheet';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
-import type { InMemoryExercise } from '@/hooks/useInMemorySession';
-import { colors, radius, spacing, typography } from '@/theme';
+import type { InMemoryExercise, InMemorySet } from '@/hooks/useInMemorySession';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
+import { colors, radius, spacing } from '@/theme';
 
 interface SessionExerciseCardProps {
   exercise: InMemoryExercise;
@@ -35,47 +35,27 @@ export function SessionExerciseCard({
   };
 
   return (
-    <Card style={styles.card}>
-      <Text style={typography.headline}>{exercise.exerciseName}</Text>
-      {previous && previous.length > 0 ? (
-        <Text style={styles.previous}>
-          Last time:{' '}
-          {previous
-            .map((set) => (isBodyweight ? `${set.reps}` : `${set.load}×${set.reps}`))
-            .join('  ·  ')}
-        </Text>
-      ) : null}
+    <View style={styles.card}>
+      <Text style={styles.title}>{exercise.exerciseName}</Text>
 
       <View style={styles.sets}>
         {exercise.sets.map((set, index) => (
-          <View key={set.id} style={[styles.setRow, set.completed && styles.setRowCompleted]}>
-            <Pressable
-              onPress={() => handleToggle(index)}
-              style={[styles.check, set.completed && styles.checkCompleted]}
-              hitSlop={6}>
-              <SymbolView
-                name="checkmark"
-                size={16}
-                tintColor={set.completed ? '#1A2E05' : colors.textSecondary}
-              />
-            </Pressable>
-
-            <Pressable style={styles.setInfo} onPress={() => setEditingSetIndex(index)}>
-              <Text style={styles.setNumber}>
-                {set.type === 'WARMUP' ? 'W' : index + 1}
-              </Text>
-              {!isBodyweight && (
-                <View style={[styles.pill, set.completed && styles.pillCompleted]}>
-                  <Text style={styles.pillValue}>{set.actualLoad}</Text>
-                  <Text style={styles.pillUnit}> kg</Text>
-                </View>
-              )}
-              <View style={[styles.pill, set.completed && styles.pillCompleted]}>
-                <Text style={styles.pillValue}>{set.actualReps}</Text>
-                <Text style={styles.pillUnit}> reps</Text>
-              </View>
-            </Pressable>
-          </View>
+          <SetRow
+            key={set.id}
+            set={set}
+            index={index}
+            isLast={index === exercise.sets.length - 1}
+            isBodyweight={isBodyweight}
+            previousLabel={
+              previous?.[index]
+                ? isBodyweight
+                  ? `${previous[index].reps}`
+                  : `${previous[index].load}×${previous[index].reps}`
+                : null
+            }
+            onToggle={() => handleToggle(index)}
+            onEdit={() => setEditingSetIndex(index)}
+          />
         ))}
       </View>
 
@@ -85,7 +65,7 @@ export function SessionExerciseCard({
           triggerHaptic('light');
           onAddSet();
         }}>
-        <SymbolView name="plus" size={14} tintColor={colors.textSecondary} />
+        <SymbolView name="plus" size={13} tintColor={colors.textSecondary} weight="bold" />
         <Text style={styles.addSetLabel}>Add set</Text>
       </Pressable>
 
@@ -93,6 +73,8 @@ export function SessionExerciseCard({
         <SetEditorSheet
           visible
           setNumber={editingSetIndex + 1}
+          exerciseName={exercise.exerciseName}
+          equipment={exercise.equipment ?? null}
           initialWeight={exercise.sets[editingSetIndex]?.actualLoad ?? 0}
           initialReps={exercise.sets[editingSetIndex]?.actualReps ?? 0}
           isBodyweightExercise={isBodyweight}
@@ -102,93 +84,221 @@ export function SessionExerciseCard({
           onClose={() => setEditingSetIndex(null)}
         />
       )}
-    </Card>
+    </View>
+  );
+}
+
+function SetRow({
+  set,
+  index,
+  isLast,
+  isBodyweight,
+  previousLabel,
+  onToggle,
+  onEdit,
+}: {
+  set: InMemorySet;
+  index: number;
+  isLast: boolean;
+  isBodyweight: boolean;
+  previousLabel: string | null;
+  onToggle: () => void;
+  onEdit: () => void;
+}) {
+  const reduceMotion = useReduceMotion();
+  const scale = useRef(new Animated.Value(1)).current;
+  const prevCompleted = useRef(set.completed);
+
+  // "Pop" the check when a set transitions into the completed state.
+  useEffect(() => {
+    if (set.completed && !prevCompleted.current && !reduceMotion) {
+      scale.setValue(0.6);
+      Animated.spring(scale, {
+        toValue: 1,
+        friction: 5,
+        tension: 140,
+        useNativeDriver: true,
+      }).start();
+    }
+    prevCompleted.current = set.completed;
+  }, [set.completed, reduceMotion, scale]);
+
+  const setLabel = set.type === 'WARMUP' ? 'W' : index + 1;
+
+  return (
+    <View style={styles.setRowWrap}>
+      <View style={styles.spineColumn}>
+        <Pressable onPress={onToggle} hitSlop={6}>
+          <Animated.View
+            style={[
+              styles.check,
+              set.completed ? styles.checkDone : styles.checkPending,
+              { transform: [{ scale }] },
+            ]}>
+            <SymbolView
+              name="checkmark"
+              size={18}
+              weight="bold"
+              tintColor={set.completed ? colors.onLime : '#B7BCC6'}
+            />
+          </Animated.View>
+        </Pressable>
+        {!isLast ? (
+          <View style={[styles.spine, set.completed && styles.spineDone]} />
+        ) : null}
+      </View>
+
+      <Pressable
+        style={[styles.row, set.completed && styles.rowDone]}
+        onPress={onEdit}>
+        <Text style={styles.setNumber}>{setLabel}</Text>
+        {!isBodyweight && (
+          <View style={[styles.pill, set.completed && styles.pillDone]}>
+            <Text style={styles.pillValue}>{set.actualLoad}</Text>
+            <Text style={styles.pillUnit}> kg</Text>
+          </View>
+        )}
+        <View style={[styles.pill, set.completed && styles.pillDone]}>
+          <Text style={styles.pillValue}>{set.actualReps}</Text>
+          <Text style={styles.pillUnit}> reps</Text>
+        </View>
+        {previousLabel ? (
+          <Text style={styles.was} numberOfLines={1}>
+            was {previousLabel}
+          </Text>
+        ) : null}
+      </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    marginBottom: spacing.md,
+    backgroundColor: colors.card,
+    borderRadius: 28,
+    padding: 20,
+    paddingTop: 22,
+    marginBottom: spacing.lg,
+    shadowColor: '#141828',
+    shadowOpacity: 0.1,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 14 },
   },
-  previous: {
-    ...typography.footnote,
-    marginTop: spacing.xs,
+  title: {
+    fontSize: 19,
+    fontWeight: '700',
+    color: colors.text,
+    letterSpacing: -0.2,
   },
   sets: {
     marginTop: spacing.md,
-    gap: spacing.sm,
   },
-  setRow: {
+  setRowWrap: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.md,
-    padding: spacing.md,
-    borderRadius: radius.md,
-    backgroundColor: colors.cardMuted,
   },
-  setRowCompleted: {
-    backgroundColor: '#F7FEE7', // lime-50
+  spineColumn: {
+    alignItems: 'center',
   },
   check: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.fill,
   },
-  checkCompleted: {
+  checkPending: {
+    backgroundColor: '#E6E8EC',
+  },
+  checkDone: {
     backgroundColor: colors.foxFit,
+    shadowColor: 'rgba(132,204,22,0.6)',
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 7 },
   },
-  setInfo: {
+  spine: {
+    width: 3,
+    flex: 1,
+    minHeight: 16,
+    borderRadius: 2,
+    marginVertical: 2,
+    backgroundColor: '#E6E8EC',
+  },
+  spineDone: {
+    backgroundColor: colors.foxFitSoft,
+  },
+  row: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    borderRadius: radius.lg,
+    marginBottom: 10,
+    backgroundColor: '#F7F8FA',
+  },
+  rowDone: {
+    backgroundColor: '#F2FBE0', // lime-50/100 blend
   },
   setNumber: {
-    fontSize: 17,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: colors.text,
-    minWidth: 20,
+    width: 16,
     fontVariant: ['tabular-nums'],
   },
   pill: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    backgroundColor: colors.card,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.separator,
+    paddingHorizontal: 13,
+    paddingVertical: 7,
     borderRadius: radius.full,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.separator,
   },
-  pillCompleted: {
+  pillDone: {
     backgroundColor: '#ECFCCB', // lime-100
     borderColor: 'transparent',
   },
   pillValue: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
     color: colors.text,
     fontVariant: ['tabular-nums'],
   },
   pillUnit: {
-    ...typography.footnote,
+    fontSize: 12,
+    color: '#9AA0AC',
+  },
+  was: {
+    marginLeft: 'auto',
+    paddingLeft: 4,
+    flexShrink: 0,
+    fontSize: 11,
+    color: '#C5CAD3',
+    fontVariant: ['tabular-nums'],
   },
   addSet: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.md,
-    paddingVertical: spacing.md,
+    alignSelf: 'flex-start',
+    gap: 7,
+    marginTop: 2,
+    paddingVertical: 11,
+    paddingHorizontal: 18,
+    borderRadius: 14,
+    backgroundColor: '#F4F5F7',
   },
   pressed: {
     opacity: 0.6,
   },
   addSetLabel: {
-    ...typography.subhead,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
   },
 });

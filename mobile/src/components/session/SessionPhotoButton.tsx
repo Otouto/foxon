@@ -1,22 +1,27 @@
 import * as ImagePicker from 'expo-image-picker';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { ActionSheetIOS, ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text } from 'react-native';
+import { ActionSheetIOS, ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { api } from '@/api/client';
 import { uploadToCloudinary } from '@/lib/cloudinaryUpload';
-import { colors, radius, spacing, typography } from '@/theme';
+import { colors, spacing, typography } from '@/theme';
 
 interface SessionPhotoButtonProps {
-  sessionId: string;
+  /** Null until the background session save resolves; the tile is disabled meanwhile. */
+  sessionId: string | null;
 }
 
-/** Attach a photo to the finished session: native action sheet → camera/library → Cloudinary → API. */
+/**
+ * "Add a moment" tile for the finish capture step: native action sheet →
+ * camera/library → Cloudinary → API. Disabled until the session has been saved.
+ */
 export function SessionPhotoButton({ sessionId }: SessionPhotoButtonProps) {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   const handlePicked = async (asset: ImagePicker.ImagePickerAsset) => {
+    if (!sessionId) return;
     setIsUploading(true);
     try {
       const imageUrl = await uploadToCloudinary(
@@ -70,50 +75,85 @@ export function SessionPhotoButton({ sessionId }: SessionPhotoButtonProps) {
     );
   };
 
-  if (photoUri) {
-    return <Image source={{ uri: photoUri }} style={styles.preview} alt="Session photo" />;
-  }
+  const disabled = !sessionId || isUploading;
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.button, pressed && styles.pressed]}
-      disabled={isUploading}
+      style={({ pressed }) => [styles.tile, disabled && styles.tileDisabled, pressed && styles.pressed]}
+      disabled={disabled}
       onPress={showOptions}>
-      {isUploading ? (
-        <ActivityIndicator />
-      ) : (
-        <>
-          <SymbolView name="camera" size={18} tintColor={colors.textSecondary} />
-          <Text style={styles.label}>Add a session photo</Text>
-        </>
-      )}
+      <View style={styles.thumb}>
+        {photoUri ? (
+          <Image source={{ uri: photoUri }} style={styles.thumbImage} alt="Session photo" />
+        ) : isUploading ? (
+          <ActivityIndicator />
+        ) : (
+          <SymbolView name="camera" size={24} tintColor={colors.textSecondary} />
+        )}
+      </View>
+      <View style={styles.text}>
+        <Text style={styles.title}>{photoUri ? 'Moment saved' : 'Add a moment'}</Text>
+        <Text style={styles.subtitle}>
+          {photoUri ? 'Tap to replace your photo' : 'A photo to remember this session'}
+        </Text>
+      </View>
+      <View style={styles.plus}>
+        <SymbolView name="plus" size={16} weight="bold" tintColor={colors.textSecondary} />
+      </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  button: {
+  tile: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.separator,
+    gap: spacing.md,
     backgroundColor: colors.card,
-    alignSelf: 'stretch',
+    borderRadius: 24,
+    padding: 14,
+    shadowColor: '#141828',
+    shadowOpacity: 0.09,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 14 },
+  },
+  tileDisabled: {
+    opacity: 0.5,
   },
   pressed: {
     opacity: 0.7,
   },
-  label: {
-    ...typography.subhead,
-    fontWeight: '500',
+  thumb: {
+    width: 64,
+    height: 64,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.fillMuted,
+    overflow: 'hidden',
   },
-  preview: {
-    alignSelf: 'stretch',
-    height: 200,
-    borderRadius: radius.lg,
+  thumbImage: {
+    width: '100%',
+    height: '100%',
+  },
+  text: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  subtitle: {
+    ...typography.footnote,
+    marginTop: 1,
+  },
+  plus: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F2F3F5',
   },
 });

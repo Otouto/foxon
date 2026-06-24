@@ -1,5 +1,11 @@
 import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
 import { tokenCache } from '@clerk/clerk-expo/token-cache';
+import {
+  Newsreader_500Medium_Italic,
+  Newsreader_600SemiBold,
+  Newsreader_600SemiBold_Italic,
+  useFonts,
+} from '@expo-google-fonts/newsreader';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
@@ -54,6 +60,16 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    Newsreader_500Medium_Italic,
+    Newsreader_600SemiBold,
+    Newsreader_600SemiBold_Italic,
+  });
+
+  if (!fontsLoaded) {
+    return null; // keep the splash up until the editorial serif is ready
+  }
+
   return (
     <ClerkProvider
       tokenCache={tokenCache}
