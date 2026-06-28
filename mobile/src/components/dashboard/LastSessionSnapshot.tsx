@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Card } from '@/components/Card';
 import { getDaysAgoLabel } from '@/lib/dateUtils';
-import { colors, spacing, typography } from '@/theme';
+import { colors, fonts, spacing, typography } from '@/theme';
 
 interface LastSessionSnapshotProps {
   session: {
@@ -67,8 +67,7 @@ const styles = StyleSheet.create({
   vibe: {
     fontSize: 18,
     lineHeight: 25,
-    fontStyle: 'italic',
-    fontFamily: 'Georgia',
+    fontFamily: fonts.serif,
     color: colors.text,
     marginBottom: spacing.sm,
   },

@@ -39,7 +39,7 @@ export default function ProfileScreen() {
 
   if (isLoading || !data) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <SafeAreaView style={styles.safeArea} edges={['bottom']}>
         <ProfileSkeleton />
       </SafeAreaView>
     );
@@ -48,7 +48,7 @@ export default function ProfileScreen() {
   const { user, stats, firstSessionDate, trainingPulse, chronicleEntry } = data;
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}>

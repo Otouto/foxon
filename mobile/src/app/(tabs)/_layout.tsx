@@ -17,11 +17,6 @@ export default function TabsLayout() {
         <NativeTabs.Trigger.Icon sf="chart.bar.fill" />
         <NativeTabs.Trigger.Label>Review</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="profile">
-        <NativeTabs.Trigger.Icon sf="person.fill" />
-        <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }

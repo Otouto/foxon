@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef } from 'react';
@@ -6,7 +7,7 @@ import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-nativ
 import { Card } from '@/components/Card';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
-import { colors, spacing, typography } from '@/theme';
+import { colors, gradients, spacing, typography } from '@/theme';
 
 interface WeekProgressCardProps {
   completed: number;
@@ -63,9 +64,19 @@ export function WeekProgressCard({
     return `${remaining} more workout${remaining !== 1 ? 's' : ''} to level up! 🚀`;
   })();
 
-  const onStart = () => {
+  const onStartSession = () => {
     triggerHaptic('medium');
-    router.push(nextWorkout ? `/workout/${nextWorkout.id}` : '/workouts');
+    router.push(`/session/log?workoutId=${nextWorkout!.id}`);
+  };
+
+  const onOpenOverview = () => {
+    triggerHaptic('light');
+    router.push(`/workout/${nextWorkout!.id}`);
+  };
+
+  const onBrowseWorkouts = () => {
+    triggerHaptic('medium');
+    router.push('/workouts');
   };
 
   return (
@@ -78,33 +89,75 @@ export function WeekProgressCard({
         </Text>
       </View>
       <View style={styles.track}>
-        <Animated.View style={[styles.fill, { width }]} />
+        <Animated.View style={[styles.fill, { width }]}>
+          <LinearGradient
+            colors={gradients.journey}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
       </View>
       <Text style={styles.status}>{statusMessage}</Text>
 
       <View style={styles.divider} />
 
-      <Pressable
-        onPress={onStart}
-        accessibilityRole="button"
-        accessibilityLabel={`${nextWorkout ? 'Start' : 'Start a workout'} ${nextWorkout?.title ?? ''}`}
-        style={({ pressed }) => [styles.startRow, pressed && styles.pressed]}>
-        <View style={styles.playCircle}>
-          <SymbolView name="play.fill" size={18} tintColor="#FFFFFF" />
+      {nextWorkout ? (
+        <View style={styles.startRow}>
+          <Pressable
+            onPress={onStartSession}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={`Start ${nextWorkout.title} now`}
+            style={({ pressed }) => pressed && styles.pressed}>
+            <LinearGradient
+              colors={gradients.journey}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.playCircle}>
+              <SymbolView name="play.fill" size={18} tintColor="#FFFFFF" />
+            </LinearGradient>
+          </Pressable>
+          <Pressable
+            onPress={onOpenOverview}
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${nextWorkout.title} overview`}
+            style={({ pressed }) => [styles.startBody, pressed && styles.pressed]}>
+            <Text style={styles.startKicker}>UP NEXT</Text>
+            <Text style={styles.startTitle} numberOfLines={1}>
+              {nextWorkout.title}
+            </Text>
+            <Text style={styles.startMeta} numberOfLines={1}>
+              {`${nextWorkout.exerciseCount} exercise${nextWorkout.exerciseCount !== 1 ? 's' : ''} · ~${nextWorkout.estimatedDuration} min`}
+            </Text>
+          </Pressable>
+          <SymbolView name="chevron.right" size={15} tintColor={colors.textTertiary} />
         </View>
-        <View style={styles.startBody}>
-          <Text style={styles.startKicker}>{nextWorkout ? 'UP NEXT' : 'GET STARTED'}</Text>
-          <Text style={styles.startTitle} numberOfLines={1}>
-            {nextWorkout ? nextWorkout.title : 'Start a workout'}
-          </Text>
-          <Text style={styles.startMeta} numberOfLines={1}>
-            {nextWorkout
-              ? `${nextWorkout.exerciseCount} exercise${nextWorkout.exerciseCount !== 1 ? 's' : ''} · ~${nextWorkout.estimatedDuration} min`
-              : 'Pick a program and get moving'}
-          </Text>
-        </View>
-        <SymbolView name="chevron.right" size={15} tintColor={colors.textTertiary} />
-      </Pressable>
+      ) : (
+        <Pressable
+          onPress={onBrowseWorkouts}
+          accessibilityRole="button"
+          accessibilityLabel="Start a workout"
+          style={({ pressed }) => [styles.startRow, pressed && styles.pressed]}>
+          <LinearGradient
+            colors={gradients.journey}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.playCircle}>
+            <SymbolView name="play.fill" size={18} tintColor="#FFFFFF" />
+          </LinearGradient>
+          <View style={styles.startBody}>
+            <Text style={styles.startKicker}>GET STARTED</Text>
+            <Text style={styles.startTitle} numberOfLines={1}>
+              Start a workout
+            </Text>
+            <Text style={styles.startMeta} numberOfLines={1}>
+              Pick a program and get moving
+            </Text>
+          </View>
+          <SymbolView name="chevron.right" size={15} tintColor={colors.textTertiary} />
+        </Pressable>
+      )}
     </Card>
   );
 }
@@ -131,7 +184,7 @@ const styles = StyleSheet.create({
   fill: {
     height: '100%',
     borderRadius: 4,
-    backgroundColor: colors.success,
+    overflow: 'hidden',
   },
   status: {
     ...typography.footnote,
@@ -154,7 +207,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.success,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -165,7 +217,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1,
-    color: colors.success,
+    color: colors.foxStrongDeep,
   },
   startTitle: {
     ...typography.headline,

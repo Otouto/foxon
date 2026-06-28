@@ -19,7 +19,7 @@ import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { getFormInsight, getNextLevelHint, PILLAR_INFO, type PillarKey } from '@/lib/foxInsight';
 import type { ProgressionState } from '@/api/types';
-import { colors, spacing, typography } from '@/theme';
+import { colors, fonts, radius, spacing, typography } from '@/theme';
 import { FOX_STATE_VISUALS } from '@/theme/foxStates';
 
 if (
@@ -35,6 +35,13 @@ const EMOJI_SIZE = 60;
 
 const PILLAR_KEYS: PillarKey[] = ['attendance', 'quality', 'consistency'];
 
+/** Per-pillar accent — cyan / lime / purple, reusing the fox-state palette. */
+const PILLAR_COLOR: Record<PillarKey, string> = {
+  attendance: colors.foxStrongDeep,
+  quality: colors.foxFitDeep,
+  consistency: colors.foxFieryDeep,
+};
+
 interface FoxHeroCardProps {
   state: ProgressionState;
   formScore: number;
@@ -49,7 +56,6 @@ export function FoxHeroCard({
   formScore,
   formScoreBreakdown,
   hasNoSessions,
-  timePeriod,
   weeklyGoal,
 }: FoxHeroCardProps) {
   const visual = FOX_STATE_VISUALS[state];
@@ -103,6 +109,7 @@ export function FoxHeroCard({
           strokeWidth={RING_STROKE}
           progress={formScore}
           ringColor={visual.ring}
+          ringGradient={[visual.gradientFrom, visual.gradientTo]}
           trackColor={colors.fillMuted}
           bubbleGradient={[visual.gradientFrom, visual.gradientTo]}
           animate={!reduceMotion}>
@@ -112,11 +119,14 @@ export function FoxHeroCard({
 
       <Text style={[typography.title, styles.identity]}>{visual.identity}</Text>
 
-      <AnimatedCount
-        value={formScore}
-        animate={!reduceMotion}
-        style={[styles.score, { color: visual.ring }]}
-      />
+      <View style={styles.scoreRow}>
+        <AnimatedCount
+          value={formScore}
+          animate={!reduceMotion}
+          style={[styles.score, { color: visual.ring }]}
+        />
+        <Text style={styles.scoreMax}>/100</Text>
+      </View>
 
       <Text style={styles.insight}>
         {getFormInsight(formScoreBreakdown, hasNoSessions)}
@@ -136,15 +146,13 @@ export function FoxHeroCard({
 
       {expanded ? (
         <View style={styles.details}>
-          <Text style={styles.detailsHeader}>
-            {visual.label} · FORM · {timePeriod.toUpperCase()}
-          </Text>
+          <Text style={styles.detailsHeader}>WHAT SHAPES YOUR SCORE</Text>
           {PILLAR_KEYS.map((key) => (
             <PillarRow
               key={key}
               pillarKey={key}
               value={formScoreBreakdown[key]}
-              color={visual.barColor}
+              color={PILLAR_COLOR[key]}
               weeklyGoal={weeklyGoal}
               animate={!reduceMotion}
             />
@@ -222,13 +230,25 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     textAlign: 'center',
   },
-  score: {
-    fontSize: 40,
-    fontWeight: '700',
+  scoreRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
     marginTop: spacing.xs,
   },
+  score: {
+    fontSize: 44,
+    fontWeight: '800',
+  },
+  scoreMax: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.textTertiary,
+    marginLeft: 2,
+  },
   insight: {
-    ...typography.subhead,
+    fontFamily: fonts.serif,
+    fontSize: 16,
+    lineHeight: 22,
     color: colors.textSecondary,
     textAlign: 'center',
     marginTop: spacing.sm,
@@ -239,29 +259,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     marginTop: spacing.lg,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.full,
+    backgroundColor: colors.fillMuted,
   },
   detailsLabel: {
     ...typography.footnote,
-    fontWeight: '600',
-    color: colors.textSecondary,
+    fontWeight: '700',
+    color: colors.text,
   },
   pressed: {
     opacity: 0.6,
   },
   details: {
     alignSelf: 'stretch',
-    marginTop: spacing.sm,
-    gap: spacing.lg,
+    marginTop: spacing.md,
+    gap: spacing.md,
   },
   detailsHeader: {
     ...typography.caption,
-    textAlign: 'center',
-    letterSpacing: 0.5,
-    fontWeight: '600',
+    letterSpacing: 0.8,
+    fontWeight: '700',
+    color: colors.textTertiary,
+    marginBottom: spacing.xs,
   },
   pillarRow: {
-    gap: spacing.xs,
+    gap: spacing.sm,
+    backgroundColor: colors.cardMuted,
+    borderRadius: radius.md,
+    padding: spacing.md,
   },
   pillarTop: {
     flexDirection: 'row',

@@ -10,6 +10,7 @@ import { useWorkouts } from '@/api/queries';
 import { AmbientGlow } from '@/components/ui/AmbientGlow';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { WorkoutsSkeleton } from '@/components/ui/Skeleton';
+import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { colors, gradients, spacing, typography } from '@/theme';
 
 const SECTION_TITLES: Record<string, string> = {
@@ -20,6 +21,7 @@ const SECTION_TITLES: Record<string, string> = {
 
 export default function WorkoutsScreen() {
   const router = useRouter();
+  const { triggerHaptic } = useHapticFeedback();
   const { data: workouts, isLoading, refetch, isRefetching } = useWorkouts();
 
   const sections = useMemo(() => {
@@ -73,7 +75,17 @@ export default function WorkoutsScreen() {
             <Text style={styles.sectionHeader}>{section.title}</Text>
           )}
           renderItem={({ item }) => (
-            <WorkoutCard workout={item} onPress={() => router.push(`/workout/${item.id}`)} />
+            <WorkoutCard
+              workout={item}
+              onOpenOverview={() => {
+                triggerHaptic('light');
+                router.push(`/workout/${item.id}`);
+              }}
+              onStartSession={() => {
+                triggerHaptic('medium');
+                router.push(`/session/log?workoutId=${item.id}`);
+              }}
+            />
           )}
           ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
           SectionSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
@@ -96,30 +108,45 @@ export default function WorkoutsScreen() {
   );
 }
 
-function WorkoutCard({ workout, onPress }: { workout: WorkoutListItem; onPress: () => void }) {
+function WorkoutCard({
+  workout,
+  onOpenOverview,
+  onStartSession,
+}: {
+  workout: WorkoutListItem;
+  onOpenOverview: () => void;
+  onStartSession: () => void;
+}) {
   return (
-    <Pressable onPress={onPress}>
-      {({ pressed }) => (
-        <View style={[styles.card, pressed && styles.pressed]}>
-          <View style={styles.cardText}>
-            <Text style={styles.cardTitle} numberOfLines={1}>
-              {workout.title}
-            </Text>
-            <Text style={styles.cardMeta}>
-              {workout.exerciseCount} exercise{workout.exerciseCount !== 1 ? 's' : ''} · ~
-              {workout.estimatedDuration} min
-            </Text>
-          </View>
-          <LinearGradient
-            colors={gradients.lime}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.play}>
-            <SymbolView name="play.fill" size={22} tintColor={colors.onLime} />
-          </LinearGradient>
-        </View>
-      )}
-    </Pressable>
+    <View style={styles.card}>
+      <Pressable
+        onPress={onOpenOverview}
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${workout.title} overview`}
+        style={({ pressed }) => [styles.cardText, pressed && styles.pressed]}>
+        <Text style={styles.cardTitle} numberOfLines={1}>
+          {workout.title}
+        </Text>
+        <Text style={styles.cardMeta}>
+          {workout.exerciseCount} exercise{workout.exerciseCount !== 1 ? 's' : ''} · ~
+          {workout.estimatedDuration} min
+        </Text>
+      </Pressable>
+      <Pressable
+        onPress={onStartSession}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={`Start ${workout.title} now`}
+        style={({ pressed }) => pressed && styles.pressed}>
+        <LinearGradient
+          colors={gradients.lime}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.play}>
+          <SymbolView name="play.fill" size={22} tintColor={colors.onLime} />
+        </LinearGradient>
+      </Pressable>
+    </View>
   );
 }
 

@@ -50,6 +50,9 @@ export const colors = {
   // Dark ink that reads on top of the bright gradient CTAs
   onLime: '#1A2E05', // lime-950
   onCyan: '#063040', // cyan-950
+
+  // Editorial serif accent (greeting / insight italic — the "soul" voice)
+  serifAccent: '#8B7CD6', // soft lavender-purple
 } as const;
 
 /**
@@ -65,6 +68,8 @@ export const gradients = {
   /** Soft aurora wash (milestone cards / reveal background). */
   aurora: ['#F8F4FF', '#FDFAFF'] as const,
   auroraBorder: '#EFE6FB',
+  /** Home screen background wash (lavender → soft → near-white). */
+  homeWash: ['#EDEEFB', '#F2EDFB', '#F7F5FC'] as const,
 } as const;
 
 export const spacing = {

@@ -47,6 +47,10 @@ function RootNavigator() {
       <Stack.Protected guard={!!isSignedIn}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
+          name="profile"
+          options={{ headerShown: true, title: 'Profile', headerBackButtonDisplayMode: 'minimal' }}
+        />
+        <Stack.Screen
           name="session/log"
           options={{ presentation: 'fullScreenModal', gestureEnabled: false }}
         />
