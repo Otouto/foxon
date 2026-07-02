@@ -49,7 +49,7 @@ export default function ExerciseCreateScreen() {
       let imageUrl: string | undefined;
       if (imageUri) {
         imageUrl = await uploadToCloudinary(
-          { uri: imageUri, name: `exercise_${Date.now()}.jpg`, type: 'image/jpeg' },
+          { uri: imageUri, type: 'image/jpeg' },
           { folder: 'foxon_exercises' }
         );
       }

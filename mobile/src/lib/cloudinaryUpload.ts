@@ -1,9 +1,14 @@
 // Ported from src/lib/utils/cloudinaryUpload.ts — unsigned upload straight to
-// Cloudinary; only difference is the RN file shape ({ uri, name, type }) instead of File.
+// Cloudinary. Uses a native URLSession upload task (expo-file-system) instead of
+// fetch+FormData: SDK 56's global fetch is expo/fetch, whose FormData serializer
+// rejects RN's { uri, name, type } file parts ("Unsupported FormDataPart
+// implementation"). The native task also streams from disk and continues in a
+// background session if the app is suspended mid-upload.
+
+import { File, UploadType } from 'expo-file-system';
 
 interface RNFile {
   uri: string;
-  name: string;
   type: string;
 }
 
@@ -19,25 +24,29 @@ export async function uploadToCloudinary(
 
   const preset = options?.preset || 'foxon_exercises';
 
-  const formData = new FormData();
-  // RN's FormData accepts { uri, name, type } for file parts
-  formData.append('file', file as unknown as Blob);
-  formData.append('upload_preset', preset);
+  const result = await new File(file.uri).upload(
+    `https://api.cloudinary.com/v1_1/${cloudName}/upload`,
+    {
+      uploadType: UploadType.MULTIPART,
+      fieldName: 'file',
+      mimeType: file.type,
+      parameters: {
+        upload_preset: preset,
+        ...(options?.folder ? { folder: options.folder } : {}),
+      },
+    }
+  );
 
-  if (options?.folder) {
-    formData.append('folder', options.folder);
+  let data: { secure_url?: string; error?: { message?: string } } = {};
+  try {
+    data = JSON.parse(result.body);
+  } catch {
+    // non-JSON body (e.g. gateway error page) — fall through to status check
   }
 
-  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/upload`, {
-    method: 'POST',
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error?.message || 'Upload failed');
+  if (result.status < 200 || result.status >= 300 || !data.secure_url) {
+    throw new Error(data.error?.message || 'Upload failed');
   }
 
-  const data = await response.json();
   return data.secure_url;
 }

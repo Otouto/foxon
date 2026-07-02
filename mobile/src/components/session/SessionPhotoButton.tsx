@@ -25,11 +25,7 @@ export function SessionPhotoButton({ sessionId }: SessionPhotoButtonProps) {
     setIsUploading(true);
     try {
       const imageUrl = await uploadToCloudinary(
-        {
-          uri: asset.uri,
-          name: asset.fileName ?? `session_${sessionId}.jpg`,
-          type: asset.mimeType ?? 'image/jpeg',
-        },
+        { uri: asset.uri, type: asset.mimeType ?? 'image/jpeg' },
         { folder: 'foxon_sessions' }
       );
       await api.post(`/api/sessions/${sessionId}/photo`, { imageUrl });
