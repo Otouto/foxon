@@ -3,7 +3,11 @@ import { useKeepAwake } from 'expo-keep-awake';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  SafeAreaProvider,
+  SafeAreaView,
+  initialWindowMetrics,
+} from 'react-native-safe-area-context';
 
 import { SessionExerciseCard } from '@/components/session/SessionExerciseCard';
 import { AmbientGlow } from '@/components/ui/AmbientGlow';
@@ -136,88 +140,90 @@ export default function SessionLogScreen() {
   const progress = totalSets > 0 ? doneSets / totalSets : 0;
 
   return (
-    <View style={styles.root}>
-      <AmbientGlow
-        color="rgba(190,242,100,0.42)"
-        width={460}
-        height={360}
-        style={{ top: -120, left: -35 }}
-      />
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        {/* Hero header */}
-        <View style={styles.header}>
-          <Pressable onPress={handleBack} hitSlop={8} style={styles.backButton}>
-            <SymbolView name="chevron.left" size={18} weight="semibold" tintColor={colors.text} />
-          </Pressable>
-          <View style={styles.headerCenter}>
-            <View style={styles.titleLine}>
-              <Text style={styles.title} numberOfLines={1}>
-                {blockLabel ?? session.workoutTitle}
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+      <View style={styles.root}>
+        <AmbientGlow
+          color="rgba(190,242,100,0.42)"
+          width={460}
+          height={360}
+          style={{ top: -120, left: -35 }}
+        />
+        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+          {/* Hero header */}
+          <View style={styles.header}>
+            <Pressable onPress={handleBack} hitSlop={8} style={styles.backButton}>
+              <SymbolView name="chevron.left" size={18} weight="semibold" tintColor={colors.text} />
+            </Pressable>
+            <View style={styles.headerCenter}>
+              <View style={styles.titleLine}>
+                <Text style={styles.title} numberOfLines={1}>
+                  {blockLabel ?? session.workoutTitle}
+                </Text>
+                {blockLabel ? <Text style={styles.fox}>🦊</Text> : null}
+              </View>
+              <Text style={styles.subtitle} numberOfLines={1}>
+                {blockLabel
+                  ? session.workoutTitle
+                  : `Exercise ${session.currentExerciseIndex + 1} of ${session.exercises.length}`}
               </Text>
-              {blockLabel ? <Text style={styles.fox}>🦊</Text> : null}
             </View>
-            <Text style={styles.subtitle} numberOfLines={1}>
-              {blockLabel
-                ? session.workoutTitle
-                : `Exercise ${session.currentExerciseIndex + 1} of ${session.exercises.length}`}
-            </Text>
+            <Text style={styles.timer}>{formatDuration(session.duration)}</Text>
           </View>
-          <Text style={styles.timer}>{formatDuration(session.duration)}</Text>
-        </View>
 
-        {/* Progress */}
-        <View style={styles.progressTrack}>
-          <LinearGradient
-            colors={gradients.limeSoft}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]}
-          />
-        </View>
+          {/* Progress */}
+          <View style={styles.progressTrack}>
+            <LinearGradient
+              colors={gradients.limeSoft}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]}
+            />
+          </View>
 
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          {exercisesToDisplay.map((exercise) => {
-            const exerciseIndex = session.exercises.findIndex((ex) => ex.id === exercise.id);
-            const bodyweight =
-              isBodyweightExercise({ equipment: exercise.equipment || null }) ||
-              hasBodyweightSets(exercise.sets);
+          <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            {exercisesToDisplay.map((exercise) => {
+              const exerciseIndex = session.exercises.findIndex((ex) => ex.id === exercise.id);
+              const bodyweight =
+                isBodyweightExercise({ equipment: exercise.equipment || null }) ||
+                hasBodyweightSets(exercise.sets);
 
-            return (
-              <SessionExerciseCard
-                key={exercise.id}
-                exercise={exercise}
-                isBodyweight={bodyweight}
-                onToggleSetCompletion={(setIndex) => toggleSetCompletion(exerciseIndex, setIndex)}
-                onUpdateSet={(setIndex, weight, reps) =>
-                  updateSet(exerciseIndex, setIndex, { actualLoad: weight, actualReps: reps })
-                }
-                onAddSet={() => addSet(exerciseIndex)}
+              return (
+                <SessionExerciseCard
+                  key={exercise.id}
+                  exercise={exercise}
+                  isBodyweight={bodyweight}
+                  onToggleSetCompletion={(setIndex) => toggleSetCompletion(exerciseIndex, setIndex)}
+                  onUpdateSet={(setIndex, weight, reps) =>
+                    updateSet(exerciseIndex, setIndex, { actualLoad: weight, actualReps: reps })
+                  }
+                  onAddSet={() => addSet(exerciseIndex)}
+                />
+              );
+            })}
+          </ScrollView>
+
+          {/* Bottom CTA */}
+          <View style={styles.footer}>
+            {isLast ? (
+              <GradientButton
+                label="Finish Workout"
+                variant="lime"
+                icon="flag.checkered"
+                disabled={!canFinishWorkout()}
+                onPress={() => router.push(`/session/finish?workoutId=${workoutId}`)}
               />
-            );
-          })}
-        </ScrollView>
-
-        {/* Bottom CTA */}
-        <View style={styles.footer}>
-          {isLast ? (
-            <GradientButton
-              label="Finish Workout"
-              variant="lime"
-              icon="flag.checkered"
-              disabled={!canFinishWorkout()}
-              onPress={() => router.push(`/session/finish?workoutId=${workoutId}`)}
-            />
-          ) : (
-            <GradientButton
-              label="Next exercise"
-              variant="cyan"
-              icon="chevron.right"
-              onPress={navigateToNextExercise}
-            />
-          )}
-        </View>
-      </SafeAreaView>
-    </View>
+            ) : (
+              <GradientButton
+                label="Next exercise"
+                variant="cyan"
+                icon="chevron.right"
+                onPress={navigateToNextExercise}
+              />
+            )}
+          </View>
+        </SafeAreaView>
+      </View>
+    </SafeAreaProvider>
   );
 }
 
