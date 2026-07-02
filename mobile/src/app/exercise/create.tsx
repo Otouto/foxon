@@ -87,7 +87,7 @@ export default function ExerciseCreateScreen() {
 
         <Card>
           <Text style={styles.label}>Muscle group</Text>
-          <Picker selectedValue={muscleGroupId} onValueChange={(value) => setMuscleGroupId(value)}>
+          <Picker color={colors.text} selectedValue={muscleGroupId} onValueChange={(value) => setMuscleGroupId(value)}>
             <Picker.Item label="None" value={undefined} />
             {(muscleGroups ?? []).map((group) => (
               <Picker.Item key={group.id} label={group.name} value={group.id} />
@@ -97,7 +97,7 @@ export default function ExerciseCreateScreen() {
 
         <Card>
           <Text style={styles.label}>Equipment</Text>
-          <Picker selectedValue={equipmentId} onValueChange={(value) => setEquipmentId(value)}>
+          <Picker color={colors.text} selectedValue={equipmentId} onValueChange={(value) => setEquipmentId(value)}>
             <Picker.Item label="None" value={undefined} />
             {(equipment ?? []).map((item) => (
               <Picker.Item key={item.id} label={item.name} value={item.id} />

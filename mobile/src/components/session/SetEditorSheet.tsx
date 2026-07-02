@@ -105,6 +105,7 @@ export function SetEditorSheet({
                 <Picker
                   style={styles.picker}
                   itemStyle={styles.pickerItem}
+                  color={colors.text}
                   selectedValue={weight}
                   onValueChange={(value) => {
                     triggerHaptic('light');
@@ -125,6 +126,7 @@ export function SetEditorSheet({
               <Picker
                 style={styles.picker}
                 itemStyle={styles.pickerItem}
+                color={colors.text}
                 selectedValue={reps}
                 onValueChange={(value) => {
                   triggerHaptic('light');

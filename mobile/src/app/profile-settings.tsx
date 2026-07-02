@@ -52,7 +52,7 @@ export default function ProfileSettingsScreen() {
         <Card>
           <Text style={typography.headline}>Weekly goal</Text>
           <Text style={typography.footnote}>Workouts per week</Text>
-          <Picker selectedValue={weeklyGoal} onValueChange={(value) => setWeeklyGoal(value)}>
+          <Picker color={colors.text} selectedValue={weeklyGoal} onValueChange={(value) => setWeeklyGoal(value)}>
             {[1, 2, 3, 4, 5, 6, 7].map((goal) => (
               <Picker.Item key={goal} label={`${goal} workout${goal !== 1 ? 's' : ''}`} value={goal} />
             ))}
