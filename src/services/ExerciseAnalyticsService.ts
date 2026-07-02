@@ -77,26 +77,32 @@ export class ExerciseAnalyticsService {
 
     const activeExerciseIds = new Set(activeWorkoutExercises.map(ex => ex.id));
 
-    const allAnalytics = await Promise.all(
-      exercisesWithSessions.map(async (exercise) => {
-        const peakPerformance = this.calculatePeakPerformance(exercise.sessionExercises);
-        const devotionData = await this.calculateDevotionDots(exercise.id, exercise.sessionExercises);
-        const consistency = await this.calculateConsistency(exercise.id, exercise.sessionExercises);
-        const chips = this.determineChips(consistency);
-
-        return {
-          id: exercise.id,
-          name: exercise.name,
-          muscleGroup: exercise.muscleGroup?.name || null,
-          peakPerformance,
-          devotionDots: devotionData.dots,
-          actualWeeksTracked: devotionData.weeksTracked,
-          consistency,
-          chips,
-          isActive: activeExerciseIds.has(exercise.id)
-        };
-      })
+    // Earliest workout-session date for every exercise in two queries total
+    // (was 2 queries per exercise, awaited twice per exercise)
+    const earliestDates = await this.getEarliestWorkoutSessionDates(
+      userId,
+      exercisesWithSessions.map(exercise => exercise.id)
     );
+
+    const allAnalytics = exercisesWithSessions.map((exercise) => {
+      const earliestDate = earliestDates.get(exercise.id) ?? null;
+      const peakPerformance = this.calculatePeakPerformance(exercise.sessionExercises);
+      const devotionData = this.calculateDevotionDots(earliestDate, exercise.sessionExercises);
+      const consistency = this.calculateConsistency(earliestDate, exercise.sessionExercises);
+      const chips = this.determineChips(consistency);
+
+      return {
+        id: exercise.id,
+        name: exercise.name,
+        muscleGroup: exercise.muscleGroup?.name || null,
+        peakPerformance,
+        devotionDots: devotionData.dots,
+        actualWeeksTracked: devotionData.weeksTracked,
+        consistency,
+        chips,
+        isActive: activeExerciseIds.has(exercise.id)
+      };
+    });
 
     // Separate active and archived exercises
     const activeExercises = allAnalytics
@@ -180,7 +186,9 @@ export class ExerciseAnalyticsService {
       },
       orderBy: {
         date: 'desc'
-      }
+      },
+      // Bound the payload — history view shows recent sessions, not all-time
+      take: 50
     });
 
     return sessions.map(session => ({
@@ -233,25 +241,29 @@ export class ExerciseAnalyticsService {
       }
     });
 
-    const analytics = await Promise.all(
-      exercisesWithSessions.map(async (exercise) => {
-        const peakPerformance = this.calculatePeakPerformance(exercise.sessionExercises);
-        const devotionData = await this.calculateDevotionDots(exercise.id, exercise.sessionExercises);
-        const consistency = await this.calculateConsistency(exercise.id, exercise.sessionExercises);
-        const chips = this.determineChips(consistency);
-
-        return {
-          id: exercise.id,
-          name: exercise.name,
-          muscleGroup: exercise.muscleGroup?.name || null,
-          peakPerformance,
-          devotionDots: devotionData.dots,
-          actualWeeksTracked: devotionData.weeksTracked,
-          consistency,
-          chips
-        };
-      })
+    const earliestDates = await this.getEarliestWorkoutSessionDates(
+      userId,
+      exercisesWithSessions.map(exercise => exercise.id)
     );
+
+    const analytics = exercisesWithSessions.map((exercise) => {
+      const earliestDate = earliestDates.get(exercise.id) ?? null;
+      const peakPerformance = this.calculatePeakPerformance(exercise.sessionExercises);
+      const devotionData = this.calculateDevotionDots(earliestDate, exercise.sessionExercises);
+      const consistency = this.calculateConsistency(earliestDate, exercise.sessionExercises);
+      const chips = this.determineChips(consistency);
+
+      return {
+        id: exercise.id,
+        name: exercise.name,
+        muscleGroup: exercise.muscleGroup?.name || null,
+        peakPerformance,
+        devotionDots: devotionData.dots,
+        actualWeeksTracked: devotionData.weeksTracked,
+        consistency,
+        chips
+      };
+    });
 
     // Sort by name for consistent ordering
     return analytics.sort((a, b) => a.name.localeCompare(b.name));
@@ -292,12 +304,11 @@ export class ExerciseAnalyticsService {
     };
   }
 
-  private static async calculateDevotionDots(exerciseId: string, sessionExercises: Array<{
+  private static calculateDevotionDots(earliestDate: Date | null, sessionExercises: Array<{
     session: {
       date: Date;
     };
-  }>): Promise<{ dots: boolean[]; weeksTracked: number }> {
-    const earliestDate = await this.getEarliestWorkoutSessionDate(exerciseId);
+  }>): { dots: boolean[]; weeksTracked: number } {
     if (!earliestDate) return { dots: [], weeksTracked: 0 };
 
     const now = new Date();
@@ -342,14 +353,12 @@ export class ExerciseAnalyticsService {
     };
   }
 
-  private static async calculateConsistency(exerciseId: string, sessionExercises: Array<{
+  private static calculateConsistency(earliestDate: Date | null, sessionExercises: Array<{
     session: {
       date: Date;
     };
-  }>): Promise<number> {
+  }>): number {
     if (sessionExercises.length === 0) return 0;
-
-    const earliestDate = await this.getEarliestWorkoutSessionDate(exerciseId);
     if (!earliestDate) return 0;
 
     const now = new Date();
@@ -419,45 +428,53 @@ export class ExerciseAnalyticsService {
     return Math.floor(timeDiff / (7 * 24 * 60 * 60 * 1000)) + 1; // +1 to include both start and end weeks
   }
 
-  private static async getEarliestWorkoutSessionDate(exerciseId: string): Promise<Date | null> {
-    const userId = await getCurrentUserId();
-    
-    // Find all workouts that contain this exercise
-    const workoutsWithExercise = await prisma.workout.findMany({
+  /**
+   * Earliest session date per exercise, where "session" means any session of a
+   * workout containing that exercise. Two queries total regardless of exercise
+   * count (replaces the old per-exercise getEarliestWorkoutSessionDate).
+   */
+  private static async getEarliestWorkoutSessionDates(
+    userId: string,
+    exerciseIds: string[]
+  ): Promise<Map<string, Date | null>> {
+    const result = new Map<string, Date | null>(exerciseIds.map(id => [id, null]));
+    if (exerciseIds.length === 0) return result;
+
+    // All (exerciseId, workoutId) pairs across the user's workouts
+    const items = await prisma.workoutItem.findMany({
       where: {
-        userId: userId,
-        workoutItems: {
-          some: {
-            exerciseId: exerciseId
-          }
-        }
+        exerciseId: { in: exerciseIds },
+        workout: { userId }
       },
-      select: {
-        id: true
-      }
+      select: { exerciseId: true, workoutId: true }
     });
 
-    if (workoutsWithExercise.length === 0) return null;
+    const workoutIds = [...new Set(items.map(item => item.workoutId))];
+    if (workoutIds.length === 0) return result;
 
-    const workoutIds = workoutsWithExercise.map(w => w.id);
-
-    // Find the earliest session of ANY workout that contains this exercise
-    const earliestSession = await prisma.session.findFirst({
+    // Earliest session date per workout
+    const earliestByWorkout = await prisma.session.groupBy({
+      by: ['workoutId'],
       where: {
-        userId: userId,
-        workoutId: {
-          in: workoutIds
-        }
+        userId,
+        workoutId: { in: workoutIds }
       },
-      orderBy: {
-        date: 'asc'
-      },
-      select: {
-        date: true
-      }
+      _min: { date: true }
     });
+    const workoutEarliest = new Map(
+      earliestByWorkout.map(group => [group.workoutId, group._min.date])
+    );
 
-    return earliestSession?.date || null;
+    for (const item of items) {
+      const date = workoutEarliest.get(item.workoutId);
+      if (!date) continue;
+      const current = result.get(item.exerciseId);
+      if (!current || date < current) {
+        result.set(item.exerciseId, date);
+      }
+    }
+
+    return result;
   }
 
 }

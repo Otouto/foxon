@@ -45,7 +45,10 @@ export default function WorkoutCreateScreen() {
     try {
       await creation.saveWorkout(asDraft, editId);
       queryClient.invalidateQueries({ queryKey: ['workouts'] });
-      if (editId) queryClient.invalidateQueries({ queryKey: ['workout', editId] });
+      if (editId) {
+        queryClient.invalidateQueries({ queryKey: ['workout', editId] });
+        queryClient.invalidateQueries({ queryKey: ['workout-preload', editId] });
+      }
       router.back();
     } catch (err) {
       Alert.alert('Could not save', err instanceof Error ? err.message : 'Failed to save workout');

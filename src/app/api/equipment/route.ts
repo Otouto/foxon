@@ -13,7 +13,10 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({ equipment });
+    return NextResponse.json(
+      { equipment },
+      { headers: { 'Cache-Control': 'private, max-age=3600' } }
+    );
   } catch (error) {
     console.error('Failed to fetch equipment:', error);
     return NextResponse.json(

@@ -36,26 +36,30 @@ export async function GET(request: NextRequest) {
     const tab = searchParams.get('tab') || 'sessions';
 
     if (tab === 'sessions') {
-      // Get user's weeklyGoal from DB
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { weeklyGoal: true },
-      });
-
-      // Get sessions with seals for review
-      const sessions = await prisma.session.findMany({
-        where: {
-          userId,
-          status: 'FINISHED'
-        },
-        include: {
-          workout: {
-            select: { title: true }
+      // Weekly goal + recent sessions in one parallel wave. The list is bounded:
+      // payload otherwise grows forever with training history.
+      const [user, sessions] = await Promise.all([
+        prisma.user.findUnique({
+          where: { id: userId },
+          select: { weeklyGoal: true },
+        }),
+        prisma.session.findMany({
+          where: {
+            userId,
+            status: 'FINISHED'
           },
-          sessionSeal: true
-        },
-        orderBy: { date: 'desc' }
-      });
+          include: {
+            workout: {
+              select: { title: true }
+            },
+            sessionSeal: {
+              select: { effort: true, vibeLine: true, note: true }
+            }
+          },
+          orderBy: { date: 'desc' },
+          take: 60
+        }),
+      ]);
 
       // Narratives are derived in memory from the session list above — no
       // per-session queries (previously an N+1 of 4 queries × every session).

@@ -57,11 +57,6 @@ const ProgressionState = {
   FIERY: 'FIERY' as const,
 }
 
-const SessionStatus = {
-  ACTIVE: 'ACTIVE' as const,
-  FINISHED: 'FINISHED' as const,
-}
-
 describe('DashboardService', () => {
   describe('getDashboardData', () => {
     const mockUser = {
@@ -77,6 +72,7 @@ describe('DashboardService', () => {
       jest.clearAllMocks()
       ;(prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser)
       ;(prisma.workout.findMany as jest.Mock).mockResolvedValue([])
+      ;(prisma.session.count as jest.Mock).mockResolvedValue(0)
       ;(FoxLevelService.ensureEvaluated as jest.Mock).mockResolvedValue({
         level: ProgressionState.SLIM,
         formScore: 0,
@@ -157,13 +153,8 @@ describe('DashboardService', () => {
 
     describe('Week progress calculation', () => {
       it('should correctly calculate completed this week', async () => {
-        ;(prisma.session.findMany as jest.Mock)
-          .mockResolvedValueOnce([]) // Current month devotion sessions
-          .mockResolvedValueOnce([]) // Previous month devotion sessions
-          .mockResolvedValueOnce([ // This week's sessions
-            { id: '1', status: SessionStatus.FINISHED },
-            { id: '2', status: SessionStatus.FINISHED },
-          ])
+        ;(prisma.session.findMany as jest.Mock).mockResolvedValue([])
+        ;(prisma.session.count as jest.Mock).mockResolvedValue(2) // This week's session count
 
         const result = await DashboardService.getDashboardData()
 
@@ -173,12 +164,8 @@ describe('DashboardService', () => {
       })
 
       it('should mark week as incomplete if goal not met', async () => {
-        ;(prisma.session.findMany as jest.Mock)
-          .mockResolvedValueOnce([]) // Current month devotion sessions
-          .mockResolvedValueOnce([]) // Previous month devotion sessions
-          .mockResolvedValueOnce([ // This week's sessions
-            { id: '1', status: SessionStatus.FINISHED },
-          ])
+        ;(prisma.session.findMany as jest.Mock).mockResolvedValue([])
+        ;(prisma.session.count as jest.Mock).mockResolvedValue(1) // This week's session count
 
         const result = await DashboardService.getDashboardData()
 
@@ -194,16 +181,12 @@ describe('DashboardService', () => {
           id: 'workout-1',
           title: 'Upper Body Strength',
           workoutItems: [
-            { workoutItemSets: [{}, {}, {}] }, // 3 sets
-            { workoutItemSets: [{}, {}] }, // 2 sets
+            { _count: { workoutItemSets: 3 } }, // 3 sets
+            { _count: { workoutItemSets: 2 } }, // 2 sets
           ],
         }
 
-        ;(prisma.session.findMany as jest.Mock)
-          .mockResolvedValueOnce([]) // Current month devotion sessions
-          .mockResolvedValueOnce([]) // Previous month devotion sessions
-          .mockResolvedValueOnce([]) // This week: 0 sessions
-
+        ;(prisma.session.findMany as jest.Mock).mockResolvedValue([])
         ;(prisma.workout.findMany as jest.Mock).mockResolvedValue([mockWorkout])
 
         const result = await DashboardService.getDashboardData()
@@ -216,11 +199,7 @@ describe('DashboardService', () => {
       })
 
       it('should return null if no active workouts exist', async () => {
-        ;(prisma.session.findMany as jest.Mock)
-          .mockResolvedValueOnce([]) // Current month devotion sessions
-          .mockResolvedValueOnce([]) // Previous month devotion sessions
-          .mockResolvedValueOnce([]) // This week: 0 sessions
-
+        ;(prisma.session.findMany as jest.Mock).mockResolvedValue([])
         ;(prisma.workout.findMany as jest.Mock).mockResolvedValue([])
 
         const result = await DashboardService.getDashboardData()

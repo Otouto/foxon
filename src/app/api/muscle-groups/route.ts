@@ -13,7 +13,10 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({ muscleGroups });
+    return NextResponse.json(
+      { muscleGroups },
+      { headers: { 'Cache-Control': 'private, max-age=3600' } }
+    );
   } catch (error) {
     console.error('Failed to fetch muscle groups:', error);
     return NextResponse.json(

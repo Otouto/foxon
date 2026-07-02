@@ -32,6 +32,7 @@ import type { InMemorySession } from '@/hooks/useInMemorySession';
 import { getDevotionVerdict } from '@/lib/devotionVerdicts';
 import { formatDuration } from '@/lib/exerciseUtils';
 import { getFoxQuote } from '@/lib/foxQuotes';
+import { SessionOutbox, type CompletedSessionPayload } from '@/lib/outbox';
 import { SessionStorage } from '@/lib/sessionStorage';
 import { colors, fonts, spacing, typography } from '@/theme';
 
@@ -60,7 +61,9 @@ export default function SessionFinishScreen() {
   );
 
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saving');
+  const saveStatusRef = useRef<SaveStatus>('saving');
   const savePromiseRef = useRef<Promise<string> | null>(null);
+  const sessionDataRef = useRef<CompletedSessionPayload | null>(null);
   const sessionIdRef = useRef<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
 
@@ -71,51 +74,97 @@ export default function SessionFinishScreen() {
   const [showSummary, setShowSummary] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [devotion, setDevotion] = useState<DevotionData | null>(null);
+  const [scoringStalled, setScoringStalled] = useState(false);
   const [weekProgress, setWeekProgress] = useState<
     { completed: number; planned: number } | undefined
   >(undefined);
 
+  const updateSaveStatus = useCallback((status: SaveStatus) => {
+    saveStatusRef.current = status;
+    setSaveStatus(status);
+  }, []);
+
+  /**
+   * Save the session via the durable outbox: the payload hits MMKV before the
+   * first network attempt and is only removed on confirmed success, so the
+   * workout survives connection loss and app kills. Safe to call repeatedly —
+   * the backend dedupes on (workout, startTime).
+   */
+  const attemptSave = useCallback((): Promise<string> => {
+    if (!session) return Promise.reject(new Error('No active session'));
+
+    // Build the payload once so startTime/endTime stay stable across retries
+    if (!sessionDataRef.current) {
+      const endTime = new Date();
+      sessionDataRef.current = {
+        workoutId: session.workoutId,
+        workoutTitle: session.workoutTitle,
+        startTime: session.startTime,
+        endTime,
+        duration: Math.floor(
+          (endTime.getTime() - new Date(session.startTime).getTime()) / 1000
+        ),
+        exercises: session.exercises.map((exercise) => ({
+          exerciseId: exercise.exerciseId,
+          exerciseName: exercise.exerciseName,
+          order: exercise.order,
+          notes: exercise.notes,
+          sets: exercise.sets.map((set) => ({
+            type: set.type,
+            load: set.actualLoad,
+            reps: set.actualReps,
+            completed: set.completed,
+            order: set.order,
+            notes: set.notes,
+          })),
+        })),
+      };
+    }
+
+    const sessionData = sessionDataRef.current;
+    const pendingId = SessionOutbox.idFor(sessionData.workoutId, sessionData.startTime);
+    SessionOutbox.enqueue(pendingId, sessionData);
+    updateSaveStatus('saving');
+
+    const promise = SessionOutbox.send(pendingId, sessionData).then((result) => {
+      sessionIdRef.current = result.sessionId;
+      setSessionId(result.sessionId);
+      updateSaveStatus('completed');
+      // The backend scores synchronously when fast — skip the poll entirely
+      if (result.devotionScore != null) {
+        setDevotion({
+          devotionScore: result.devotionScore,
+          devotionGrade: result.devotionGrade ?? '',
+          pillars: result.devotionPillars ?? null,
+          deviations: result.devotionDeviations ?? null,
+        });
+      }
+      return result.sessionId;
+    });
+
+    savePromiseRef.current = promise;
+    promise.catch((err) => {
+      console.error('Background save failed:', err);
+      updateSaveStatus('error');
+    });
+    return promise;
+  }, [session, updateSaveStatus]);
+
   // Kick off the background save once
   useEffect(() => {
     if (!session || savePromiseRef.current) return;
+    attemptSave().catch(() => {});
+  }, [session, attemptSave]);
 
-    const endTime = new Date();
-    const sessionData = {
-      workoutId: session.workoutId,
-      workoutTitle: session.workoutTitle,
-      startTime: session.startTime,
-      endTime,
-      duration: Math.floor((endTime.getTime() - new Date(session.startTime).getTime()) / 1000),
-      exercises: session.exercises.map((exercise) => ({
-        exerciseId: exercise.exerciseId,
-        exerciseName: exercise.exerciseName,
-        order: exercise.order,
-        notes: exercise.notes,
-        sets: exercise.sets.map((set) => ({
-          type: set.type,
-          load: set.actualLoad,
-          reps: set.actualReps,
-          completed: set.completed,
-          order: set.order,
-          notes: set.notes,
-        })),
-      })),
-    };
-
-    savePromiseRef.current = api
-      .post<{ success: boolean; sessionId: string }>('/api/sessions/complete', { sessionData })
-      .then((result) => {
-        sessionIdRef.current = result.sessionId;
-        setSessionId(result.sessionId);
-        setSaveStatus('completed');
-        return result.sessionId;
-      });
-
-    savePromiseRef.current.catch((err) => {
-      console.error('Background save failed:', err);
-      setSaveStatus('error');
+  // Retry a failed save when the app returns to the foreground
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && saveStatusRef.current === 'error') {
+        attemptSave().catch(() => {});
+      }
     });
-  }, [session]);
+    return () => subscription.remove();
+  }, [attemptSave]);
 
   // Poll for the async devotion score once the summary is showing
   useEffect(() => {
@@ -151,6 +200,9 @@ export default function SessionFinishScreen() {
       if (retryCount < maxRetries && !cancelled) {
         const delay = Math.min(1000 * 2 ** (retryCount - 1), 5000);
         setTimeout(poll, delay);
+      } else if (!cancelled) {
+        // Give the user an honest state instead of an endless spinner
+        setScoringStalled(true);
       }
     };
 
@@ -158,7 +210,11 @@ export default function SessionFinishScreen() {
 
     // resume polling when app returns to foreground (timers freeze in background)
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active' && !cancelled && !devotion) poll();
+      if (state === 'active' && !cancelled && !devotion) {
+        retryCount = 0; // fresh retry burst on foreground
+        setScoringStalled(false);
+        poll();
+      }
     });
 
     return () => {
@@ -180,7 +236,16 @@ export default function SessionFinishScreen() {
     if (!vibeLine.trim()) return;
     setIsSubmitting(true);
     try {
-      const sessionId = sessionIdRef.current ?? (await savePromiseRef.current);
+      // If the background save failed, actually retry it (the payload is
+      // safe in the outbox) instead of re-awaiting the rejected promise.
+      let sessionId = sessionIdRef.current;
+      if (!sessionId) {
+        try {
+          sessionId = await savePromiseRef.current;
+        } catch {
+          sessionId = await attemptSave();
+        }
+      }
       if (!sessionId) throw new Error('Session save failed');
 
       const effort: EffortLevel = rpeToEffortLevel(rpeValue);
@@ -191,13 +256,17 @@ export default function SessionFinishScreen() {
 
       if (workoutId) SessionStorage.clearSession(workoutId);
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['review'] });
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      // Next start of this workout should preload the just-logged session
+      if (workoutId) queryClient.invalidateQueries({ queryKey: ['workout-preload', workoutId] });
       setShowSummary(true);
     } catch (err) {
       Alert.alert('Could not save', err instanceof Error ? err.message : 'Failed to save reflection');
     } finally {
       setIsSubmitting(false);
     }
-  }, [vibeLine, rpeValue, workoutId, queryClient]);
+  }, [vibeLine, rpeValue, workoutId, queryClient, attemptSave]);
 
   const handleDone = useCallback(() => {
     router.dismissAll();
@@ -271,6 +340,10 @@ export default function SessionFinishScreen() {
                     <Text style={styles.bubbleTitle}>{quote.line}</Text>
                     {quote.weekLine ? <Text style={styles.bubbleSub}>{quote.weekLine}</Text> : null}
                   </>
+                ) : scoringStalled ? (
+                  <Text style={styles.bubbleSub}>
+                    The score is still cooking — check this session in Review a bit later.
+                  </Text>
                 ) : (
                   <Text style={styles.bubbleSub}>Crunching your devotion…</Text>
                 )}
@@ -294,8 +367,10 @@ export default function SessionFinishScreen() {
                 </ScoreRing>
               ) : (
                 <ScoreRing size={178} strokeWidth={13} progress={0} animate={false}>
-                  <ActivityIndicator />
-                  <Text style={styles.ringCaption}>SCORING…</Text>
+                  {scoringStalled ? null : <ActivityIndicator />}
+                  <Text style={styles.ringCaption}>
+                    {scoringStalled ? 'CHECK LATER' : 'SCORING…'}
+                  </Text>
                 </ScoreRing>
               )}
             </View>

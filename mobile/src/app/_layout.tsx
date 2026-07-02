@@ -12,12 +12,16 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { registerTokenGetter } from '@/api/client';
+import { setupReactQueryBindings } from '@/api/onlineFocus';
 import { CACHE_BUSTER, mmkvPersister } from '@/api/persister';
 import { queryClient } from '@/api/queryClient';
 import { PrefetchOnAuth } from '@/components/PrefetchOnAuth';
 import { colors } from '@/theme';
 
 const ONE_DAY = 1000 * 60 * 60 * 24;
+
+// Pause queries/mutations while offline, refetch on reconnect + app foreground
+setupReactQueryBindings();
 
 /** Bridges Clerk's getToken into the plain-module API client. */
 function ApiAuthBinding() {

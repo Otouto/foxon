@@ -9,6 +9,7 @@ type Variant = 'lime' | 'cyan';
 interface GradientButtonProps {
   label: string;
   onPress?: () => void;
+  onPressIn?: () => void;
   variant?: Variant;
   /** Optional SF Symbol shown after (or before) the label. */
   icon?: SymbolViewProps['name'];
@@ -30,6 +31,7 @@ const VARIANTS: Record<Variant, { gradient: readonly [string, string]; ink: stri
 export function GradientButton({
   label,
   onPress,
+  onPressIn,
   variant = 'cyan',
   icon,
   iconPlacement = 'trailing',
@@ -44,6 +46,7 @@ export function GradientButton({
   return (
     <Pressable
       onPress={onPress}
+      onPressIn={onPressIn}
       disabled={disabled}
       style={({ pressed }) => [
         styles.shadow,

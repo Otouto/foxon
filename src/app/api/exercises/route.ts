@@ -13,7 +13,10 @@ export async function GET(request: NextRequest) {
       exercises = await ExerciseService.getAllExercises();
     }
 
-    return NextResponse.json({ exercises });
+    return NextResponse.json(
+      { exercises },
+      { headers: { 'Cache-Control': 'private, max-age=3600' } }
+    );
   } catch (error) {
     console.error('Failed to fetch exercises:', error);
     return NextResponse.json(

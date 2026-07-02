@@ -2,7 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import type { WorkoutDetails, WorkoutItem } from '@shared/types/workout';
 
-import { api } from '@/api/client';
+import {
+  workoutPreloadQueryOptions,
+  workoutQueryOptions,
+  type WorkoutPreloadData,
+} from '@/api/queries';
+import { queryClient } from '@/api/queryClient';
 import { SessionStorage } from '@/lib/sessionStorage';
 
 /**
@@ -48,14 +53,6 @@ export interface InMemorySession {
   currentExerciseIndex: number;
   exercises: InMemoryExercise[];
   duration: number;
-}
-
-interface PreloadResponse {
-  preloadedData: {
-    workout: WorkoutDetails;
-    previousSessionData: Record<string, { load: number; reps: number }[]>;
-    lastSessionDate: string | null;
-  };
 }
 
 function generateTempId() {
@@ -126,6 +123,18 @@ export function useInMemorySession(workoutId: string) {
     [workoutId]
   );
 
+  const startFromPreload = useCallback(
+    (preloaded: WorkoutPreloadData) => {
+      const previousData = new Map(Object.entries(preloaded.previousSessionData));
+      const inMemorySession = createInMemorySession(preloaded.workout, previousData);
+      setSession(inMemorySession);
+      startTimeRef.current = inMemorySession.startTime;
+      startTimer();
+      saveSessionToStorage(inMemorySession);
+    },
+    [saveSessionToStorage, startTimer]
+  );
+
   const initializeSession = useCallback(async () => {
     try {
       setIsInitializing(true);
@@ -145,23 +154,63 @@ export function useInMemorySession(workoutId: string) {
         return;
       }
 
-      const { preloadedData } = await api.get<PreloadResponse>(
-        `/api/workouts/${workoutId}/preload`
-      );
-      const previousData = new Map(Object.entries(preloadedData.previousSessionData));
+      const preloadOptions = workoutPreloadQueryOptions(workoutId);
 
-      const inMemorySession = createInMemorySession(preloadedData.workout, previousData);
-      setSession(inMemorySession);
-      startTimeRef.current = inMemorySession.startTime;
-      startTimer();
-      saveSessionToStorage(inMemorySession);
+      // Fast path: preload already in the cache (warmed on auth / onPressIn).
+      // Stale is fine — previous-session values are reference hints.
+      const cachedPreload = queryClient.getQueryData(preloadOptions.queryKey);
+      if (cachedPreload) {
+        startFromPreload(cachedPreload);
+        return;
+      }
+
+      // Cache miss but the workout itself is cached (list/detail screens warm
+      // it): start immediately without previous-session hints and merge them
+      // in when the preload lands. The session must not wait on the network.
+      const cachedWorkout = queryClient.getQueryData(workoutQueryOptions(workoutId).queryKey);
+      if (cachedWorkout) {
+        const inMemorySession = createInMemorySession(cachedWorkout, new Map());
+        setSession(inMemorySession);
+        startTimeRef.current = inMemorySession.startTime;
+        startTimer();
+        saveSessionToStorage(inMemorySession);
+
+        void queryClient
+          .fetchQuery(preloadOptions)
+          .then((preloaded) => {
+            const previousData = new Map(Object.entries(preloaded.previousSessionData));
+            if (previousData.size === 0) return;
+            setSession((prev) => {
+              if (!prev || prev.workoutId !== workoutId) return prev;
+              const exercises = prev.exercises.map((exercise) =>
+                exercise.previousSessionData == null
+                  ? {
+                      ...exercise,
+                      previousSessionData: previousData.get(exercise.exerciseId) ?? null,
+                    }
+                  : exercise
+              );
+              const updatedSession = { ...prev, exercises };
+              saveSessionToStorage(updatedSession);
+              return updatedSession;
+            });
+          })
+          .catch(() => {
+            // Reference data only — the session works without it.
+          });
+        return;
+      }
+
+      // Cold path (deep link / first run, nothing cached): block on the fetch
+      const preloaded = await queryClient.fetchQuery(preloadOptions);
+      startFromPreload(preloaded);
     } catch (err) {
       console.error('Failed to initialize session:', err);
       setError(err instanceof Error ? err.message : 'Failed to initialize session');
     } finally {
       setIsInitializing(false);
     }
-  }, [workoutId, saveSessionToStorage, startTimer]);
+  }, [workoutId, saveSessionToStorage, startTimer, startFromPreload]);
 
   const updateSet = useCallback(
     (

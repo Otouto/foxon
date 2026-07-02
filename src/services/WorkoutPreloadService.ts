@@ -30,39 +30,14 @@ export class WorkoutPreloadService {
     }
 
     try {
-      // Get detailed workout information
-      const workout = await WorkoutService.getWorkoutById(workoutId);
+      // Workout details and previous-session data are independent: one query each
+      const [workout, { previousSessionData, lastSessionDate }] = await Promise.all([
+        WorkoutService.getWorkoutById(workoutId),
+        SessionService.getPreviousWorkoutSessionData(userId, workoutId)
+      ]);
       if (!workout) {
         return null;
       }
-
-      // Pre-load previous session data for all exercises in parallel
-      const previousSessionPromises = workout.items.map(async (item) => {
-        const previousData = await SessionService.getPreviousSessionData(
-          userId,
-          workoutId,
-          item.exercise.id
-        );
-        return {
-          exerciseId: item.exercise.id,
-          data: previousData
-        };
-      });
-
-      const previousSessionResults = await Promise.all(previousSessionPromises);
-      
-      // Build previous session data map
-      const previousSessionData = new Map<string, { load: number; reps: number }[]>();
-      previousSessionResults.forEach(result => {
-        if (result.data) {
-          previousSessionData.set(result.exerciseId, result.data);
-        }
-      });
-
-      // Get last session date for this workout
-      const userSessions = await SessionService.getUserSessions(userId, 1, 0);
-      const lastWorkoutSession = userSessions.find(session => session.workoutId === workoutId);
-      const lastSessionDate = lastWorkoutSession?.date || null;
 
       const preloadedData: PreloadedWorkoutData = {
         workout,

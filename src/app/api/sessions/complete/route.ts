@@ -40,6 +40,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Idempotency: the mobile client retries this request from a durable
+    // outbox after network failures. A session is uniquely identified by
+    // (user, workout, startTime) — if it already exists, the first attempt
+    // succeeded and we just return it instead of double-logging.
+    const existingSession = await prisma.session.findFirst({
+      where: {
+        userId,
+        workoutId: sessionData.workoutId,
+        date: new Date(sessionData.startTime),
+        status: SessionStatus.FINISHED,
+      },
+      select: {
+        id: true,
+        devotionScore: true,
+        devotionGrade: true,
+        devotionPillars: true,
+        devotionDeviations: true,
+      },
+    });
+
+    if (existingSession) {
+      return NextResponse.json({
+        success: true,
+        sessionId: existingSession.id,
+        devotionScore: existingSession.devotionScore,
+        devotionGrade: existingSession.devotionGrade,
+        devotionPillars: existingSession.devotionPillars,
+        devotionDeviations: existingSession.devotionDeviations,
+        message: 'Session already saved'
+      });
+    }
+
     // Create the completed session in the database
     const session = await prisma.$transaction(async (tx) => {
       // Create the session
@@ -55,34 +87,33 @@ export async function POST(request: NextRequest) {
         }
       });
 
-      // Create session exercises and sets
-      for (const exerciseData of sessionData.exercises) {
-        const sessionExercise = await tx.sessionExercise.create({
-          data: {
-            sessionId: newSession.id,
-            exerciseId: exerciseData.exerciseId,
-            order: exerciseData.order,
-            notes: exerciseData.notes,
+      // Create session exercises (in parallel), then their sets (in parallel)
+      await Promise.all(
+        sessionData.exercises.map(async (exerciseData) => {
+          const sessionExercise = await tx.sessionExercise.create({
+            data: {
+              sessionId: newSession.id,
+              exerciseId: exerciseData.exerciseId,
+              order: exerciseData.order,
+              notes: exerciseData.notes,
+            }
+          });
+
+          const setsData = exerciseData.sets.map(set => ({
+            sessionExerciseId: sessionExercise.id,
+            type: set.type as SetType,
+            load: set.load,
+            reps: set.reps,
+            completed: set.completed,
+            order: set.order,
+            notes: set.notes,
+          }));
+
+          if (setsData.length > 0) {
+            await tx.sessionSet.createMany({ data: setsData });
           }
-        });
-
-        // Create session sets
-        const setsData = exerciseData.sets.map(set => ({
-          sessionExerciseId: sessionExercise.id,
-          type: set.type as SetType,
-          load: set.load,
-          reps: set.reps,
-          completed: set.completed,
-          order: set.order,
-          notes: set.notes,
-        }));
-
-        if (setsData.length > 0) {
-          await Promise.all(
-            setsData.map(setData => tx.sessionSet.create({ data: setData }))
-          );
-        }
-      }
+        })
+      );
 
       return newSession;
     }, {
@@ -90,7 +121,14 @@ export async function POST(request: NextRequest) {
       timeout: 30000, // Maximum duration: 30 seconds
     });
 
-    // Calculate and update devotion score (async, don't wait for it)
+    // Devotion score: it's one workout fetch + in-memory math, so await it
+    // with a short budget and return it in the response (kills the client-side
+    // "Crunching your devotion…" poll in the common case). If it's slow, fall
+    // back to finishing in the background and the client polls as before.
+    let devotionResult: Awaited<
+      ReturnType<typeof DevotionScoringService.updateSessionWithDevotionScore>
+    > = null;
+
     if (sessionData.workoutId) {
       const actualExercises = sessionData.exercises.map(ex => ({
         name: ex.exerciseName,
@@ -102,16 +140,22 @@ export async function POST(request: NextRequest) {
         }))
       }));
 
-      // Update devotion score in background, then evaluate fox level
-      DevotionScoringService.updateSessionWithDevotionScore(
+      const scoringPromise = DevotionScoringService.updateSessionWithDevotionScore(
         session.id,
         sessionData.workoutId,
         actualExercises
-      ).then(() => {
-        return FoxLevelService.onSessionCompleted(userId);
-      }).catch(error => {
-        console.error('Failed to calculate devotion score / fox level for session:', session.id, error);
+      ).then((result) => {
+        FoxLevelService.onSessionCompleted(userId).catch(error => {
+          console.error('Failed to evaluate fox level for session:', session.id, error);
+        });
+        return result;
       });
+
+      const SCORING_BUDGET_MS = 3000;
+      devotionResult = await Promise.race([
+        scoringPromise,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), SCORING_BUDGET_MS)),
+      ]);
     } else {
       // No workout template — still evaluate fox level
       FoxLevelService.onSessionCompleted(userId).catch(error => {
@@ -125,6 +169,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       sessionId: session.id,
+      devotionScore: devotionResult?.CDS ?? null,
+      devotionGrade: devotionResult?.grade ?? null,
+      devotionPillars: devotionResult?.pillars ?? null,
+      devotionDeviations: devotionResult?.deviations ?? null,
       message: 'Session saved successfully'
     });
 

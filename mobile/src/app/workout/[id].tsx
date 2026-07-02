@@ -1,11 +1,13 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
+import { useEffect } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { WorkoutItem } from '@shared/types/workout';
 
-import { useWorkout } from '@/api/queries';
+import { useWorkout, workoutPreloadQueryOptions } from '@/api/queries';
+import { queryClient } from '@/api/queryClient';
 import { AmbientGlow } from '@/components/ui/AmbientGlow';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { WorkoutDetailSkeleton } from '@/components/ui/Skeleton';
@@ -17,6 +19,12 @@ export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { data: workout, isLoading } = useWorkout(id);
+
+  // Viewing a workout is strong start-intent: warm the session preload now so
+  // tapping "Start" opens the logging screen without a network wait.
+  useEffect(() => {
+    if (id) void queryClient.prefetchQuery(workoutPreloadQueryOptions(id));
+  }, [id]);
 
   // Group consecutive items that share a blockId into supersets.
   const groups: ItemGroup[] = [];
@@ -118,6 +126,7 @@ export default function WorkoutDetailScreen() {
             variant="lime"
             icon="play.fill"
             iconPlacement="leading"
+            onPressIn={() => void queryClient.prefetchQuery(workoutPreloadQueryOptions(workout.id))}
             onPress={() => router.push(`/session/log?workoutId=${workout.id}`)}
           />
         </SafeAreaView>

@@ -6,7 +6,8 @@ import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { WorkoutListItem } from '@shared/types/workout';
 
-import { useWorkouts } from '@/api/queries';
+import { useWorkouts, workoutPreloadQueryOptions, workoutQueryOptions } from '@/api/queries';
+import { queryClient } from '@/api/queryClient';
 import { AmbientGlow } from '@/components/ui/AmbientGlow';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { WorkoutsSkeleton } from '@/components/ui/Skeleton';
@@ -77,9 +78,15 @@ export default function WorkoutsScreen() {
           renderItem={({ item }) => (
             <WorkoutCard
               workout={item}
+              onPressInOverview={() => {
+                void queryClient.prefetchQuery(workoutQueryOptions(item.id));
+              }}
               onOpenOverview={() => {
                 triggerHaptic('light');
                 router.push(`/workout/${item.id}`);
+              }}
+              onPressInStart={() => {
+                void queryClient.prefetchQuery(workoutPreloadQueryOptions(item.id));
               }}
               onStartSession={() => {
                 triggerHaptic('medium');
@@ -110,16 +117,21 @@ export default function WorkoutsScreen() {
 
 function WorkoutCard({
   workout,
+  onPressInOverview,
   onOpenOverview,
+  onPressInStart,
   onStartSession,
 }: {
   workout: WorkoutListItem;
+  onPressInOverview: () => void;
   onOpenOverview: () => void;
+  onPressInStart: () => void;
   onStartSession: () => void;
 }) {
   return (
     <View style={styles.card}>
       <Pressable
+        onPressIn={onPressInOverview}
         onPress={onOpenOverview}
         accessibilityRole="button"
         accessibilityLabel={`Open ${workout.title} overview`}
@@ -133,6 +145,7 @@ function WorkoutCard({
         </Text>
       </Pressable>
       <Pressable
+        onPressIn={onPressInStart}
         onPress={onStartSession}
         hitSlop={8}
         accessibilityRole="button"

@@ -159,6 +159,7 @@ model WorkoutItem {
   workoutItemSets WorkoutItemSet[]
 
   @@unique([workoutId, order])
+  @@index([exerciseId])
   @@map("workout_items")
 }
 
@@ -201,6 +202,7 @@ model Session {
   sessionPhoto     SessionPhoto?
 
   @@index([userId, date])
+  @@index([userId, workoutId, date])
   @@map("sessions")
 }
 
@@ -217,6 +219,7 @@ model SessionExercise {
   sessionSets SessionSet[]
 
   @@unique([sessionId, order])
+  @@index([exerciseId])
   @@map("session_exercises")
 }
 

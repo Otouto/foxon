@@ -37,3 +37,21 @@ export const workoutQueryOptions = (id: string | undefined) =>
 export function useWorkout(id: string | undefined) {
   return useQuery(workoutQueryOptions(id));
 }
+
+export interface WorkoutPreloadData {
+  workout: WorkoutDetails;
+  previousSessionData: Record<string, { load: number; reps: number }[]>;
+  lastSessionDate: string | null;
+}
+
+export const workoutPreloadQueryOptions = (id: string | undefined) =>
+  queryOptions({
+    queryKey: ['workout-preload', id],
+    queryFn: async () => {
+      const data = await api.get<{ preloadedData: WorkoutPreloadData }>(
+        `/api/workouts/${id}/preload`
+      );
+      return data.preloadedData;
+    },
+    enabled: !!id,
+  });

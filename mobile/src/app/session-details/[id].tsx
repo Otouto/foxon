@@ -1,9 +1,11 @@
 import { useUser } from '@clerk/clerk-expo';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { memo } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { useSessionDetails } from '@/api/sessions';
+import { useSessionDetails, type SessionWithDetails } from '@/api/sessions';
 import { AnimatedCount } from '@/components/AnimatedCount';
 import { AmbientGlow } from '@/components/ui/AmbientGlow';
 import { ScoreRing } from '@/components/ui/ScoreRing';
@@ -88,6 +90,9 @@ export default function SessionDetailsScreen() {
                 <Image
                   source={{ uri: session.sessionPhoto.imageUrl }}
                   style={styles.photo}
+                  contentFit="cover"
+                  cachePolicy="disk"
+                  transition={150}
                   alt="Session photo"
                 />
               </>
@@ -112,55 +117,13 @@ export default function SessionDetailsScreen() {
 
             {/* Performance */}
             <Text style={styles.sectionLabel}>PERFORMANCE</Text>
-            {session.sessionExercises.map((sessionExercise, index) => {
-              const sets = sessionExercise.sessionSets;
-              const completedCount = sets.filter((set) => set.completed).length;
-              let normalCount = 0;
-              return (
-                <View key={sessionExercise.id} style={styles.perfCard}>
-                  <View style={styles.perfHeader}>
-                    <View style={styles.perfBadge}>
-                      <Text style={styles.perfBadgeText}>{index + 1}</Text>
-                    </View>
-                    <View style={styles.perfTitleArea}>
-                      <Text style={styles.perfName}>{sessionExercise.exercise.name}</Text>
-                      <Text style={styles.perfMeta}>
-                        {completedCount} of {sets.length} sets
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.setList}>
-                    {sets.map((set) => {
-                      const isWarmup = set.type === 'WARMUP';
-                      if (!isWarmup) normalCount += 1;
-                      const label = isWarmup ? 'Warm-up' : `Set ${normalCount}`;
-                      const value =
-                        set.load > 0 ? `${set.reps} reps × ${set.load} kg` : `${set.reps} reps`;
-                      return (
-                        <View
-                          key={set.id}
-                          style={[styles.setRow, !set.completed && styles.setRowMissed]}>
-                          <Text style={[styles.setLabel, !set.completed && styles.setTextMissed]}>
-                            {label}
-                          </Text>
-                          {set.completed ? (
-                            <Text style={styles.setValue}>{value}</Text>
-                          ) : (
-                            <View style={styles.missedRight}>
-                              <Text style={styles.missedTag}>skipped</Text>
-                              <Text style={[styles.setValue, styles.setTextMissed]}>{value}</Text>
-                            </View>
-                          )}
-                        </View>
-                      );
-                    })}
-                  </View>
-                  {sessionExercise.notes ? (
-                    <Text style={styles.perfNotes}>{sessionExercise.notes}</Text>
-                  ) : null}
-                </View>
-              );
-            })}
+            {session.sessionExercises.map((sessionExercise, index) => (
+              <PerformanceCard
+                key={sessionExercise.id}
+                sessionExercise={sessionExercise}
+                index={index}
+              />
+            ))}
 
             {/* Closing line */}
             <Text style={styles.closing}>
@@ -172,6 +135,58 @@ export default function SessionDetailsScreen() {
     </View>
   );
 }
+
+/** Memoized: session data is immutable once loaded, so cards never re-render. */
+const PerformanceCard = memo(function PerformanceCard({
+  sessionExercise,
+  index,
+}: {
+  sessionExercise: SessionWithDetails['sessionExercises'][number];
+  index: number;
+}) {
+  const sets = sessionExercise.sessionSets;
+  const completedCount = sets.filter((set) => set.completed).length;
+  let normalCount = 0;
+  return (
+    <View style={styles.perfCard}>
+      <View style={styles.perfHeader}>
+        <View style={styles.perfBadge}>
+          <Text style={styles.perfBadgeText}>{index + 1}</Text>
+        </View>
+        <View style={styles.perfTitleArea}>
+          <Text style={styles.perfName}>{sessionExercise.exercise.name}</Text>
+          <Text style={styles.perfMeta}>
+            {completedCount} of {sets.length} sets
+          </Text>
+        </View>
+      </View>
+      <View style={styles.setList}>
+        {sets.map((set) => {
+          const isWarmup = set.type === 'WARMUP';
+          if (!isWarmup) normalCount += 1;
+          const label = isWarmup ? 'Warm-up' : `Set ${normalCount}`;
+          const value = set.load > 0 ? `${set.reps} reps × ${set.load} kg` : `${set.reps} reps`;
+          return (
+            <View key={set.id} style={[styles.setRow, !set.completed && styles.setRowMissed]}>
+              <Text style={[styles.setLabel, !set.completed && styles.setTextMissed]}>
+                {label}
+              </Text>
+              {set.completed ? (
+                <Text style={styles.setValue}>{value}</Text>
+              ) : (
+                <View style={styles.missedRight}>
+                  <Text style={styles.missedTag}>skipped</Text>
+                  <Text style={[styles.setValue, styles.setTextMissed]}>{value}</Text>
+                </View>
+              )}
+            </View>
+          );
+        })}
+      </View>
+      {sessionExercise.notes ? <Text style={styles.perfNotes}>{sessionExercise.notes}</Text> : null}
+    </View>
+  );
+});
 
 const styles = StyleSheet.create({
   root: {

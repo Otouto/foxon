@@ -3,7 +3,16 @@ import { useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
@@ -108,51 +117,50 @@ function SessionsTab() {
     !!weekGroup?.summary.plannedSessions &&
     weekGroup.summary.totalSessions >= weekGroup.summary.plannedSessions;
 
+  // Virtualized: full training history in a ScrollView made every node mount
+  // at once; FlatList only renders what's on screen.
   return (
-    <ScrollView
+    <FlatList
+      data={items}
+      keyExtractor={(item) => (item.kind === 'month' ? item.key : item.session.id)}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}>
-      {items.length === 0 ? (
+      refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}
+      ListEmptyComponent={
         <View style={styles.centered}>
           <Text style={typography.subhead}>No sessions yet</Text>
         </View>
-      ) : (
-        <>
-          {weekGroup ? (
-            <View style={styles.weekHeader}>
-              <Text style={styles.weekTitle}>This week</Text>
-              <View style={[styles.weekPill, weekComplete && styles.weekPillDone]}>
-                <View style={[styles.weekDot, weekComplete && styles.weekDotDone]} />
-                <Text style={[styles.weekPillText, weekComplete && styles.weekPillTextDone]}>
-                  {weekGroup.summary.totalSessions} of {weekGroup.summary.plannedSessions ?? 0}
-                  {weekComplete ? ' · complete' : ''}
-                </Text>
-              </View>
+      }
+      ListHeaderComponent={
+        weekGroup ? (
+          <View style={styles.weekHeader}>
+            <Text style={styles.weekTitle}>This week</Text>
+            <View style={[styles.weekPill, weekComplete && styles.weekPillDone]}>
+              <View style={[styles.weekDot, weekComplete && styles.weekDotDone]} />
+              <Text style={[styles.weekPillText, weekComplete && styles.weekPillTextDone]}>
+                {weekGroup.summary.totalSessions} of {weekGroup.summary.plannedSessions ?? 0}
+                {weekComplete ? ' · complete' : ''}
+              </Text>
             </View>
-          ) : null}
-
-          <View style={styles.spine}>
-            {items.map((item) =>
-              item.kind === 'month' ? (
-                <MonthDivider key={item.key} title={item.title} subtitle={item.subtitle} />
-              ) : (
-                <SessionNode
-                  key={item.session.id}
-                  session={item.session}
-                  last={item.last}
-                  onPressIn={() =>
-                    queryClient.prefetchQuery(sessionDetailsQueryOptions(item.session.id))
-                  }
-                  onPress={() => router.push(`/session-details/${item.session.id}`)}
-                  onLongPress={() => confirmDelete(item.session)}
-                />
-              )
-            )}
           </View>
-        </>
-      )}
-    </ScrollView>
+        ) : null
+      }
+      renderItem={({ item }) =>
+        item.kind === 'month' ? (
+          <MonthDivider title={item.title} subtitle={item.subtitle} />
+        ) : (
+          <SessionNode
+            session={item.session}
+            last={item.last}
+            onPressIn={() =>
+              queryClient.prefetchQuery(sessionDetailsQueryOptions(item.session.id))
+            }
+            onPress={() => router.push(`/session-details/${item.session.id}`)}
+            onLongPress={() => confirmDelete(item.session)}
+          />
+        )
+      }
+    />
   );
 }
 
@@ -441,12 +449,10 @@ const styles = StyleSheet.create({
     color: '#0A7A52',
   },
   // ── Timeline spine ──
-  spine: {
-    paddingLeft: 4,
-  },
   row: {
     flexDirection: 'row',
     gap: 16,
+    marginLeft: 4,
   },
   rail: {
     width: 54,

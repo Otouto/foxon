@@ -294,13 +294,13 @@ export class DevotionScoringService {
     sessionId: string,
     workoutId: string,
     actualExercises: ActualExercise[]
-  ): Promise<void> {
+  ): Promise<DevotionScoreResult | null> {
     try {
       const scoreResult = await this.computeDevotionScore(workoutId, actualExercises);
-      
+
       // Import Prisma here to avoid circular dependencies
       const { prisma } = await import('@/lib/prisma');
-      
+
       await prisma.session.update({
         where: { id: sessionId },
         data: {
@@ -310,9 +310,12 @@ export class DevotionScoringService {
           devotionDeviations: JSON.parse(JSON.stringify(scoreResult.deviations))
         }
       });
+
+      return scoreResult;
     } catch (error) {
       console.error('Failed to update session with devotion score:', error);
       // Don't throw - we don't want session completion to fail if scoring fails
+      return null;
     }
   }
 

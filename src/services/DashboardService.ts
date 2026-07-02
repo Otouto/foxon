@@ -104,7 +104,7 @@ export class DashboardService {
       foxEval,
       formScoreBreakdown,
       currentMonthSessions,
-      thisWeekSessions,
+      completedThisWeek,
       activeWorkouts,
       lastTrainedSession,
       recentSession,
@@ -124,18 +124,25 @@ export class DashboardService {
         },
         select: { devotionScore: true },
       }),
-      // This week's sessions (Monday to Sunday)
-      prisma.session.findMany({
+      // This week's session count (Monday to Sunday)
+      prisma.session.count({
         where: {
           userId,
           status: SessionStatus.FINISHED,
           date: { gte: startOfWeek, lte: endOfWeek },
         },
       }),
-      // Active workouts for the rotation
+      // Active workouts for the rotation — only ids/titles + set counts,
+      // not the full nested item/set rows
       prisma.workout.findMany({
         where: { userId, status: WorkoutStatus.ACTIVE },
-        include: { workoutItems: { include: { workoutItemSets: true } } },
+        select: {
+          id: true,
+          title: true,
+          workoutItems: {
+            select: { _count: { select: { workoutItemSets: true } } },
+          },
+        },
         orderBy: { createdAt: 'asc' },
       }),
       // Most recent finished session tied to a workout (any date), to anchor rotation.
@@ -201,7 +208,6 @@ export class DashboardService {
       }
     }
 
-    const completedThisWeek = thisWeekSessions.length;
     const weeklyGoal = user.weeklyGoal;
     const isWeekComplete = completedThisWeek >= weeklyGoal;
     const isExceeded = completedThisWeek > weeklyGoal;
@@ -226,7 +232,7 @@ export class DashboardService {
     if (workout) {
       const exerciseCount = workout.workoutItems.length;
       const totalSets = workout.workoutItems.reduce(
-        (total, item) => total + item.workoutItemSets.length,
+        (total, item) => total + item._count.workoutItemSets,
         0
       );
       const estimatedDuration = totalSets * 3 + Math.max(0, exerciseCount - 1);
