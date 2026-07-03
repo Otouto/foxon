@@ -1,11 +1,14 @@
-import SegmentedControl from '@react-native-segmented-control/segmented-control';
 import { useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { SymbolView } from 'expo-symbols';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  Animated,
+  Easing,
   FlatList,
+  LayoutAnimation,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -22,14 +25,29 @@ import {
   type ExerciseAnalytics,
 } from '@/api/review';
 import { exerciseHistoryQueryOptions, sessionDetailsQueryOptions } from '@/api/sessions';
-import type { SessionReviewData } from '@/api/types';
 import { Card } from '@/components/Card';
+import { GroupHeader } from '@/components/review/GroupHeader';
+import { getGlowTier, type GlowTier } from '@/components/review/glowTiers';
+import { RestDayConnector } from '@/components/review/RestDayConnector';
+import {
+  buildTimeline,
+  type ConnectorInfo,
+  type ReviewSession,
+  type TimelineEntry,
+} from '@/components/review/timeline';
 import { ScoreRing } from '@/components/ui/ScoreRing';
 import { ReviewListSkeleton } from '@/components/ui/Skeleton';
-import { formatDate, groupSessionsByTime, type SessionGroup } from '@/lib/dateUtils';
+import { SoulSegmentedControl, type SegmentOption } from '@/components/ui/SoulSegmentedControl';
+import { useHapticFeedback } from '@/hooks/useHapticFeedback';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
+import { formatDate, groupSessionsByTime } from '@/lib/dateUtils';
+import { loadCollapsedGroups, saveCollapsedGroups } from '@/lib/uiPrefs';
 import { colors, fonts, gradients, spacing, typography } from '@/theme';
 
-const MILESTONE_SCORE = 95;
+const SEGMENTS: readonly SegmentOption[] = [
+  { key: 'sessions', label: 'Sessions', icon: 'calendar' },
+  { key: 'exercises', label: 'Exercises', icon: 'chart.line.uptrend.xyaxis' },
+];
 
 export default function ReviewScreen() {
   const [tab, setTab] = useState<0 | 1>(0);
@@ -38,11 +56,10 @@ export default function ReviewScreen() {
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.screenTitle}>Review</Text>
-        <SegmentedControl
-          values={['Sessions', 'Exercises']}
+        <SoulSegmentedControl
+          options={SEGMENTS}
           selectedIndex={tab}
-          onChange={(event) => setTab(event.nativeEvent.selectedSegmentIndex as 0 | 1)}
-          style={styles.segments}
+          onChange={(index) => setTab(index as 0 | 1)}
         />
       </View>
       {tab === 0 ? <SessionsTab /> : <ExercisesTab />}
@@ -50,55 +67,40 @@ export default function ReviewScreen() {
   );
 }
 
-type ReviewSession = Omit<SessionReviewData, 'date'> & { date: Date };
-type TimelineItem =
-  | { kind: 'session'; session: ReviewSession; last: boolean }
-  | { kind: 'month'; key: string; title: string; subtitle: string };
-
 function SessionsTab() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { triggerHaptic } = useHapticFeedback();
   const { data, isLoading, refetch, isRefetching } = useSessionsReview();
   const deleteSession = useDeleteSession();
 
-  const { weekGroup, items } = useMemo(() => {
-    if (!data) return { weekGroup: undefined, items: [] as TimelineItem[] };
+  // MMKV is synchronous, so lazy init paints the persisted fold state on
+  // first render — no flash of expanded groups.
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => loadCollapsedGroups());
+
+  const items = useMemo(() => {
+    if (!data) return [] as TimelineEntry[];
     const sessions = data.sessions.map((session) => ({ ...session, date: new Date(session.date) }));
-    const groups = groupSessionsByTime(sessions, data.weeklyGoal);
-    const week = groups.find((g) => g.type === 'week');
+    return buildTimeline(groupSessionsByTime(sessions, data.weeklyGoal), collapsed);
+  }, [data, collapsed]);
 
-    // Flatten the week + month groups into one continuous spine, inserting a
-    // divider whenever a new month begins.
-    const flat: TimelineItem[] = [];
-    const pushSessions = (list: ReviewSession[]) =>
-      list.forEach((session) => flat.push({ kind: 'session', session, last: false }));
-
-    if (week) pushSessions(week.sessions as ReviewSession[]);
-    groups
-      .filter((g): g is SessionGroup<ReviewSession> => g.type === 'month')
-      .forEach((group) => {
-        flat.push({
-          kind: 'month',
-          key: group.key,
-          title: group.title,
-          subtitle:
-            group.summary.intelligentHeader ??
-            `${group.summary.totalSessions} session${group.summary.totalSessions !== 1 ? 's' : ''}`,
-        });
-        pushSessions(group.sessions);
-      });
-
-    // Mark the final session so its connecting rail is dropped.
-    for (let i = flat.length - 1; i >= 0; i--) {
-      const item = flat[i];
-      if (item.kind === 'session') {
-        item.last = true;
-        break;
+  const toggleGroup = (groupKey: string) => {
+    triggerHaptic('light');
+    // Rows glide as collapsed groups leave the data array (FoxHeroCard
+    // pattern). If this misbehaves with the virtualized list under Fabric,
+    // switch to reanimated's Animated.FlatList + itemLayoutAnimation.
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupKey)) {
+        next.delete(groupKey);
+      } else {
+        next.add(groupKey);
       }
-    }
-
-    return { weekGroup: week, items: flat };
-  }, [data]);
+      saveCollapsedGroups(next);
+      return next;
+    });
+  };
 
   const confirmDelete = (session: ReviewSession) => {
     Alert.alert(
@@ -113,16 +115,14 @@ function SessionsTab() {
 
   if (isLoading) return <ReviewListSkeleton />;
 
-  const weekComplete =
-    !!weekGroup?.summary.plannedSessions &&
-    weekGroup.summary.totalSessions >= weekGroup.summary.plannedSessions;
-
   // Virtualized: full training history in a ScrollView made every node mount
   // at once; FlatList only renders what's on screen.
   return (
     <FlatList
       data={items}
-      keyExtractor={(item) => (item.kind === 'month' ? item.key : item.session.id)}
+      keyExtractor={(item) =>
+        item.kind === 'header' ? `header:${item.groupKey}` : item.activity.session.id
+      }
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}
@@ -131,32 +131,25 @@ function SessionsTab() {
           <Text style={typography.subhead}>No sessions yet</Text>
         </View>
       }
-      ListHeaderComponent={
-        weekGroup ? (
-          <View style={styles.weekHeader}>
-            <Text style={styles.weekTitle}>This week</Text>
-            <View style={[styles.weekPill, weekComplete && styles.weekPillDone]}>
-              <View style={[styles.weekDot, weekComplete && styles.weekDotDone]} />
-              <Text style={[styles.weekPillText, weekComplete && styles.weekPillTextDone]}>
-                {weekGroup.summary.totalSessions} of {weekGroup.summary.plannedSessions ?? 0}
-                {weekComplete ? ' · complete' : ''}
-              </Text>
-            </View>
-          </View>
-        ) : null
-      }
       renderItem={({ item }) =>
-        item.kind === 'month' ? (
-          <MonthDivider title={item.title} subtitle={item.subtitle} />
+        item.kind === 'header' ? (
+          <GroupHeader
+            title={item.title}
+            groupType={item.groupType}
+            summary={item.summary}
+            collapsed={collapsed.has(item.groupKey)}
+            collapsible={item.summary.totalSessions > 0}
+            onToggle={() => toggleGroup(item.groupKey)}
+          />
         ) : (
           <SessionNode
-            session={item.session}
-            last={item.last}
+            session={item.activity.session}
+            connector={item.connector}
             onPressIn={() =>
-              queryClient.prefetchQuery(sessionDetailsQueryOptions(item.session.id))
+              queryClient.prefetchQuery(sessionDetailsQueryOptions(item.activity.session.id))
             }
-            onPress={() => router.push(`/session-details/${item.session.id}`)}
-            onLongPress={() => confirmDelete(item.session)}
+            onPress={() => router.push(`/session-details/${item.activity.session.id}`)}
+            onLongPress={() => confirmDelete(item.activity.session)}
           />
         )
       }
@@ -164,96 +157,170 @@ function SessionsTab() {
   );
 }
 
+/**
+ * Gentle breathing loop for high-devotion score rings (FoxHeroCard pattern).
+ * Card shadows stay static — animating shadow props inside a list is a
+ * per-frame style churn; the ring carries the life instead.
+ */
+function usePulse(active: boolean, amplitude: number) {
+  const reduceMotion = useReduceMotion();
+  const pulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!active || reduceMotion) return;
+
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 2200,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 0,
+          duration: 2200,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+
+    return () => loop.stop();
+  }, [active, reduceMotion, pulse]);
+
+  return pulse.interpolate({ inputRange: [0, 1], outputRange: [1, amplitude] });
+}
+
 function SessionNode({
   session,
-  last,
+  connector,
   onPress,
   onPressIn,
   onLongPress,
 }: {
   session: ReviewSession;
-  last: boolean;
+  connector: ConnectorInfo | null;
   onPress: () => void;
   onPressIn: () => void;
   onLongPress: () => void;
 }) {
   const score = session.devotionScore ?? null;
-  const milestone = score != null && score >= MILESTONE_SCORE;
+  const tier = getGlowTier(score);
   const quote = session.vibeLine ?? session.narrative ?? null;
+  const scale = usePulse(tier === 'intense' || tier === 'perfect', tier === 'perfect' ? 1.05 : 1.03);
 
   return (
-    <View style={styles.row}>
-      <View style={styles.rail}>
-        <ScoreRing size={54} strokeWidth={5} progress={score ?? 0} animate={false}>
-          <Text style={styles.nodeScore}>{score ?? '—'}</Text>
-        </ScoreRing>
-        {!last ? <View style={styles.railLine} /> : null}
-      </View>
-
+    <>
       <Pressable
-        style={styles.cardWrap}
+        style={!connector && styles.lastInGroup}
         onPress={onPress}
         onPressIn={onPressIn}
         onLongPress={onLongPress}>
-        {({ pressed }) =>
-          milestone ? (
-            <LinearGradient
-              colors={gradients.aurora}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[styles.nodeCard, styles.milestoneCard, pressed && styles.pressed]}>
-              <NodeCardBody session={session} quote={quote} milestone />
-            </LinearGradient>
-          ) : (
-            <View style={[styles.nodeCard, styles.plainCard, pressed && styles.pressed]}>
-              <NodeCardBody session={session} quote={quote} milestone={false} />
-            </View>
-          )
-        }
+        {({ pressed }) => (
+          <NodeCard session={session} quote={quote} tier={tier} pressed={pressed} scale={scale} />
+        )}
       </Pressable>
-    </View>
+      {connector ? <RestDayConnector connector={connector} /> : null}
+    </>
   );
+}
+
+function NodeCard({
+  session,
+  quote,
+  tier,
+  pressed,
+  scale,
+}: {
+  session: ReviewSession;
+  quote: string | null;
+  tier: GlowTier;
+  pressed: boolean;
+  scale: Animated.AnimatedInterpolation<number>;
+}) {
+  const body = <NodeCardBody session={session} quote={quote} tier={tier} scale={scale} />;
+
+  switch (tier) {
+    case 'perfect':
+      // Two nested views to get a dual gold + purple halo (one shadow per view).
+      return (
+        <View style={[styles.perfectHalo, pressed && styles.pressed]}>
+          <LinearGradient
+            colors={['#FFFBF5', '#FEF5FF']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.nodeCard, styles.perfectCard]}>
+            {body}
+          </LinearGradient>
+        </View>
+      );
+    case 'intense':
+      return (
+        <LinearGradient
+          colors={gradients.aurora}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.nodeCard, styles.milestoneCard, pressed && styles.pressed]}>
+          {body}
+        </LinearGradient>
+      );
+    case 'glow':
+      return (
+        <View style={[styles.nodeCard, styles.plainCard, styles.glowCard, pressed && styles.pressed]}>
+          {body}
+        </View>
+      );
+    default:
+      return (
+        <View style={[styles.nodeCard, styles.plainCard, pressed && styles.pressed]}>{body}</View>
+      );
+  }
 }
 
 function NodeCardBody({
   session,
   quote,
-  milestone,
+  tier,
+  scale,
 }: {
   session: ReviewSession;
   quote: string | null;
-  milestone: boolean;
+  tier: GlowTier;
+  scale: Animated.AnimatedInterpolation<number>;
 }) {
-  return (
-    <>
-      <View style={styles.nodeTop}>
-        <Text style={styles.nodeTitle} numberOfLines={1}>
-          {session.workoutTitle ?? 'Session'}
-        </Text>
-        <Text style={[styles.nodeDate, milestone && styles.nodeDateMilestone]}>
-          {formatDate(session.date)}
-        </Text>
-      </View>
-      {quote ? (
-        <Text style={[styles.nodeQuote, milestone && styles.nodeQuoteMilestone]} numberOfLines={2}>
-          “{quote}”
-        </Text>
-      ) : null}
-    </>
-  );
-}
+  const milestone = tier === 'intense' || tier === 'perfect';
+  const score = session.devotionScore ?? null;
 
-function MonthDivider({ title, subtitle }: { title: string; subtitle: string }) {
   return (
-    <View style={styles.row}>
-      <View style={styles.rail}>
-        <View style={styles.dividerRailTop} />
-        <View style={styles.dividerDot} />
-        <View style={styles.railLine} />
-      </View>
-      <View style={styles.dividerText}>
-        <Text style={styles.dividerTitle}>{title}</Text>
-        <Text style={styles.dividerSubtitle}>{subtitle}</Text>
+    <View style={styles.cardRow}>
+      <Animated.View style={{ transform: [{ scale }] }}>
+        <ScoreRing size={54} strokeWidth={5} progress={score ?? 0} animate={false}>
+          <Text style={styles.nodeScore}>{score ?? '—'}</Text>
+        </ScoreRing>
+      </Animated.View>
+      <View style={styles.cardBody}>
+        <View style={styles.nodeTop}>
+          <Text style={styles.nodeTitle} numberOfLines={1}>
+            {session.workoutTitle ?? 'Session'}
+          </Text>
+          <View style={styles.nodeDateWrap}>
+            {tier === 'perfect' ? (
+              <SymbolView name="sparkles" size={12} tintColor={colors.amberIcon} />
+            ) : null}
+            <Text style={[styles.nodeDate, milestone && styles.nodeDateMilestone]}>
+              {formatDate(session.date)}
+            </Text>
+          </View>
+        </View>
+        {quote ? (
+          <Text
+            style={[styles.nodeQuote, milestone && styles.nodeQuoteMilestone]}
+            numberOfLines={2}>
+            “{quote}”
+          </Text>
+        ) : null}
       </View>
     </View>
   );
@@ -393,9 +460,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     letterSpacing: -0.8,
   },
-  segments: {
-    marginBottom: spacing.sm,
-  },
   content: {
     padding: spacing.lg,
     paddingBottom: spacing.xxl,
@@ -407,63 +471,17 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.85,
   },
-  // ── This week header ──
-  weekHeader: {
+  // ── Timeline ──
+  lastInGroup: {
+    marginBottom: 14,
+  },
+  cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    gap: 14,
   },
-  weekTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: colors.text,
+  cardBody: {
     flex: 1,
-  },
-  weekPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: colors.fillMuted,
-    paddingHorizontal: 11,
-    paddingVertical: 5,
-    borderRadius: 11,
-  },
-  weekPillDone: {
-    backgroundColor: '#E9F9EE',
-  },
-  weekDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 5,
-    backgroundColor: colors.textTertiary,
-  },
-  weekDotDone: {
-    backgroundColor: colors.success,
-  },
-  weekPillText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  weekPillTextDone: {
-    color: '#0A7A52',
-  },
-  // ── Timeline spine ──
-  row: {
-    flexDirection: 'row',
-    gap: 16,
-    marginLeft: 4,
-  },
-  rail: {
-    width: 54,
-    alignItems: 'center',
-  },
-  railLine: {
-    width: 2,
-    flex: 1,
-    minHeight: 8,
-    marginTop: 6,
-    backgroundColor: '#DADDE3',
   },
   nodeScore: {
     fontSize: 18,
@@ -471,13 +489,9 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontVariant: ['tabular-nums'],
   },
-  cardWrap: {
-    flex: 1,
-    marginBottom: 14,
-  },
   nodeCard: {
     borderRadius: 22,
-    paddingVertical: 16,
+    paddingVertical: 14,
     paddingHorizontal: 18,
   },
   plainCard: {
@@ -487,13 +501,38 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
   },
+  // Devotion glow tiers (see glowTiers.ts) — aurora palette, one shadow per view.
+  glowCard: {
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.15)',
+    shadowColor: colors.foxFieryDeep,
+    shadowOpacity: 0.16,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+  },
   milestoneCard: {
     borderWidth: 1,
     borderColor: gradients.auroraBorder,
-    shadowColor: 'rgba(168,85,247,0.5)',
-    shadowOpacity: 1,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 14 },
+    shadowColor: colors.foxFieryDeep,
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+  },
+  perfectHalo: {
+    borderRadius: 22,
+    backgroundColor: '#FFFBF5',
+    shadowColor: '#FBBF24',
+    shadowOpacity: 0.3,
+    shadowRadius: 26,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  perfectCard: {
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.3)',
+    shadowColor: colors.foxFieryDeep,
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
   },
   nodeTop: {
     flexDirection: 'row',
@@ -506,6 +545,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
     flexShrink: 1,
+  },
+  nodeDateWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   nodeDate: {
     fontSize: 12,
@@ -523,35 +567,6 @@ const styles = StyleSheet.create({
   },
   nodeQuoteMilestone: {
     color: '#6B4E8A',
-  },
-  // ── Month divider ──
-  dividerRailTop: {
-    width: 2,
-    height: 14,
-    backgroundColor: '#DADDE3',
-  },
-  dividerDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 6,
-    backgroundColor: colors.card,
-    borderWidth: 2,
-    borderColor: '#C5CAD3',
-  },
-  dividerText: {
-    flex: 1,
-    paddingTop: 6,
-    paddingBottom: 14,
-  },
-  dividerTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#374151',
-  },
-  dividerSubtitle: {
-    fontSize: 12,
-    color: colors.textTertiary,
-    marginTop: 1,
   },
   // ── Exercises ──
   sectionLabel: {

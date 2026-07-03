@@ -36,8 +36,9 @@ export async function GET(request: NextRequest) {
     const tab = searchParams.get('tab') || 'sessions';
 
     if (tab === 'sessions') {
-      // Weekly goal + recent sessions in one parallel wave. The list is bounded:
-      // payload otherwise grows forever with training history.
+      // Weekly goal + recent sessions in one parallel wave. The list is bounded
+      // (~3+ years at typical pace): payload otherwise grows forever with
+      // training history.
       const [user, sessions] = await Promise.all([
         prisma.user.findUnique({
           where: { id: userId },
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
             }
           },
           orderBy: { date: 'desc' },
-          take: 60
+          take: 200
         }),
       ]);
 
