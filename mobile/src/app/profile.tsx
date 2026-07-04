@@ -22,13 +22,15 @@ import { KeyNumbers } from '@/components/profile/KeyNumbers';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { TrainingPulse } from '@/components/profile/TrainingPulse';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { colors, spacing, typography } from '@/theme';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { signOut } = useAuth();
   const { triggerHaptic } = useHapticFeedback();
-  const { data, isLoading, refetch, isRefetching } = useProfile();
+  const { data, isLoading, refetch } = useProfile();
+  const { refreshing, onRefresh } = usePullToRefresh(refetch);
 
   const confirmSignOut = () => {
     Alert.alert('Sign out?', undefined, [
@@ -51,7 +53,7 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.safeArea} edges={['bottom']}>
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
         <FadeInUp>
           <ProfileHeader
             displayName={user.displayName}

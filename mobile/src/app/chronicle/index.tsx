@@ -11,6 +11,7 @@ import {
 
 import { useChronicles } from '@/api/profile';
 import { Card } from '@/components/Card';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { colors, spacing, typography } from '@/theme';
 
 const MONTHS = [
@@ -20,7 +21,8 @@ const MONTHS = [
 
 export default function ChronicleListScreen() {
   const router = useRouter();
-  const { data: chronicles, isLoading, refetch, isRefetching } = useChronicles();
+  const { data: chronicles, isLoading, refetch } = useChronicles();
+  const { refreshing, onRefresh } = usePullToRefresh(refetch);
 
   return (
     <>
@@ -32,7 +34,7 @@ export default function ChronicleListScreen() {
         contentContainerStyle={styles.content}
         data={chronicles ?? []}
         keyExtractor={(item) => item.id}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           isLoading ? (
             <View style={styles.centered}>

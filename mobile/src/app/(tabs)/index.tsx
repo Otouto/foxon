@@ -6,6 +6,7 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'r
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useDashboard } from '@/api/queries';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { FadeInUp } from '@/components/FadeInUp';
 import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import { FoxHeroCard } from '@/components/dashboard/FoxHeroCard';
@@ -16,13 +17,10 @@ import { getGreeting } from '@/lib/greeting';
 import { colors, fonts, gradients, radius, spacing, typography } from '@/theme';
 
 export default function DashboardScreen() {
-  const { data, isLoading, isError, error, refetch, isRefetching } = useDashboard();
+  const { data, isLoading, isError, error, refetch } = useDashboard();
+  const { refreshing, onRefresh } = usePullToRefresh(refetch);
   const router = useRouter();
   const { triggerHaptic } = useHapticFeedback();
-
-  const onRefresh = useCallback(() => {
-    refetch();
-  }, [refetch]);
 
   const openProfile = useCallback(() => {
     triggerHaptic('light');
@@ -39,7 +37,7 @@ export default function DashboardScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         contentInsetAdjustmentBehavior="automatic"
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
         <View style={styles.header}>
           <View style={styles.headerText}>
             <Text style={styles.greeting}>{getGreeting()},</Text>

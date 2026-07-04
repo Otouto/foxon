@@ -39,6 +39,7 @@ import { ScoreRing } from '@/components/ui/ScoreRing';
 import { ReviewListSkeleton } from '@/components/ui/Skeleton';
 import { SoulSegmentedControl, type SegmentOption } from '@/components/ui/SoulSegmentedControl';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { formatDate, groupSessionsByTime } from '@/lib/dateUtils';
 import { loadCollapsedGroups, saveCollapsedGroups } from '@/lib/uiPrefs';
@@ -71,7 +72,8 @@ function SessionsTab() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { triggerHaptic } = useHapticFeedback();
-  const { data, isLoading, refetch, isRefetching } = useSessionsReview();
+  const { data, isLoading, refetch } = useSessionsReview();
+  const { refreshing, onRefresh } = usePullToRefresh(refetch);
   const deleteSession = useDeleteSession();
 
   // MMKV is synchronous, so lazy init paints the persisted fold state on
@@ -125,7 +127,7 @@ function SessionsTab() {
       }
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       ListEmptyComponent={
         <View style={styles.centered}>
           <Text style={typography.subhead}>No sessions yet</Text>
@@ -329,7 +331,8 @@ function NodeCardBody({
 function ExercisesTab() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { data, isLoading, refetch, isRefetching } = useExercisesReview();
+  const { data, isLoading, refetch } = useExercisesReview();
+  const { refreshing, onRefresh } = usePullToRefresh(refetch);
 
   const openHistory = (exercise: ExerciseAnalytics) =>
     router.push(`/exercise-history/${exercise.id}?name=${encodeURIComponent(exercise.name)}`);
@@ -345,7 +348,7 @@ function ExercisesTab() {
     <ScrollView
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}>
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
       {active.length === 0 && archived.length === 0 ? (
         <View style={styles.centered}>
           <Text style={typography.subhead}>No exercise data yet</Text>

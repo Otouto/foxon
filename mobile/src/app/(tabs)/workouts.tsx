@@ -12,6 +12,7 @@ import { AmbientGlow } from '@/components/ui/AmbientGlow';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { WorkoutsSkeleton } from '@/components/ui/Skeleton';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { colors, gradients, spacing, typography } from '@/theme';
 
 const SECTION_TITLES: Record<string, string> = {
@@ -23,7 +24,8 @@ const SECTION_TITLES: Record<string, string> = {
 export default function WorkoutsScreen() {
   const router = useRouter();
   const { triggerHaptic } = useHapticFeedback();
-  const { data: workouts, isLoading, refetch, isRefetching } = useWorkouts();
+  const { data: workouts, isLoading, refetch } = useWorkouts();
+  const { refreshing, onRefresh } = usePullToRefresh(refetch);
 
   const sections = useMemo(() => {
     if (!workouts) return [];
@@ -50,7 +52,7 @@ export default function WorkoutsScreen() {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
           ListHeaderComponent={
             <View style={styles.headerRow}>
