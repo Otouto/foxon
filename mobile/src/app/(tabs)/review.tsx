@@ -294,11 +294,12 @@ function NodeCardBody({
 }) {
   const milestone = tier === 'intense' || tier === 'perfect';
   const score = session.devotionScore ?? null;
+  const reduceMotion = useReduceMotion();
 
   return (
     <View style={styles.cardRow}>
       <Animated.View style={{ transform: [{ scale }] }}>
-        <ScoreRing size={54} strokeWidth={5} progress={score ?? 0} animate={false}>
+        <ScoreRing size={54} strokeWidth={5} progress={score ?? 0} animate={!reduceMotion}>
           <Text style={styles.nodeScore}>{score ?? '—'}</Text>
         </ScoreRing>
       </Animated.View>
