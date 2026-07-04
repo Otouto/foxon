@@ -131,9 +131,9 @@ export default function SessionLogScreen() {
       ? `Block ${currentExercise.blockId.replace('block-', '')}`
       : null;
 
-  // Live progress = completed sets / total sets across what's on screen.
-  const totalSets = exercisesToDisplay.reduce((n, ex) => n + ex.sets.length, 0);
-  const doneSets = exercisesToDisplay.reduce(
+  // Overall progress = completed sets / total sets across the entire workout.
+  const totalSets = session.exercises.reduce((n, ex) => n + ex.sets.length, 0);
+  const doneSets = session.exercises.reduce(
     (n, ex) => n + ex.sets.filter((set) => set.completed).length,
     0
   );

@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   setRowWrap: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   spineColumn: {
     alignItems: 'center',
@@ -233,9 +233,9 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     paddingVertical: 11,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     borderRadius: radius.lg,
     marginBottom: 10,
     backgroundColor: '#F7F8FA',
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    paddingHorizontal: 13,
+    paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: radius.full,
     backgroundColor: colors.card,
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
   was: {
     marginLeft: 'auto',
     paddingLeft: 4,
-    flexShrink: 0,
+    flexShrink: 1,
     fontSize: 11,
     color: '#C5CAD3',
     fontVariant: ['tabular-nums'],
