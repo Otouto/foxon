@@ -9,8 +9,10 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  View,
 } from 'react-native';
 
+import { useConnectOura, useDisconnectOura } from '@/api/oura';
 import { useProfile, useUpdateProfile } from '@/api/profile';
 import { Card } from '@/components/Card';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
@@ -19,6 +21,8 @@ import { colors, radius, spacing, typography } from '@/theme';
 export default function ProfileSettingsScreen() {
   const { data } = useProfile();
   const updateProfile = useUpdateProfile();
+  const connectOura = useConnectOura();
+  const disconnectOura = useDisconnectOura();
   const { triggerHaptic } = useHapticFeedback();
 
   const [weeklyGoal, setWeeklyGoal] = useState(3);
@@ -30,6 +34,27 @@ export default function ProfileSettingsScreen() {
       setEmail(data.user.email ?? '');
     }
   }, [data]);
+
+  const handleConnectOura = () => {
+    connectOura.mutate(undefined, {
+      onSuccess: (connected) => {
+        if (connected) triggerHaptic('medium');
+      },
+      onError: (err) =>
+        Alert.alert('Error', err instanceof Error ? err.message : 'Could not connect Oura'),
+    });
+  };
+
+  const handleDisconnectOura = () => {
+    Alert.alert('Disconnect Oura?', 'Synced sleep and readiness scores are kept.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Disconnect',
+        style: 'destructive',
+        onPress: () => disconnectOura.mutate(),
+      },
+    ]);
+  };
 
   const handleSave = () => {
     updateProfile.mutate(
@@ -73,6 +98,45 @@ export default function ProfileSettingsScreen() {
           />
         </Card>
 
+        <Card>
+          <Text style={typography.headline}>Oura Ring</Text>
+          <Text style={typography.footnote}>
+            Sleep and readiness scores on your session pages
+          </Text>
+          {data?.user.ouraConnected ? (
+            <Pressable
+              style={({ pressed }) => [styles.ouraRow, pressed && styles.dim]}
+              disabled={disconnectOura.isPending}
+              onPress={handleDisconnectOura}>
+              <View>
+                <Text style={styles.ouraConnected}>Connected</Text>
+                {data.user.ouraConnectedAt ? (
+                  <Text style={typography.footnote}>
+                    Since{' '}
+                    {new Date(data.user.ouraConnectedAt).toLocaleDateString('en-US', {
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </Text>
+                ) : null}
+              </View>
+              {disconnectOura.isPending ? (
+                <ActivityIndicator />
+              ) : (
+                <Text style={styles.ouraDisconnect}>Disconnect</Text>
+              )}
+            </Pressable>
+          ) : (
+            <Pressable
+              style={({ pressed }) => [styles.ouraRow, pressed && styles.dim]}
+              disabled={connectOura.isPending}
+              onPress={handleConnectOura}>
+              <Text style={styles.ouraConnect}>Connect Oura Ring</Text>
+              {connectOura.isPending ? <ActivityIndicator /> : null}
+            </Pressable>
+          )}
+        </Card>
+
         <Pressable
           style={({ pressed }) => [styles.save, (pressed || updateProfile.isPending) && styles.dim]}
           disabled={updateProfile.isPending}
@@ -107,6 +171,27 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: colors.text,
     marginTop: spacing.md,
+  },
+  ouraRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+    paddingVertical: 4,
+  },
+  ouraConnect: {
+    fontSize: 17,
+    color: colors.tint,
+    fontWeight: '600',
+  },
+  ouraConnected: {
+    fontSize: 17,
+    color: colors.text,
+    fontWeight: '600',
+  },
+  ouraDisconnect: {
+    fontSize: 15,
+    color: colors.destructive,
   },
   save: {
     backgroundColor: colors.tint,

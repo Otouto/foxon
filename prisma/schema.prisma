@@ -65,13 +65,20 @@ model User {
   foxLastEvalAt    DateTime         @default(now()) @map("fox_last_eval_at")
   foxPendingPromo  String?          @map("fox_pending_promo")
   foxPendingDemote String?          @map("fox_pending_demote")
+  timezone         String?          // IANA tz from the iOS device, set on Oura connect / profile save
+  ouraAccessToken    String?        @map("oura_access_token")
+  ouraRefreshToken   String?        @map("oura_refresh_token")
+  ouraTokenExpiresAt DateTime?      @map("oura_token_expires_at")
+  ouraConnectedAt    DateTime?      @map("oura_connected_at")
+  ouraAuthState      String?        @map("oura_auth_state") // short-lived OAuth CSRF state
   createdAt        DateTime        @default(now()) @map("created_at")
   updatedAt        DateTime        @updatedAt @map("updated_at")
 
   // Relations
-  workouts   Workout[]
-  sessions   Session[]
-  chronicles FoxChronicle[]
+  workouts        Workout[]
+  sessions        Session[]
+  chronicles      FoxChronicle[]
+  ouraDailyScores OuraDailyScore[]
 
   @@map("users")
 }
@@ -262,6 +269,22 @@ model SessionPhoto {
   session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@map("session_photos")
+}
+
+// Oura Ring — per-day sleep/readiness scores (Oura "day" semantics: local calendar day)
+model OuraDailyScore {
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  day            String   // local calendar day "YYYY-MM-DD"
+  sleepScore     Int?     @map("sleep_score")
+  readinessScore Int?     @map("readiness_score")
+  syncedAt       DateTime @updatedAt @map("synced_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, day])
+  @@map("oura_daily_scores")
 }
 
 // Fox Chronicle — Monthly narrative summaries

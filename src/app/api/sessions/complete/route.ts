@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/auth';
 import { SessionStatus, SetType } from '@prisma/client';
 import { DevotionScoringService } from '@/services/DevotionScoringService';
 import { FoxLevelService } from '@/services/FoxLevelService';
+import { OuraService } from '@/services/OuraService';
 
 interface CompletedSessionData {
   workoutId: string;
@@ -162,6 +163,14 @@ export async function POST(request: NextRequest) {
         console.error('Failed to evaluate fox level for session:', session.id, error);
       });
     }
+
+    // Attach today's Oura sleep/readiness scores in the background
+    // (no-op when the user hasn't connected Oura; the daily cron repairs misses)
+    after(() =>
+      OuraService.syncRecent(userId).catch(error =>
+        console.error('Oura sync after session completion failed:', error)
+      )
+    );
 
     // Invalidate dashboard cache so it shows fresh data on next navigation
     revalidatePath('/');

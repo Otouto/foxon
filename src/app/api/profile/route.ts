@@ -25,9 +25,9 @@ export async function GET() {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { weeklyGoal, email } = body;
+    const { weeklyGoal, email, timezone } = body;
 
-    const updates: { weeklyGoal?: number; email?: string | null } = {};
+    const updates: { weeklyGoal?: number; email?: string | null; timezone?: string } = {};
 
     // Validate weekly goal if provided
     if (weeklyGoal !== undefined) {
@@ -49,6 +49,25 @@ export async function PATCH(request: NextRequest) {
         );
       }
       updates.email = email || null;
+    }
+
+    // Validate timezone if provided (IANA name, e.g. "Europe/Kyiv")
+    if (timezone !== undefined) {
+      let validTimezone = typeof timezone === 'string';
+      if (validTimezone) {
+        try {
+          new Intl.DateTimeFormat(undefined, { timeZone: timezone });
+        } catch {
+          validTimezone = false;
+        }
+      }
+      if (!validTimezone) {
+        return NextResponse.json(
+          { error: 'Invalid timezone' },
+          { status: 400 }
+        );
+      }
+      updates.timezone = timezone;
     }
 
     // Update the user profile

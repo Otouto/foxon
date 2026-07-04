@@ -17,6 +17,20 @@ export function formatDate(date: Date): string {
   }
 }
 
+/**
+ * Converts a timestamp to its local calendar day ("YYYY-MM-DD") in the given
+ * IANA timezone. Single source of truth for mapping a session's UTC timestamp
+ * to an Oura "day".
+ */
+export function toLocalDay(date: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
 export function getDaysAgoLabel(date: Date): string {
   const today = new Date();
   const diffMs = today.setHours(0, 0, 0, 0) - new Date(date).setHours(0, 0, 0, 0);

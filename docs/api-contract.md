@@ -15,7 +15,8 @@ routes are thin wrappers.
 - **Errors**: non-2xx responses carry `{ "error": string }` (sometimes `details`).
 - **Types**: request/response shapes reference `src/lib/types/workout.ts`, `exercise.ts`, `chronicle.ts`
   and Prisma enums in `prisma/schema.prisma` (`SetType`, `EffortLevel`, `WorkoutStatus`, `SessionStatus`, `ProgressionState`).
-- **Public (unauthenticated) routes**: `/api/cron/*` only (guarded by `CRON_SECRET` bearer instead).
+- **Public (unauthenticated) routes**: `/api/cron/*` (guarded by `CRON_SECRET` bearer instead) and
+  `/api/oura/callback` (OAuth redirect from Oura; authenticated by the unguessable `state` param).
 
 ## Dashboard & profile
 
@@ -23,8 +24,8 @@ routes are thin wrappers.
 |---|---|---|
 | GET | `/api/dashboard` | `DashboardService.getDashboardData()` → `{ displayName, foxState: { state: ProgressionState, formScore, formScoreBreakdown }, weekProgress: { completed, planned, isComplete, isExceeded, extra }, lastSession }`. Added for mobile (web renders this server-side). |
 | GET | `/api/week-progress` | `{ completed, planned, isComplete, isExceeded, extra }` |
-| GET | `/api/profile` | `ProfileService.getUserProfile()` → `{ user: { displayName, email, weeklyGoal, foxLevel, foxFormScore }, stats: { completedSessions, currentWeekStreak }, firstSessionDate, trainingPulse: { grid, totalSessions, weekStreak }, chronicleEntry }`. Added for mobile. |
-| PATCH | `/api/profile` | Body: `{ weeklyGoal?: 1..7, email?: string \| null }` → `{ success, weeklyGoal, email }`. 400 on validation failure. |
+| GET | `/api/profile` | `ProfileService.getUserProfile()` → `{ user: { displayName, email, weeklyGoal, foxLevel, foxFormScore, ouraConnected, ouraConnectedAt }, stats: { completedSessions, currentWeekStreak }, firstSessionDate, trainingPulse: { grid, totalSessions, weekStreak }, chronicleEntry }`. Added for mobile. |
+| PATCH | `/api/profile` | Body: `{ weeklyGoal?: 1..7, email?: string \| null, timezone?: string (IANA) }` → `{ success, weeklyGoal, email }`. 400 on validation failure. |
 
 ## Workouts
 
@@ -57,13 +58,25 @@ routes are thin wrappers.
 | Method | Path | Notes |
 |---|---|---|
 | POST | `/api/sessions/complete` | Body: `{ sessionData: { workoutId, workoutTitle, startTime, endTime, duration (sec), exercises: [{ exerciseId, exerciseName, order, notes?, sets: [{ type: SetType, load, reps, completed, order, notes? }] }] } }` → `{ success, sessionId, message }`. Creates FINISHED session transactionally; devotion scoring + fox-level evaluation run **async in the background** — clients must poll the GET below for the score. |
-| GET | `/api/sessions/[id]` | → session with details incl. `devotionScore` (null until background scoring completes), `devotionGrade`, `devotionPillars`, `devotionDeviations`. Poll with backoff after completing. |
+| GET | `/api/sessions/[id]` | → session with details incl. `devotionScore` (null until background scoring completes), `devotionGrade`, `devotionPillars`, `devotionDeviations`, `oura: { sleepScore, readinessScore } \| null` (Oura scores for the session's local day, if synced). Poll with backoff after completing. |
 | POST | `/api/sessions/[id]/seal` | Body: `{ effort: EffortLevel, vibeLine: string, note? }`. Upserts post-workout reflection. 404 unless session is FINISHED and owned. |
 | POST | `/api/sessions/[id]/photo` | Body: `{ imageUrl }` (client uploads to Cloudinary first, unsigned preset — see `src/lib/utils/cloudinaryUpload.ts`). Upserts one photo per session. |
 | DELETE | `/api/sessions/[id]/photo` | Removes the photo record. |
 | DELETE | `/api/sessions/[id]/delete` | Hard-deletes the session. → `{ success }` |
 | GET | `/api/sessions/review?tab=sessions` | `{ sessions: SessionReviewData[], weeklyGoal }` — all FINISHED sessions desc, each with devotion score/grade, seal fields, computed narrative. |
 | GET | `/api/sessions/review?tab=exercises` | Categorized exercise analytics (`ExerciseAnalyticsService.getCategorizedExerciseAnalytics()`). |
+
+## Oura Ring
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/oura/authorize?timezone=<IANA>` | Persists a fresh OAuth `state` (and the device timezone) on the user → `{ url }` — the Oura authorize URL to open in an in-app browser session (`expo-web-browser` with redirect `foxon://oura-connected`). |
+| GET | `/api/oura/callback?code&state` | **Public.** OAuth redirect target (must match the registered `OURA_REDIRECT_URI`). Exchanges the code, stores tokens, kicks off a historical backfill in the background, then 302-redirects to `foxon://oura-connected?ok=1` (or `?error=1`). |
+| DELETE | `/api/oura` | Disconnects: clears the stored tokens. Synced `OuraDailyScore` rows and timezone are kept. → `{ success }` |
+| GET | `/api/cron/oura-sync` | Vercel cron only (`Authorization: Bearer ${CRON_SECRET}`), daily. Re-syncs the last 7 days of sleep/readiness scores for connected users, catching data that uploaded late. |
+
+Scores are stored per (user, local day) and attached to sessions at read time via the user's
+timezone; `POST /api/sessions/complete` also triggers a background sync of yesterday+today.
 
 ## Chronicle (monthly AI narrative)
 

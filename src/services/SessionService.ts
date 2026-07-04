@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { SessionSet, SessionStatus, SetType, EffortLevel } from '@prisma/client';
+import { toLocalDay } from '@/lib/utils/dateUtils';
 
 // Devotion score pillar data
 export interface DevotionPillars {
@@ -28,6 +29,7 @@ export interface SessionWithDetails {
   devotionGrade: string | null; // "Dialed in", "On plan", "Loose", "Off plan"
   devotionPillars: DevotionPillars | null; // Pillar scores for visualization
   devotionDeviations: DevotionDeviation[] | null; // Top 3 deviations
+  oura?: { sleepScore: number | null; readinessScore: number | null } | null; // Oura scores for the session's local day
   createdAt: Date;
   updatedAt: Date;
   sessionSeal?: {
@@ -277,9 +279,21 @@ export class SessionService {
       return null;
     }
 
+    // Oura scores for the session's local calendar day (two point reads)
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { timezone: true },
+    });
+    const day = toLocalDay(session.date, user?.timezone ?? 'UTC');
+    const ouraScore = await prisma.ouraDailyScore.findUnique({
+      where: { userId_day: { userId, day } },
+      select: { sleepScore: true, readinessScore: true },
+    });
+
     // Convert Prisma types to match our interface
     return {
       ...session,
+      oura: ouraScore ?? null,
       devotionScore: session.devotionScore,
       devotionGrade: session.devotionGrade,
       devotionPillars: session.devotionPillars ? JSON.parse(JSON.stringify(session.devotionPillars)) : null,

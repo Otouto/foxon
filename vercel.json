@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/chronicle",
       "schedule": "0 8 1 * *"
+    },
+    {
+      "path": "/api/cron/oura-sync",
+      "schedule": "0 15 * * *"
     }
   ]
 }

@@ -5,6 +5,7 @@ const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/api/cron/(.*)',
+  '/api/oura/callback', // OAuth redirect from Oura; authenticated by the state param
 ]);
 
 const isApiRoute = createRouteMatcher(['/api/(.*)']);

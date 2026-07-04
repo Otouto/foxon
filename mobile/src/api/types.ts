@@ -79,6 +79,8 @@ export interface ProfileData {
     weeklyGoal: number;
     foxLevel: ProgressionState;
     foxFormScore: number;
+    ouraConnected: boolean;
+    ouraConnectedAt: string | null;
   };
   stats: {
     completedSessions: number;

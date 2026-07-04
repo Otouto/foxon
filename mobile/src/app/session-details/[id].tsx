@@ -2,6 +2,7 @@ import { useUser } from '@clerk/clerk-expo';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { memo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -81,6 +82,24 @@ export default function SessionDetailsScreen() {
                   {session.sessionExercises.length !== 1 ? 's' : ''}
                 </Text>
               </View>
+              {session.oura?.sleepScore != null || session.oura?.readinessScore != null ? (
+                <View style={styles.ouraRow}>
+                  {session.oura.sleepScore != null ? (
+                    <View style={styles.ouraChip}>
+                      <SymbolView name="moon.zzz.fill" size={13} tintColor="#7A5BA8" />
+                      <Text style={styles.heroPillText}>Sleep {session.oura.sleepScore}</Text>
+                    </View>
+                  ) : null}
+                  {session.oura.readinessScore != null ? (
+                    <View style={styles.ouraChip}>
+                      <SymbolView name="bolt.heart.fill" size={13} tintColor="#7A5BA8" />
+                      <Text style={styles.heroPillText}>
+                        Readiness {session.oura.readinessScore}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
             </LinearGradient>
 
             {/* Photo keepsake */}
@@ -260,6 +279,20 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
     backgroundColor: '#C4A8E0',
+  },
+  ouraRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  ouraChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#F5EFFB',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 13,
   },
   // ── Sections ──
   sectionLabel: {

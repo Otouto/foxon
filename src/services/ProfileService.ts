@@ -15,6 +15,8 @@ export interface UserProfile {
   foxFormScore: number;
   /** @deprecated Use foxLevel instead */
   progressionState: ProgressionState;
+  ouraConnected: boolean;
+  ouraConnectedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -109,6 +111,8 @@ export class ProfileService {
           foxLevel: foxEval.level,
           foxFormScore: foxEval.formScore,
           progressionState: foxEval.level,
+          ouraConnected: !!user.ouraRefreshToken,
+          ouraConnectedAt: user.ouraConnectedAt,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
         },
@@ -322,6 +326,7 @@ export class ProfileService {
     email?: string | null;
     avatarUrl?: string;
     weeklyGoal?: number;
+    timezone?: string;
   }): Promise<UserProfile | null> {
     const userId = await getCurrentUserId();
 
@@ -333,6 +338,7 @@ export class ProfileService {
           ...(updates.email !== undefined && { email: updates.email }),
           ...(updates.avatarUrl !== undefined && { avatarUrl: updates.avatarUrl }),
           ...(updates.weeklyGoal !== undefined && { weeklyGoal: updates.weeklyGoal }),
+          ...(updates.timezone !== undefined && { timezone: updates.timezone }),
         }
       });
 
@@ -346,6 +352,8 @@ export class ProfileService {
         foxLevel: updatedUser.foxLevel,
         foxFormScore: updatedUser.foxFormScore,
         progressionState: updatedUser.foxLevel,
+        ouraConnected: !!updatedUser.ouraRefreshToken,
+        ouraConnectedAt: updatedUser.ouraConnectedAt,
         createdAt: updatedUser.createdAt,
         updatedAt: updatedUser.updatedAt,
       };
