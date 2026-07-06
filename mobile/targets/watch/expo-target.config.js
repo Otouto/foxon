@@ -7,5 +7,8 @@ module.exports = {
   deploymentTarget: '10.0',
   bundleIdentifier: '.watch',
   icon: '../../assets/images/icon.png',
-  frameworks: ['SwiftUI', 'WatchConnectivity'],
+  frameworks: ['SwiftUI', 'WatchConnectivity', 'HealthKit'],
+  entitlements: {
+    'com.apple.developer.healthkit': true,
+  },
 };

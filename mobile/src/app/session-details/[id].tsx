@@ -1,10 +1,10 @@
 import { useUser } from '@clerk/clerk-expo';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { memo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useSessionDetails, type SessionWithDetails } from '@/api/sessions';
 import { AnimatedCount } from '@/components/AnimatedCount';
@@ -18,6 +18,7 @@ import { colors, fonts, spacing, typography } from '@/theme';
 
 export default function SessionDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const { data: session, isLoading } = useSessionDetails(id);
   const reduceMotion = useReduceMotion();
   const { user } = useUser();
@@ -117,7 +118,8 @@ export default function SessionDetailsScreen() {
               </>
             ) : null}
 
-            {/* Reflection */}
+            {/* Reflection — or the invitation to add one (watch-logged sessions
+                arrive unsealed; no keyboard or camera on the wrist) */}
             {session.sessionSeal?.vibeLine ? (
               <>
                 <Text style={styles.sectionLabel}>REFLECTION</Text>
@@ -132,7 +134,24 @@ export default function SessionDetailsScreen() {
                   ) : null}
                 </LinearGradient>
               </>
-            ) : null}
+            ) : (
+              <>
+                <Text style={styles.sectionLabel}>REFLECTION</Text>
+                <Pressable onPress={() => router.push(`/session/seal/${session.id}`)}>
+                  {({ pressed }) => (
+                    <View style={[styles.sealCard, pressed && styles.sealCardPressed]}>
+                      <View style={styles.sealTextArea}>
+                        <Text style={styles.sealTitle}>This chapter is unsealed</Text>
+                        <Text style={styles.sealSubtitle}>
+                          Add your effort, one-line vibe, and a photo.
+                        </Text>
+                      </View>
+                      <SymbolView name="chevron.right" size={15} tintColor={colors.amberIcon} />
+                    </View>
+                  )}
+                </Pressable>
+              </>
+            )}
 
             {/* Performance */}
             <Text style={styles.sectionLabel}>PERFORMANCE</Text>
@@ -328,6 +347,33 @@ const styles = StyleSheet.create({
   note: {
     ...typography.footnote,
     marginTop: spacing.sm,
+  },
+  sealCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.amberBg,
+    borderWidth: 1,
+    borderColor: colors.amberSoft,
+    borderRadius: 24,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+  },
+  sealCardPressed: {
+    opacity: 0.8,
+  },
+  sealTextArea: {
+    flex: 1,
+  },
+  sealTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.amberText,
+  },
+  sealSubtitle: {
+    fontSize: 13,
+    color: colors.amberSubtext,
+    marginTop: 2,
   },
   // ── Performance ──
   perfCard: {

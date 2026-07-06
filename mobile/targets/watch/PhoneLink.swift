@@ -1,34 +1,36 @@
 import Foundation
 import WatchConnectivity
 
-/// Watch-side WCSession wrapper. Receives the applicationContext pushed by the
-/// iPhone app and queues payloads back via transferUserInfo, which survives the
-/// phone being unreachable and delivers whenever the devices reconnect.
+/// Watch-side WCSession wrapper. The iPhone pushes ACTIVE workouts through
+/// applicationContext (latest snapshot wins, persisted here so the list works
+/// offline). Finished sessions go back via transferUserInfo, which is queued
+/// by the system and survives the phone being unreachable or the watch
+/// rebooting — delivery happens whenever the devices reconnect.
 final class PhoneLink: NSObject, ObservableObject, WCSessionDelegate {
     static let shared = PhoneLink()
 
-    @Published var contextJSON: String?
+    @Published var workouts: [WatchWorkout] = []
     @Published var isReachable = false
-    @Published var lastSendStatus: String?
+
+    private static let contextKey = "foxon.watch.lastContextJSON"
 
     private override init() {
         super.init()
+        if let cached = UserDefaults.standard.string(forKey: Self.contextKey) {
+            decodeEnvelope(json: cached)
+        }
         guard WCSession.isSupported() else { return }
         WCSession.default.delegate = self
         WCSession.default.activate()
     }
 
-    func ping() {
+    func sendCompletedSession(json: String) {
         let payload: [String: Any] = [
-            "type": "ping",
-            "json": "{\"hello\":\"from watch\"}",
+            "type": "session.complete",
+            "json": json,
             "sentAt": Date().timeIntervalSince1970,
         ]
         WCSession.default.transferUserInfo(payload)
-        let queued = WCSession.default.outstandingUserInfoTransfers.count
-        DispatchQueue.main.async {
-            self.lastSendStatus = "Queued (\(queued) pending)"
-        }
     }
 
     // MARK: - WCSessionDelegate
@@ -57,7 +59,15 @@ final class PhoneLink: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     private func readContext(_ context: [String: Any]) {
-        guard !context.isEmpty else { return }
-        contextJSON = context["json"] as? String ?? String(describing: context)
+        guard let json = context["json"] as? String else { return }
+        UserDefaults.standard.set(json, forKey: Self.contextKey)
+        decodeEnvelope(json: json)
+    }
+
+    private func decodeEnvelope(json: String) {
+        guard let data = json.data(using: .utf8),
+              let envelope = try? JSONDecoder().decode(WatchSyncEnvelope.self, from: data)
+        else { return }
+        workouts = envelope.workouts
     }
 }

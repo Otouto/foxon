@@ -11,23 +11,7 @@ import {
 import { queryClient } from '@/api/queryClient';
 import { clearPersistedCache } from '@/api/persister';
 import { exercisesReviewQueryOptions, sessionsReviewQueryOptions } from '@/api/review';
-import { SessionOutbox } from '@/lib/outbox';
-
-/**
- * Deliver any workout completions stuck in the durable outbox (saved while
- * offline / app killed mid-save). On success, refresh everything a new
- * session touches.
- */
-async function flushOutbox() {
-  if (!SessionOutbox.hasPending()) return;
-  const sent = await SessionOutbox.flush();
-  if (sent > 0) {
-    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    queryClient.invalidateQueries({ queryKey: ['review'] });
-    queryClient.invalidateQueries({ queryKey: ['profile'] });
-    queryClient.invalidateQueries({ queryKey: ['workout-preload'] });
-  }
-}
+import { flushOutbox, pushWorkoutsToWatch } from '@/lib/watchSync';
 
 /**
  * Reacts to auth state to keep the cache fast and correct:
@@ -63,7 +47,7 @@ export function PrefetchOnAuth() {
         const active = (workouts ?? []).filter((w) => w.status === 'ACTIVE').slice(0, 6);
         void Promise.all(
           active.map((w) => queryClient.prefetchQuery(workoutPreloadQueryOptions(w.id)))
-        );
+        ).then(() => pushWorkoutsToWatch());
       });
       return;
     }
@@ -85,7 +69,9 @@ export function PrefetchOnAuth() {
 
     void flushOutbox();
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') void flushOutbox();
+      if (state === 'active') {
+        void flushOutbox().then(() => pushWorkoutsToWatch());
+      }
     });
     return () => subscription.remove();
   }, [isSignedIn, isLoaded]);

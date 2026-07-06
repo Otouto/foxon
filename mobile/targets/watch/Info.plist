@@ -4,5 +4,13 @@
   <dict>
     <key>WKApplication</key>
     <true/>
+    <key>WKBackgroundModes</key>
+    <array>
+      <string>workout-processing</string>
+    </array>
+    <key>NSHealthShareUsageDescription</key>
+    <string>Foxon reads your heart rate and energy burned to enrich your workout sessions.</string>
+    <key>NSHealthUpdateUsageDescription</key>
+    <string>Foxon records your strength training sessions to Health, so they count toward your Activity rings.</string>
   </dict>
 </plist>

@@ -150,13 +150,27 @@ function SessionsTab() {
             onPressIn={() =>
               queryClient.prefetchQuery(sessionDetailsQueryOptions(item.activity.session.id))
             }
-            onPress={() => router.push(`/session-details/${item.activity.session.id}`)}
+            onPress={() =>
+              router.push(
+                isUnsealed(item.activity.session)
+                  ? `/session/seal/${item.activity.session.id}`
+                  : `/session-details/${item.activity.session.id}`
+              )
+            }
             onLongPress={() => confirmDelete(item.activity.session)}
           />
         )
       }
     />
   );
+}
+
+/**
+ * Watch-logged sessions arrive without effort/vibe (no keyboard on the wrist);
+ * they stay "unsealed" until captured on the phone.
+ */
+function isUnsealed(session: ReviewSession): boolean {
+  return session.status === 'FINISHED' && !session.vibeLine && !session.effort;
 }
 
 /**
@@ -323,6 +337,11 @@ function NodeCardBody({
             numberOfLines={2}>
             “{quote}”
           </Text>
+        ) : isUnsealed(session) ? (
+          <View style={styles.unsealedRow}>
+            <SymbolView name="applewatch" size={13} tintColor={colors.amberIcon} />
+            <Text style={styles.unsealedText}>Unsealed — add your reflection</Text>
+          </View>
         ) : null}
       </View>
     </View>
@@ -571,6 +590,17 @@ const styles = StyleSheet.create({
   },
   nodeQuoteMilestone: {
     color: '#6B4E8A',
+  },
+  unsealedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 8,
+  },
+  unsealedText: {
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: colors.amberText,
   },
   // ── Exercises ──
   sectionLabel: {
