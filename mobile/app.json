@@ -10,6 +10,7 @@
     "ios": {
       "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.dmytrolutsik.foxon",
+      "appleTeamId": "9FLR33WUNY",
       "supportsTablet": false,
       "infoPlist": {
         "NSCameraUsageDescription": "Foxon uses the camera to capture a photo of your workout session.",
@@ -37,7 +38,8 @@
           "imageWidth": 160
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "@bacons/apple-targets"
     ],
     "experiments": {
       "typedRoutes": true,
