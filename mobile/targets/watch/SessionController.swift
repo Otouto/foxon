@@ -7,7 +7,7 @@ final class SessionController: ObservableObject {
     @Published private(set) var session: ActiveSessionState? {
         didSet { persist() }
     }
-    @Published var summary: FinishedSummary?
+    @Published var postSession: PostSessionState?
 
     private static let persistKey = "foxon.watch.activeSession"
 
@@ -47,7 +47,7 @@ final class SessionController: ObservableObject {
                     previous: exercise.previous
                 )
             }
-        summary = nil
+        postSession = nil
         session = ActiveSessionState(
             workoutId: workout.id,
             workoutTitle: workout.title,
@@ -136,22 +136,62 @@ final class SessionController: ObservableObject {
            let json = String(data: data, encoding: .utf8) {
             phoneLink.sendCompletedSession(json: json)
         }
-        summary = FinishedSummary(
-            workoutTitle: state.workoutTitle,
-            completedSets: state.completedSets,
-            totalSets: state.totalSets,
-            duration: endTime.timeIntervalSince(state.startTime)
+        postSession = PostSessionState(
+            workoutId: state.workoutId,
+            startTimeISO: payload.startTime,
+            summary: FinishedSummary(
+                workoutTitle: state.workoutTitle,
+                completedSets: state.completedSets,
+                totalSets: state.totalSets,
+                duration: endTime.timeIntervalSince(state.startTime)
+            ),
+            phase: .seal
         )
         session = nil
     }
 
-    func discard() {
-        session = nil
-        summary = nil
+    /// Effort is always captured; the seal only reaches the server when a vibe
+    /// line was dictated (the API requires both), otherwise the phone's
+    /// unsealed-session flow remains the fallback.
+    func submitSeal(rpe: Int, vibeLine: String, via phoneLink: PhoneLink) {
+        guard let post = postSession else { return }
+        let vibe = vibeLine.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !vibe.isEmpty {
+            let seal: [String: String] = [
+                "workoutId": post.workoutId,
+                "startTime": post.startTimeISO,
+                "effort": Self.effortLevel(forRPE: rpe),
+                "vibeLine": vibe,
+            ]
+            if let data = try? JSONEncoder().encode(seal),
+               let json = String(data: data, encoding: .utf8) {
+                phoneLink.sendSeal(json: json)
+            }
+        }
+        postSession?.phase = .awaitingScore
     }
 
-    func dismissSummary() {
-        summary = nil
+    func skipSeal() {
+        postSession?.phase = .summary
+    }
+
+    func clearPostSession() {
+        postSession = nil
+    }
+
+    static func effortLevel(forRPE rpe: Int) -> String {
+        let clamped = min(10, max(1, rpe))
+        switch clamped {
+        case ...3: return "EASY_\(clamped)"
+        case ...6: return "MODERATE_\(clamped)"
+        case ...8: return "HARD_\(clamped)"
+        default: return "ALL_OUT_\(clamped)"
+        }
+    }
+
+    func discard() {
+        session = nil
+        postSession = nil
     }
 
     private func persist() {

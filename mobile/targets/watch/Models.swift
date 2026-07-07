@@ -107,6 +107,29 @@ struct FinishedSummary {
     let duration: TimeInterval
 }
 
+/// Devotion result pushed back by the phone once the completion reached the
+/// server (`session.result` payloads).
+struct SessionResult: Codable, Equatable {
+    let workoutId: String
+    let startTime: String
+    let score: Int?
+    let grade: String?
+}
+
+/// Post-finish flow: capture the seal, then await the devotion reveal.
+struct PostSessionState {
+    enum Phase {
+        case seal
+        case awaitingScore
+        case summary
+    }
+
+    let workoutId: String
+    let startTimeISO: String
+    let summary: FinishedSummary
+    var phase: Phase
+}
+
 // MARK: - Completion payload sent to the phone (mirrors CompletedSessionPayload)
 
 struct CompletedSessionPayload: Encodable {

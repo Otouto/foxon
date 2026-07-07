@@ -340,7 +340,7 @@ struct SummaryView: View {
                 .multilineTextAlignment(.center)
 
                 Button("Done") {
-                    controller.dismissSummary()
+                    controller.clearPostSession()
                 }
             }
         }

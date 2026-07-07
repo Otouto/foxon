@@ -11,6 +11,7 @@ final class PhoneLink: NSObject, ObservableObject, WCSessionDelegate {
 
     @Published var workouts: [WatchWorkout] = []
     @Published var isReachable = false
+    @Published var lastResult: SessionResult?
 
     private static let contextKey = "foxon.watch.lastContextJSON"
 
@@ -25,8 +26,16 @@ final class PhoneLink: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     func sendCompletedSession(json: String) {
+        send(type: "session.complete", json: json)
+    }
+
+    func sendSeal(json: String) {
+        send(type: "session.seal", json: json)
+    }
+
+    private func send(type: String, json: String) {
         let payload: [String: Any] = [
-            "type": "session.complete",
+            "type": type,
             "json": json,
             "sentAt": Date().timeIntervalSince1970,
         ]
@@ -55,6 +64,17 @@ final class PhoneLink: NSObject, ObservableObject, WCSessionDelegate {
     func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
         DispatchQueue.main.async {
             self.readContext(applicationContext)
+        }
+    }
+
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        guard userInfo["type"] as? String == "session.result",
+              let json = userInfo["json"] as? String,
+              let data = json.data(using: .utf8),
+              let result = try? JSONDecoder().decode(SessionResult.self, from: data)
+        else { return }
+        DispatchQueue.main.async {
+            self.lastResult = result
         }
     }
 

@@ -16,6 +16,7 @@ declare class WatchConnectivityModule extends NativeModule<WatchConnectivityEven
   isSupported: boolean;
   getState(): Promise<WatchState>;
   updateApplicationContext(context: Record<string, unknown>): Promise<void>;
+  transferUserInfo(payload: Record<string, unknown>): Promise<void>;
   consumePendingUserInfo(): Promise<Record<string, unknown>[]>;
 }
 

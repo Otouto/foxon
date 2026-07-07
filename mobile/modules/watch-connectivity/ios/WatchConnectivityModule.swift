@@ -37,6 +37,10 @@ public class WatchConnectivityModule: Module {
       try WatchLink.shared.updateApplicationContext(context)
     }
 
+    AsyncFunction("transferUserInfo") { (payload: [String: Any]) in
+      WatchLink.shared.transferUserInfo(payload)
+    }
+
     AsyncFunction("consumePendingUserInfo") { () -> [[String: Any]] in
       WatchLink.shared.consumePendingUserInfo()
     }
@@ -87,6 +91,12 @@ final class WatchLink: NSObject, WCSessionDelegate {
       return
     }
     try WCSession.default.updateApplicationContext(context)
+  }
+
+  /// Queued phone → watch delivery (survives the watch being unreachable).
+  func transferUserInfo(_ payload: [String: Any]) {
+    guard WCSession.isSupported(), WCSession.default.activationState == .activated else { return }
+    WCSession.default.transferUserInfo(payload)
   }
 
   func consumePendingUserInfo() -> [[String: Any]] {
