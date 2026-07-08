@@ -52,6 +52,21 @@ final class WorkoutManager: NSObject, ObservableObject {
         }
     }
 
+    /// Session-wide stats from the live builder — read BEFORE end(), which
+    /// tears the builder down asynchronously.
+    func snapshotMetrics() -> HealthMetrics? {
+        guard let builder else { return nil }
+        let bpm = HKUnit.count().unitDivided(by: .minute())
+        let hrStats = builder.statistics(for: HKQuantityType(.heartRate))
+        let energy = builder.statistics(for: HKQuantityType(.activeEnergyBurned))
+        let metrics = HealthMetrics(
+            avgHeartRate: hrStats?.averageQuantity()?.doubleValue(for: bpm),
+            maxHeartRate: hrStats?.maximumQuantity()?.doubleValue(for: bpm),
+            activeCalories: energy?.sumQuantity()?.doubleValue(for: .kilocalorie())
+        )
+        return metrics.isEmpty ? nil : metrics
+    }
+
     /// Ends the HealthKit session and saves the HKWorkout so it lands in the
     /// Fitness app and counts toward the rings.
     func end() {

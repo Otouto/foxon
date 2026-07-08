@@ -13,6 +13,12 @@ interface CompletedSessionData {
   startTime: Date;
   endTime: Date;
   duration: number;
+  /** HealthKit metrics recorded by the watch companion; absent for phone-logged sessions. */
+  health?: {
+    avgHeartRate?: number | null;
+    maxHeartRate?: number | null;
+    activeCalories?: number | null;
+  };
   exercises: Array<{
     exerciseId: string;
     exerciseName: string;
@@ -27,6 +33,12 @@ interface CompletedSessionData {
       notes?: string;
     }>;
   }>;
+}
+
+function roundedOrNull(value: number | null | undefined): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? Math.round(value)
+    : null;
 }
 
 export async function POST(request: NextRequest) {
@@ -83,6 +95,9 @@ export async function POST(request: NextRequest) {
           status: SessionStatus.FINISHED,
           date: new Date(sessionData.startTime),
           duration: sessionData.duration,
+          avgHeartRate: roundedOrNull(sessionData.health?.avgHeartRate),
+          maxHeartRate: roundedOrNull(sessionData.health?.maxHeartRate),
+          activeCalories: roundedOrNull(sessionData.health?.activeCalories),
           createdAt: new Date(sessionData.startTime),
           updatedAt: new Date(sessionData.endTime),
         }

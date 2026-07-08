@@ -43,6 +43,9 @@ export interface SessionWithDetails {
   devotionGrade: string | null;
   devotionPillars?: DevotionPillars | null;
   devotionDeviations?: DevotionDeviation[] | null;
+  avgHeartRate?: number | null;
+  maxHeartRate?: number | null;
+  activeCalories?: number | null;
   oura?: { sleepScore: number | null; readinessScore: number | null } | null;
   sessionSeal?: {
     effort: string;

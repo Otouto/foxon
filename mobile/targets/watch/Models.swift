@@ -132,6 +132,16 @@ struct PostSessionState {
 
 // MARK: - Completion payload sent to the phone (mirrors CompletedSessionPayload)
 
+struct HealthMetrics: Encodable {
+    let avgHeartRate: Double?
+    let maxHeartRate: Double?
+    let activeCalories: Double?
+
+    var isEmpty: Bool {
+        avgHeartRate == nil && maxHeartRate == nil && activeCalories == nil
+    }
+}
+
 struct CompletedSessionPayload: Encodable {
     struct Exercise: Encodable {
         struct Set: Encodable {
@@ -154,6 +164,7 @@ struct CompletedSessionPayload: Encodable {
     let endTime: String
     let duration: Int
     let exercises: [Exercise]
+    let health: HealthMetrics?
 }
 
 enum ISO8601 {

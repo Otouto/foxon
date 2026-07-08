@@ -106,7 +106,7 @@ final class SessionController: ObservableObject {
 
     /// Ends the session and hands the payload to the phone relay. The transfer
     /// is queued by WatchConnectivity, so this works with the phone far away.
-    func finish(via phoneLink: PhoneLink) {
+    func finish(via phoneLink: PhoneLink, health: HealthMetrics? = nil) {
         guard let state = session else { return }
         let endTime = Date()
         let payload = CompletedSessionPayload(
@@ -130,7 +130,8 @@ final class SessionController: ObservableObject {
                         )
                     }
                 )
-            }
+            },
+            health: health
         )
         if let data = try? JSONEncoder().encode(payload),
            let json = String(data: data, encoding: .utf8) {

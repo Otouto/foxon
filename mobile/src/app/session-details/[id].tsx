@@ -83,6 +83,25 @@ export default function SessionDetailsScreen() {
                   {session.sessionExercises.length !== 1 ? 's' : ''}
                 </Text>
               </View>
+              {session.avgHeartRate != null || session.activeCalories != null ? (
+                <View style={styles.ouraRow}>
+                  {session.avgHeartRate != null ? (
+                    <View style={styles.ouraChip}>
+                      <SymbolView name="heart.fill" size={13} tintColor="#E0526E" />
+                      <Text style={styles.heroPillText}>
+                        {session.avgHeartRate}
+                        {session.maxHeartRate != null ? `–${session.maxHeartRate}` : ''} bpm
+                      </Text>
+                    </View>
+                  ) : null}
+                  {session.activeCalories != null ? (
+                    <View style={styles.ouraChip}>
+                      <SymbolView name="flame.fill" size={13} tintColor="#E08A3C" />
+                      <Text style={styles.heroPillText}>{session.activeCalories} kcal</Text>
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
               {session.oura?.sleepScore != null || session.oura?.readinessScore != null ? (
                 <View style={styles.ouraRow}>
                   {session.oura.sleepScore != null ? (

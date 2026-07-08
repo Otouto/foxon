@@ -17,6 +17,12 @@ export interface CompletedSessionPayload {
   startTime: string | Date;
   endTime: string | Date;
   duration: number;
+  /** HealthKit metrics from the watch companion; absent for phone-logged sessions. */
+  health?: {
+    avgHeartRate?: number | null;
+    maxHeartRate?: number | null;
+    activeCalories?: number | null;
+  };
   exercises: Array<{
     exerciseId: string;
     exerciseName: string;

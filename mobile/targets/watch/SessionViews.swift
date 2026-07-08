@@ -31,8 +31,9 @@ struct ControlsView: View {
     var body: some View {
         VStack(spacing: 10) {
             Button {
+                let health = workoutManager.snapshotMetrics()
                 workoutManager.end()
-                controller.finish(via: phoneLink)
+                controller.finish(via: phoneLink, health: health)
                 WKInterfaceDevice.current().play(.success)
             } label: {
                 Label("Finish", systemImage: "flag.checkered")
